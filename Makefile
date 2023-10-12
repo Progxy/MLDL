@@ -6,7 +6,7 @@ SOURCES = ml.c
 
 #LIBRARIES = 
 
-OUT_FILE = /out/ml
+OUT_FILE = out/ml
 
 all :
 	$(COMPILER) $(FLAGS) $(SOURCES) -o $(OUT_FILE)
