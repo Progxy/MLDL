@@ -5,7 +5,7 @@
 int main() {
     srand(time(NULL));
     unsigned int arch[] = {2, 5, 5, 2};
-    Ml ml = create_ml(4, arch);
-    print_ml(ml);
+    MlT mlt = create_mlt(4, arch);
+    print_mlt(mlt);
     return 0;
 }
