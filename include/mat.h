@@ -26,7 +26,6 @@ void randomize_vec(Vec vec) {
     for (int i = 0; i < vec.cols; ++i) {
         VEC_INDEX(vec, i) = ((double) rand()) / RAND_MAX;
     }
-
     return;
 }
 
@@ -34,7 +33,6 @@ void fill_vec(Vec vec, double value) {
     for (int i = 0; i < vec.cols; ++i) {
         VEC_INDEX(vec, i) = value;
     }
-
     return;
 }
 
