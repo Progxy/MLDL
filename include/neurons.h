@@ -65,4 +65,15 @@ void print_ml(Ml ml) {
     return;
 }
 
+void deallocate_ml(Ml ml) {
+    printf("Deallocating the ml!\n");
+    for (int i = 0; i < ml.size; ++i) {
+        deallocate_vec(ml.layers[i].biases);
+        deallocate_vec(ml.layers[i].outputs);
+        deallocate_mat(ml.layers[i].weights);
+    }
+    free(ml.layers);
+    return;
+}
+
 #endif //_NEURONS_H_
