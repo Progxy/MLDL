@@ -6,22 +6,9 @@
 #include <stdlib.h>
 #include "./mat.h"
 
-typedef struct Layer {
-    unsigned int neurons;
-    Vec outputs;
-    Vec biases;
-    Mat weights;
-} Layer;
-
-typedef struct Ml {
-    unsigned int size;
-    unsigned int* arch;
-    Layer* layers;
-} Ml;
-
 Layer create_layer(unsigned int input_neurons, unsigned int neurons) {
     Layer layer = (Layer) {.neurons = neurons};
-    layer.outputs = create_vec(neurons);
+    layer.outputs = (Vec) {.rows = 1, .cols = neurons, .data = NULL};
     layer.biases = create_vec(neurons);
     randomize_vec(layer.biases);
     layer.weights = create_mat(neurons, input_neurons);

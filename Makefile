@@ -4,9 +4,9 @@ FLAGS = -std=c11 -Wall
 
 SOURCES = ml.c
 
-#LIBRARIES = 
+LIBRARIES = -lm
 
 OUT_FILE = out/ml
 
 all :
-	$(COMPILER) $(FLAGS) $(SOURCES) -o $(OUT_FILE)
+	$(COMPILER) $(FLAGS) $(SOURCES) $(LIBRARIES) -o $(OUT_FILE)
