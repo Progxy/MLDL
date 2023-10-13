@@ -10,6 +10,7 @@
 #define VEC_INDEX(vec, col) ((vec).data)[(col)]
 #define is_invalid_mat(mat) ((mat).data == NULL) || ((mat).rows == 0) || ((mat).cols == 0)
 #define deallocate_vec(vec) deallocate_mat(vec)
+#define print_vec(vec) print_mat(vec)
 
 typedef struct Mat {
     unsigned int rows;
@@ -115,6 +116,7 @@ void print_mat(Mat mat) {
     return;
 }
 
+// The vector created is a row vector.
 Vec create_vec(unsigned int size) {
     Vec vec = (Vec) {.rows = 1, .cols = size };
     vec.data = (double*) calloc(size, sizeof(double));
@@ -145,6 +147,12 @@ Vec get_col_from_mat(Mat mat, unsigned int col) {
     return vec;
 }
 
+void transpose_vec(Vec* vec) {
+    vec -> rows = vec -> cols;
+    vec -> cols = 1;
+    return;
+}
+
 void randomize_vec(Vec vec) {
     for (int i = 0; i < vec.cols; ++i) {
         VEC_INDEX(vec, i) = ((double) rand()) / RAND_MAX;
@@ -156,17 +164,6 @@ void fill_vec(Vec vec, double value) {
     for (int i = 0; i < vec.cols; ++i) {
         VEC_INDEX(vec, i) = value;
     }
-    return;
-}
-
-void print_vec(Vec vec) {
-    printf("[ ");
-    
-    for (int i = 0; i < vec.cols; ++i) {
-        printf("%lf%s", VEC_INDEX(vec, i), i == (vec.cols - 1) ? " " : ", ");
-    }
-    
-    printf("]");
     return;
 }
 
