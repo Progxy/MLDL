@@ -4,8 +4,13 @@
 
 int main() {
     srand(time(NULL));
-    unsigned int arch[] = {2, 5, 5, 2};
-    Ml ml = create_ml(4, arch);
-    print_ml(ml);
+    Vec vec = create_vec(3);
+    printf("Vec: \n");
+    print_vec(vec);
+    printf("\n");
+    transpose_vec(&vec);
+    printf("Transposed Vec: \n");
+    print_vec(vec);
+    printf("\n");
     return 0;
 }
