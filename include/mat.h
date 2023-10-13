@@ -4,7 +4,6 @@
 // Library for matrix multiplication
 
 #include <stdlib.h>
-#include <string.h>
 
 #define MAT_INDEX(mat, row, col) ((mat).data)[(mat).cols * (row) + (col)]
 #define VEC_INDEX(vec, col) ((vec).data)[(col)]
