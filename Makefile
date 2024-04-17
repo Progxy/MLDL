@@ -1,12 +1,9 @@
-COMPILER = gcc
-
-FLAGS = -std=c11 -Wall
-
-SOURCES = ml.c
+FLAGS = -std=c11 -Wall -Wextra -pedantic
 
 LIBRARIES = -lm
 
 OUT_FILE = out/ml
 
-all :
-	$(COMPILER) $(FLAGS) $(SOURCES) $(LIBRARIES) -o $(OUT_FILE)
+build: ml.c
+	gcc $(FLAGS) ml.c $(LIBRARIES) -o $(OUT_FILE)
+	./out/ml

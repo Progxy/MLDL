@@ -24,8 +24,8 @@ Mat create_mat(unsigned int rows, unsigned int cols) {
 }
 
 void randomize_mat(Mat mat) {
-    for (int row = 0; row < mat.rows; ++row) {
-        for (int col = 0; col < mat.cols; ++col) {
+    for (unsigned int row = 0; row < mat.rows; ++row) {
+        for (unsigned int col = 0; col < mat.cols; ++col) {
             MAT_INDEX(mat, row, col) = rand_d();
         }
     }
@@ -33,8 +33,8 @@ void randomize_mat(Mat mat) {
 }
 
 void fill_mat(Mat mat, double value) {
-    for (int row = 0; row < mat.rows; ++row) {
-        for (int col = 0; col < mat.cols; ++col) {
+    for (unsigned int row = 0; row < mat.rows; ++row) {
+        for (unsigned int col = 0; col < mat.cols; ++col) {
             MAT_INDEX(mat, row, col) = value;
         }
     }
@@ -49,7 +49,7 @@ void print_mat(Mat mat) {
 
     if (mat.rows == 1) {
         printf("[ ");
-        for (int i = 0; i < mat.cols; ++i) {
+        for (unsigned int i = 0; i < mat.cols; ++i) {
             printf("%lf%s", VEC_INDEX(mat, i), i == (mat.cols - 1) ? " " : ", ");
         } 
         printf("]");
@@ -58,15 +58,15 @@ void print_mat(Mat mat) {
     
     printf("[\n");
     
-    for (int row = 0; row < mat.rows; ++row) {
+    for (unsigned int row = 0; row < mat.rows; ++row) {
         printf("\t");
-        for (int col = 0; col < mat.cols; ++col) {
+        for (unsigned int col = 0; col < mat.cols; ++col) {
             printf("%lf%s", MAT_INDEX(mat, row, col), col == (mat.cols - 1) ? " " : ", ");
         }
         printf("\n");
     }
     
-    for (int i = 0; i < mat.cols + 2; ++i) {
+    for (unsigned int i = 0; i < mat.cols + 2; ++i) {
         printf("\t");
     }
 
@@ -90,8 +90,8 @@ Mat sum_mat(Mat a, Mat b, bool new_mat) {
         Mat mat = (Mat) {.rows = a.rows, .cols = a.cols};
         mat.data = (double*) calloc(mat.rows * mat.cols, sizeof(double));
 
-        for (int row = 0; row < a.rows; ++row) {
-            for (int col = 0; col < b.cols; ++col) {
+        for (unsigned int row = 0; row < a.rows; ++row) {
+            for (unsigned int col = 0; col < b.cols; ++col) {
                 MAT_INDEX(mat, row, col) = MAT_INDEX(a, row, col) + MAT_INDEX(b, row, col);
             }
         }
@@ -99,8 +99,8 @@ Mat sum_mat(Mat a, Mat b, bool new_mat) {
         return mat;
     }
 
-    for (int row = 0; row < a.rows; ++row) {
-        for (int col = 0; col < b.cols; ++col) {
+    for (unsigned int row = 0; row < a.rows; ++row) {
+        for (unsigned int col = 0; col < b.cols; ++col) {
             MAT_INDEX(a, row, col) += MAT_INDEX(b, row, col);
         }
     }
@@ -123,9 +123,9 @@ Mat mul_mat(Mat a, Mat b) {
     Mat mat = (Mat) {.cols = b.cols, .rows = a.rows};
     mat.data = (double*) calloc(mat.rows * mat.cols, sizeof(double));
     
-    for (int row = 0; row < a.rows; ++row) {
-        for (int col = 0; col < b.cols; ++col) {
-            for (int i = 0; i < a.cols; ++i) {
+    for (unsigned int row = 0; row < a.rows; ++row) {
+        for (unsigned int col = 0; col < b.cols; ++col) {
+            for (unsigned int i = 0; i < a.cols; ++i) {
                 MAT_INDEX(mat, row, col) += MAT_INDEX(a, row, i) * MAT_INDEX(b, i, col);
             }
         }
@@ -138,7 +138,7 @@ Mat create_id_mat(unsigned int size) {
     Mat mat = (Mat) {.rows = size, .cols = size};
     mat.data = (double*) calloc(size * size, sizeof(double));
 
-    for (int i = 0; i < size; ++i) {
+    for (unsigned int i = 0; i < size; ++i) {
         MAT_INDEX(mat, i, i) = 1.0f;
     }
 
@@ -169,11 +169,28 @@ Vec get_col_from_mat(Mat mat, unsigned int col) {
     Vec vec = (Vec) {.cols = mat.cols, .rows = 1};
     vec.data = (double*) calloc(mat.rows, sizeof(double));
 
-    for (int i = 0; i < mat.rows; ++i) {
+    for (unsigned int i = 0; i < mat.rows; ++i) {
         VEC_INDEX(vec, i) = mat.data[col + (mat.cols * i)];
     }
 
     return vec;
+}
+
+Mat scalar_mul(Mat mat, double scalar) {
+    for (unsigned int r = 0; r < mat.rows; ++r) {
+        for (unsigned int c = 0; c < mat.cols; ++c) {
+            MAT_INDEX(mat, r, c) *= scalar;
+        }
+    }
+    return mat; 
+}
+
+void copy_mat(Mat* dest, Mat src) {
+    (*dest).data = realloc((*dest).data, sizeof(double) * src.rows * src.cols);
+    (*dest).rows = src.rows;
+    (*dest).cols = src.cols;
+    memcpy((*dest).data, src.data, sizeof(double) * src.rows * src.cols);
+    return;
 }
 
 void transpose_vec(Vec* vec) {
@@ -185,14 +202,14 @@ void transpose_vec(Vec* vec) {
 
 void randomize_vec(Vec vec) {
     unsigned int size = vec.rows == 1 ? vec.cols : vec.rows;
-    for (int i = 0; i < size; ++i) {
+    for (unsigned int i = 0; i < size; ++i) {
         VEC_INDEX(vec, i) = rand_d();
     }
     return;
 }
 
 void fill_vec(Vec vec, double value) {
-    for (int i = 0; i < vec.cols; ++i) {
+    for (unsigned int i = 0; i < vec.cols; ++i) {
         VEC_INDEX(vec, i) = value;
     }
     return;

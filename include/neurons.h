@@ -21,9 +21,11 @@ Ml create_ml(unsigned int size, unsigned int* arch) {
     ml.layers = (Layer*) calloc(size, sizeof(Layer));
     ml.layers[0] = create_layer(1, arch[0]);
 
-    for (int i = 1; i < size; ++i) {
+    for (unsigned int i = 1; i < size; ++i) {
         ml.layers[i] = create_layer(arch[i - 1], arch[i]);
     }
+
+    printf("DEBUG_INFO: allocating ml...\n");
 
     return ml;
 }
@@ -31,7 +33,7 @@ Ml create_ml(unsigned int size, unsigned int* arch) {
 void print_layer(Layer layer, unsigned int ind) {
     printf("Layer %d: \n", ind);
     
-    for (int i = 0; i < layer.neurons; ++i) {
+    for (unsigned int i = 0; i < layer.neurons; ++i) {
         printf("\tNeuron %d: \n", i + 1);
         printf("\tweigths: ");
         print_vec(get_row_from_mat(layer.weights, i, 0));
@@ -44,7 +46,7 @@ void print_layer(Layer layer, unsigned int ind) {
 void print_ml(Ml ml) {
     printf("Ml structure: \n");
     
-    for (int i = 1; i < ml.size; ++i) {
+    for (unsigned int i = 1; i < ml.size; ++i) {
         print_layer(ml.layers[i], i);
         printf("\n");
     }
@@ -54,7 +56,7 @@ void print_ml(Ml ml) {
 
 void deallocate_ml(Ml ml) {
     printf("Deallocating the ml!\n");
-    for (int i = 0; i < ml.size; ++i) {
+    for (unsigned int i = 0; i < ml.size; ++i) {
         deallocate_vec(ml.layers[i].biases);
         deallocate_vec(ml.layers[i].activation);
         deallocate_mat(ml.layers[i].weights);
