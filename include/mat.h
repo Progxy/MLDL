@@ -4,11 +4,12 @@
 // Library for matrix multiplication
 
 #include <stdlib.h>
-#include <string.h>
+#include <string.h> 
+#include "structures.h"
 
 #define MAT_INDEX(mat, row, col) ((mat).data)[(mat).cols * (row) + (col)]
 #define VEC_INDEX(vec, col) ((vec).data)[(col)]
-#define is_invalid_mat(mat) ((mat).data == NULL) || ((mat).rows == 0) || ((mat).cols == 0)
+#define IS_INVALID_MAT(mat) ((mat).data == NULL) || ((mat).rows == 0) || ((mat).cols == 0)
 #define deallocate_vec(vec) deallocate_mat(vec)
 #define print_vec(vec) print_mat(vec)
 
@@ -41,7 +42,7 @@ void fill_mat(Mat mat, double value) {
 }
 
 void print_mat(Mat mat) {
-    if (is_invalid_mat(mat)) {
+    if (IS_INVALID_MAT(mat)) {
         printf("Invalid Matrix!");
         return;
     }
@@ -73,7 +74,7 @@ void print_mat(Mat mat) {
     return;
 }
 
-Mat sum_mat(Mat a, Mat b, unsigned char new_mat) {
+Mat sum_mat(Mat a, Mat b, bool new_mat) {
     if (a.rows != b.rows || a.cols != b.cols) {
         printf("Mat \'a\' has a different shape then the Mat \'b\': rows: {%d - %d}, cols: {%d - %d}\n", a.rows, b.rows, a.cols, b.cols);
         printf("Mat a: \n");

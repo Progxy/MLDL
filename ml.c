@@ -6,17 +6,27 @@
 
 int main() {
     srand(time(NULL));
-    Vec input_vec = create_vec(1);
-    randomize_vec(input_vec);
-    transpose_vec(&input_vec);
-    printf("Input vec: ");
-    print_vec(input_vec);
-    printf("\n\n");
+    
+    double input_data[] = {
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        1.0f, 0.0f,
+        0.0f, 0.0f
+    };    
+    
+    double output_data[] = {
+        1.0f, 
+        1.0f, 
+        1.0f,
+        0.0f,
+    };
+
     unsigned int arch[] = {2, 2, 1};
     Ml ml = create_ml(3, arch);
-    print_ml(ml);
-    printf("\n---------------------------------------------------------\n\n");
-    feed_forward(ml, input_vec);
-    printf("\n");
+    Mat input_mat = (Mat) {.rows = 4, .cols = 2, .data = input_data};
+    Mat output_mat = (Mat) {.rows = 4, .cols = 1, .data = output_data};
+    double cost_ml = cost(ml, input_mat, output_mat);
+    printf("Current cost: %lf\n", cost_ml);
+    
     return 0;
 }

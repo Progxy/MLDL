@@ -8,7 +8,7 @@
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons) {
     Layer layer = (Layer) {.neurons = neurons};
-    layer.outputs = (Vec) {.rows = 1, .cols = neurons, .data = NULL};
+    layer.activation = (Vec) {.rows = 1, .cols = neurons, .data = NULL};
     layer.biases = create_vec(neurons);
     randomize_vec(layer.biases);
     layer.weights = create_mat(neurons, input_neurons);
@@ -44,8 +44,8 @@ void print_layer(Layer layer, unsigned int ind) {
 void print_ml(Ml ml) {
     printf("Ml structure: \n");
     
-    for (int i = 0; i < ml.size; ++i) {
-        print_layer(ml.layers[i], i + 1);
+    for (int i = 1; i < ml.size; ++i) {
+        print_layer(ml.layers[i], i);
         printf("\n");
     }
     
@@ -56,7 +56,7 @@ void deallocate_ml(Ml ml) {
     printf("Deallocating the ml!\n");
     for (int i = 0; i < ml.size; ++i) {
         deallocate_vec(ml.layers[i].biases);
-        deallocate_vec(ml.layers[i].outputs);
+        deallocate_vec(ml.layers[i].activation);
         deallocate_mat(ml.layers[i].weights);
     }
     free(ml.layers);

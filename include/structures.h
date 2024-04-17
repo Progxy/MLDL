@@ -3,6 +3,7 @@
 
 // Header containing all the structure used
 
+typedef unsigned char bool;
 typedef struct Mat {
     unsigned int rows;
     unsigned int cols;
@@ -13,7 +14,7 @@ typedef Mat Vec;
 
 typedef struct Layer {
     unsigned int neurons;
-    Vec outputs;
+    Vec activation;
     Vec biases;
     Mat weights;
 } Layer;
