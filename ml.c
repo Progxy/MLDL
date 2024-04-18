@@ -24,8 +24,10 @@ int main() {
     unsigned int arch[] = {2, 2, 1};
     Ml ml = create_ml(ARR_SIZE(arch), arch);
     rand_ml(ml);
+
     Mat input_mat = (Mat) { .rows = 4, .cols = 2, .data = (double*) input_data };
     Mat output_mat = (Mat) { .rows = 4, .cols = 1, .data = (double*) output_data };
+    
     learn(ml, input_mat, output_mat, 1, 10000);
     printf("ML accuracy: %.2lf%%\n", (1.0 - cost(ml, input_mat, output_mat)) * 100.0);
     
