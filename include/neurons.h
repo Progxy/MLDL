@@ -41,7 +41,7 @@ void print_layer(Layer layer, unsigned int ind) {
         printf("\tNeuron %d: \n", i + 1);
         printf("\tweigths: ");
         print_vec(get_row_from_mat(layer.weights, i, 0));
-        printf(", bias: %lf\n", layer.biases.data[i]);
+        printf("\tbias: %lf\n", layer.biases.data[i]);
     } 
 
     return;

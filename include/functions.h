@@ -28,7 +28,7 @@ void feed_forward(Ml ml) {
     sigmoid(ml.layers[0].activation);
 
     for (unsigned int i = 1; i < ml.size; ++i) {
-        ml.layers[i].activation = sum_mat(MUL_MAT(ml.layers[i].weights, ml.layers[i - 1].activation), ml.layers[i].biases, FALSE);
+        sum_mat(&(ml.layers[i].activation), MUL_MAT(ml.layers[i].weights, ml.layers[i - 1].activation), ml.layers[i].biases);
         DISPOSE_TEMP_MAT();
         sigmoid(ml.layers[i].activation);
         if (IS_INVALID_MAT(ml.layers[i].activation)) {
@@ -49,7 +49,8 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
     transpose_vec(&(OUTPUT_ML(gradient)));
 
     for (int l = ml.size - 1; l > 0; --l) {
-        Vec current_z = sum_mat(MUL_MAT(ml.layers[l].weights, ml.layers[l - 1].activation), ml.layers[l].biases, TRUE);
+        Vec current_z = create_vec(1);
+        sum_mat(&current_z, MUL_MAT(ml.layers[l].weights, ml.layers[l - 1].activation), ml.layers[l].biases);
         DISPOSE_TEMP_MAT();
 
         for (unsigned int j = 0; j < ml.layers[l].neurons; ++j) {
@@ -85,9 +86,9 @@ void learn(Ml ml, Mat input_mat, Mat output_mat, double learning_rate, unsigned 
 
             for (int l = gradient.size - 1; l > 0; --l) {
                 // Subtract the gradient from the activation layer
-                ml.layers[l].activation = sum_mat(scalar_mul(gradient.layers[l].activation, -learning_rate), ml.layers[l].activation, FALSE);
-                ml.layers[l].weights = sum_mat(scalar_mul(gradient.layers[l].weights, -learning_rate), ml.layers[l].weights, FALSE);
-                ml.layers[l].biases = sum_mat(scalar_mul(gradient.layers[l].biases, -learning_rate), ml.layers[l].biases, FALSE);
+                sum_mat(&(ml.layers[l].activation), scalar_mul(gradient.layers[l].activation, -learning_rate), ml.layers[l].activation);
+                sum_mat(&(ml.layers[l].weights), scalar_mul(gradient.layers[l].weights, -learning_rate), ml.layers[l].weights);
+                sum_mat(&(ml.layers[l].biases), scalar_mul(gradient.layers[l].biases, -learning_rate), ml.layers[l].biases);
             }
 
             deallocate_ml(gradient);

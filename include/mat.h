@@ -76,7 +76,7 @@ void print_mat(Mat mat) {
     return;
 }
 
-Mat sum_mat(Mat a, Mat b, bool new_mat) {
+void sum_mat(Mat* dest, Mat a, Mat b) {
     if (a.rows != b.rows || a.cols != b.cols) {
         printf("Mat \'a\' has a different shape then the Mat \'b\': rows: {%d - %d}, cols: {%d - %d}\n", a.rows, b.rows, a.cols, b.cols);
         printf("Mat a: \n");
@@ -85,29 +85,20 @@ Mat sum_mat(Mat a, Mat b, bool new_mat) {
         printf("Mat b: \n");
         print_mat(b);
         printf("\n\n");
-        return (Mat) {.rows = 0, .cols = 0, .data = NULL};
+        return;
     }
 
-    if (new_mat) {
-        Mat mat = (Mat) {.rows = a.rows, .cols = a.cols};
-        mat.data = (double*) calloc(mat.rows * mat.cols, sizeof(double));
-
-        for (unsigned int row = 0; row < a.rows; ++row) {
-            for (unsigned int col = 0; col < b.cols; ++col) {
-                MAT_INDEX(mat, row, col) = MAT_INDEX(a, row, col) + MAT_INDEX(b, row, col);
-            }
-        }
-
-        return mat;
-    }
+    dest -> cols = a.cols;
+    dest -> rows = a.rows;
+    dest -> data = (double*) realloc(dest -> data, sizeof(double) * dest -> cols * dest -> rows);
 
     for (unsigned int row = 0; row < a.rows; ++row) {
         for (unsigned int col = 0; col < b.cols; ++col) {
-            MAT_INDEX(a, row, col) += MAT_INDEX(b, row, col);
+            MAT_INDEX(*dest, row, col) = MAT_INDEX(a, row, col) + MAT_INDEX(b, row, col);
         }
     }
 
-    return a;
+    return;
 }
 
 Mat mul_mat(Mat a, Mat b, bool clean_cache_flag) {
@@ -126,6 +117,9 @@ Mat mul_mat(Mat a, Mat b, bool clean_cache_flag) {
     static unsigned int data_ptrs_count = 0;
 
     if (clean_cache_flag) {
+        for (unsigned int i = 0; i < data_ptrs_count; ++i) {
+            free(data_ptrs[i]);
+        }
         free(data_ptrs);
         data_ptrs = NULL;
         return (Mat) {0};
@@ -203,10 +197,10 @@ Mat scalar_mul(Mat mat, double scalar) {
 }
 
 void copy_mat(Mat* dest, Mat src) {
-    (*dest).data = realloc((*dest).data, sizeof(double) * src.rows * src.cols);
-    (*dest).rows = src.rows;
-    (*dest).cols = src.cols;
-    memcpy((*dest).data, src.data, sizeof(double) * src.rows * src.cols);
+    dest -> data = realloc(dest -> data, sizeof(double) * src.rows * src.cols);
+    dest -> rows = src.rows;
+    dest -> cols = src.cols;
+    memcpy(dest -> data, src.data, sizeof(double) * src.rows * src.cols);
     return;
 }
 
