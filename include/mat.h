@@ -12,6 +12,8 @@
 #define IS_INVALID_MAT(mat) ((mat).data == NULL) || ((mat).rows == 0) || ((mat).cols == 0)
 #define deallocate_vec(vec) deallocate_mat(vec)
 #define print_vec(vec) print_mat(vec)
+#define MUL_MAT(a, b) mul_mat(a, b, FALSE)
+#define DISPOSE_TEMP_MAT() mul_mat((Mat) {.cols = 1, .rows = 1, .data = NULL}, (Mat) {.cols = 1, .rows = 1, .data = NULL}, TRUE)
 
 double rand_d() {
     return ((double) rand() / (double) RAND_MAX);
@@ -108,7 +110,7 @@ Mat sum_mat(Mat a, Mat b, bool new_mat) {
     return a;
 }
 
-Mat mul_mat(Mat a, Mat b) {
+Mat mul_mat(Mat a, Mat b, bool clean_cache_flag) {
     if (a.cols != b.rows) {
         printf("Mat \'a\' cols are not equal to Mat \'b\' rows: {%d != %d}\n", a.cols, b.rows);
         printf("Mat a: \n");
@@ -119,10 +121,25 @@ Mat mul_mat(Mat a, Mat b) {
         printf("\n\n");
         return (Mat) {.rows = 0, .cols = 0, .data = NULL};
     }
+    
+    static double** data_ptrs = NULL;
+    static unsigned int data_ptrs_count = 0;
+
+    if (clean_cache_flag) {
+        free(data_ptrs);
+        data_ptrs = NULL;
+        return (Mat) {0};
+    } else if (data_ptrs == NULL) {
+        data_ptrs = (double**) calloc(1, sizeof(double*));
+        data_ptrs_count = 0;
+    } else data_ptrs = (double**) realloc(data_ptrs, sizeof(double*) * (data_ptrs_count + 1));
 
     Mat mat = (Mat) {.cols = b.cols, .rows = a.rows};
     mat.data = (double*) calloc(mat.rows * mat.cols, sizeof(double));
     
+    data_ptrs[data_ptrs_count] = mat.data;
+    data_ptrs_count++;
+
     for (unsigned int row = 0; row < a.rows; ++row) {
         for (unsigned int col = 0; col < b.cols; ++col) {
             for (unsigned int i = 0; i < a.cols; ++i) {

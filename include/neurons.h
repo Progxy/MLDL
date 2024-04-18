@@ -8,7 +8,7 @@
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons) {
     Layer layer = (Layer) {.neurons = neurons};
-    layer.activation = (Vec) {.rows = 1, .cols = neurons, .data = NULL};
+    layer.activation = create_vec(neurons);
     layer.biases = create_vec(neurons);
     randomize_vec(layer.biases);
     layer.weights = create_mat(neurons, input_neurons);

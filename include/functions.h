@@ -28,7 +28,8 @@ void feed_forward(Ml ml) {
     sigmoid(ml.layers[0].activation);
 
     for (unsigned int i = 1; i < ml.size; ++i) {
-        ml.layers[i].activation = sum_mat(mul_mat(ml.layers[i].weights, ml.layers[i - 1].activation), ml.layers[i].biases, FALSE);
+        ml.layers[i].activation = sum_mat(MUL_MAT(ml.layers[i].weights, ml.layers[i - 1].activation), ml.layers[i].biases, FALSE);
+        DISPOSE_TEMP_MAT();
         sigmoid(ml.layers[i].activation);
         if (IS_INVALID_MAT(ml.layers[i].activation)) {
             return;
@@ -44,13 +45,12 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
     feed_forward(ml);
 
     Ml gradient = create_ml(ml.size, ml.arch);
-    copy_mat(&INPUT_ML(gradient), output_vec);
+    copy_mat(&OUTPUT_ML(gradient), output_vec);
     transpose_vec(&(OUTPUT_ML(gradient)));
 
-    printf("DEBUG_INFO: starting backpropagation...\n");
-
     for (int l = ml.size - 1; l > 0; --l) {
-        Vec current_z = sum_mat(mul_mat(ml.layers[l].weights, ml.layers[l - 1].activation), ml.layers[l].biases, TRUE);
+        Vec current_z = sum_mat(MUL_MAT(ml.layers[l].weights, ml.layers[l - 1].activation), ml.layers[l].biases, TRUE);
+        DISPOSE_TEMP_MAT();
 
         for (unsigned int j = 0; j < ml.layers[l].neurons; ++j) {
             double diff_activation = 2 * (ml.layers[l].activation.data[j] - gradient.layers[l].activation.data[j]);
