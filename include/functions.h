@@ -76,7 +76,7 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
 
 void learn(Ml ml, Mat input_mat, Mat output_mat, double learning_rate, unsigned int epochs) {
     for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
-        printf("DEBUG_INFO: current epoch: %u\n", epoch);
+        printf("DEBUG_INFO: current epoch: %u\n", epoch + 1);
 
         for (unsigned int i = 0; i < input_mat.rows; ++i) {
             Vec input_vec = get_row_from_mat(input_mat, i, FALSE);
