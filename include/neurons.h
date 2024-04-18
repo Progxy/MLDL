@@ -10,11 +10,17 @@ Layer create_layer(unsigned int input_neurons, unsigned int neurons) {
     Layer layer = (Layer) {.neurons = neurons};
     layer.activation = create_vec(neurons);
     layer.biases = create_vec(neurons);
-    randomize_vec(layer.biases);
     layer.weights = create_mat(neurons, input_neurons);
-    randomize_mat(layer.weights);
     return layer;
 }
+
+void rand_ml(Ml ml) {
+    for (unsigned int l = 0; l < ml.size; ++l) {
+        randomize_vec(ml.layers[l].biases);
+        randomize_mat(ml.layers[l].weights);
+    }
+    return;
+} 
 
 Ml create_ml(unsigned int size, unsigned int* arch) {
     Ml ml = (Ml) {.size = size, .arch = arch};
@@ -24,8 +30,6 @@ Ml create_ml(unsigned int size, unsigned int* arch) {
     for (unsigned int i = 1; i < size; ++i) {
         ml.layers[i] = create_layer(arch[i - 1], arch[i]);
     }
-
-    printf("DEBUG_INFO: allocating ml...\n");
 
     return ml;
 }
@@ -55,7 +59,6 @@ void print_ml(Ml ml) {
 }
 
 void deallocate_ml(Ml ml) {
-    printf("Deallocating the ml!\n");
     for (unsigned int i = 0; i < ml.size; ++i) {
         deallocate_vec(ml.layers[i].biases);
         deallocate_vec(ml.layers[i].activation);

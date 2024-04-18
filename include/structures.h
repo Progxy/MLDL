@@ -2,6 +2,7 @@
 #define _STRUCTURES_H_
 
 // Header containing all the structure used
+#define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
 typedef unsigned char bool;
 typedef struct Mat {

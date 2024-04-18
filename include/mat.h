@@ -54,7 +54,7 @@ void print_mat(Mat mat) {
         for (unsigned int i = 0; i < mat.cols; ++i) {
             printf("%lf%s", VEC_INDEX(mat, i), i == (mat.cols - 1) ? " " : ", ");
         } 
-        printf("]");
+        printf("]\n");
         return;
     }
     
@@ -72,7 +72,7 @@ void print_mat(Mat mat) {
         printf("\t");
     }
 
-    printf("]");
+    printf("]\n");
     return;
 }
 
@@ -169,7 +169,7 @@ Vec create_vec(unsigned int size) {
     return vec;
 }
 
-Vec get_row_from_mat(Mat mat, unsigned int row, unsigned char clone) {
+Vec get_row_from_mat(Mat mat, unsigned int row, bool clone) {
     Vec vec = (Vec) {.cols = mat.cols, .rows = 1};
     
     if (clone) {

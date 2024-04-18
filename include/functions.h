@@ -74,41 +74,47 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
     return gradient;
 }
 
-void learn(Ml ml, Mat input_mat, Mat output_mat, double learning_rate) {
-    for (unsigned int epoch = 0; epoch < input_mat.rows; ++epoch) {
+void learn(Ml ml, Mat input_mat, Mat output_mat, double learning_rate, unsigned int epochs) {
+    for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
         printf("DEBUG_INFO: current epoch: %u\n", epoch);
-        Vec input_vec = get_row_from_mat(input_mat, epoch, FALSE);
-        Vec output_vec = get_row_from_mat(output_mat, epoch, FALSE);
-        Ml gradient = backpropagation(ml, input_vec, output_vec);
 
-        for (int l = gradient.size - 1; l > 0; --l) {
-            // Subtract the gradient from the activation layer
-            ml.layers[l].activation = sum_mat(scalar_mul(gradient.layers[l].activation, -learning_rate), ml.layers[l].activation, FALSE);
-            ml.layers[l].weights = sum_mat(scalar_mul(gradient.layers[l].weights, -learning_rate), ml.layers[l].weights, FALSE);
-            ml.layers[l].biases = sum_mat(scalar_mul(gradient.layers[l].biases, -learning_rate), ml.layers[l].biases, FALSE);
+        for (unsigned int i = 0; i < input_mat.rows; ++i) {
+            Vec input_vec = get_row_from_mat(input_mat, i, FALSE);
+            Vec output_vec = get_row_from_mat(output_mat, i, FALSE);
+            Ml gradient = backpropagation(ml, input_vec, output_vec);
+
+            for (int l = gradient.size - 1; l > 0; --l) {
+                // Subtract the gradient from the activation layer
+                ml.layers[l].activation = sum_mat(scalar_mul(gradient.layers[l].activation, -learning_rate), ml.layers[l].activation, FALSE);
+                ml.layers[l].weights = sum_mat(scalar_mul(gradient.layers[l].weights, -learning_rate), ml.layers[l].weights, FALSE);
+                ml.layers[l].biases = sum_mat(scalar_mul(gradient.layers[l].biases, -learning_rate), ml.layers[l].biases, FALSE);
+            }
+
+            deallocate_ml(gradient);
         }
 
-        deallocate_ml(gradient);
     }
 
     return;
+
 }
 
 double cost(Ml ml, Mat input, Mat output) {
     double cost = 0.0f;
 
     for (size_t i = 0; i < input.rows; ++i) {
-        Vec input_row = get_row_from_mat(input, i, 0);
-        Vec output_row = get_row_from_mat(output, i, 0);
+        Vec input_row = get_row_from_mat(input, i, FALSE);
+        Vec output_row = get_row_from_mat(output, i, FALSE);
 
         // Feed the network
-        INPUT_ML(ml) = input_row;
+        copy_mat(&INPUT_ML(ml), input_row);
         transpose_vec(&(INPUT_ML(ml)));
         feed_forward(ml);
 
         // Calculate the loss
         // (a^L - y)^2
         for (size_t j = 0; j < output.cols; ++j) {
+            printf("DEBUG_INFO: Input (%lf, %lf), Output: %lf, expected: %lf\n", MAT_INDEX(input, i, 0), MAT_INDEX(input, i, 1), MAT_INDEX(OUTPUT_ML(ml), 0, j), MAT_INDEX(output_row, 0, j));
             cost += pow(MAT_INDEX(OUTPUT_ML(ml), 0, j) - MAT_INDEX(output_row, 0, j), 2.0f);
         }
     }
