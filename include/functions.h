@@ -53,12 +53,12 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
         DISPOSE_TEMP_MAT();
 
         for (unsigned int j = 0; j < ml.layers[l].neurons; ++j) {
-            double diff_activation = 2 * (ml.layers[l].activation.data[j] - gradient.layers[l].activation.data[j]);
-            double diff_sigmoid = sigmoid_func(current_z.data[j]) * (1 - sigmoid_func(current_z.data[j]));
+            double diff_activation = 2 * (VEC_INDEX(ml.layers[l].activation, j) - VEC_INDEX(gradient.layers[l].activation, j));
+            double diff_sigmoid = sigmoid_func(VEC_INDEX(current_z, j)) * (1 - sigmoid_func(VEC_INDEX(current_z, j)));
 
             // Store the dC/dw[j][k]^L
             for (unsigned int k = 0; k < ml.layers[l - 1].neurons; ++k) {
-                MAT_INDEX(gradient.layers[l].weights, j, k) = diff_activation * diff_sigmoid * ml.layers[l - 1].activation.data[k];
+                MAT_INDEX(gradient.layers[l].weights, j, k) = diff_activation * diff_sigmoid * VEC_INDEX(ml.layers[l - 1].activation, k);
             }
 
             // Store the dC/db[j]^L

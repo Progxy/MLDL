@@ -27,8 +27,7 @@ int main() {
     Mat input_mat = (Mat) { .rows = 4, .cols = 2, .data = (double*) input_data };
     Mat output_mat = (Mat) { .rows = 4, .cols = 1, .data = (double*) output_data };
     learn(ml, input_mat, output_mat, 1e-3, 1000);
-    double cost_ml = cost(ml, input_mat, output_mat);
-    printf("Current cost: %lf\n", cost_ml);
+    printf("Current cost: %lf\n", cost(ml, input_mat, output_mat));
     
     return 0;
 }
