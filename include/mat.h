@@ -193,6 +193,16 @@ Mat scalar_mul(Mat mat, double scalar) {
     return mat; 
 }
 
+double norm(Mat mat) {
+    double norm = 0.0f;
+    for (unsigned int r = 0; r < mat.rows; ++r) {
+        for (unsigned int c = 0; c < mat.cols; ++c) {
+            norm += pow(MAT_INDEX(mat, r, c), 2.0);
+        }
+    }
+    return sqrt(norm);
+}
+
 void copy_mat(Mat* dest, Mat src) {
     dest -> data = realloc(dest -> data, sizeof(double) * src.rows * src.cols);
     dest -> rows = src.rows;

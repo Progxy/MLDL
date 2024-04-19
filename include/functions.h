@@ -87,7 +87,6 @@ void learn(Ml ml, Mat input_mat, Mat output_mat, double learning_rate, unsigned 
         
             deallocate_ml(gradient);
         }
-
         free(shuffled_indices);
     }
     return;
