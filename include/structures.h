@@ -2,6 +2,8 @@
 #define _STRUCTURES_H_
 
 // Header containing all the structure used
+#define TRUE 1
+#define FALSE 0
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 
 typedef unsigned char bool;

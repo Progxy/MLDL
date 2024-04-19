@@ -4,18 +4,11 @@
 // Header-only library to define functions used on the neurons
 
 #include <stdlib.h>
-#include <math.h>
 #include "./mat.h"
-
-#define TRUE 1
-#define FALSE 0
+#include "./utils.h"
 
 #define INPUT_ML(ml) (ml).layers[0].activation
 #define OUTPUT_ML(ml) (ml).layers[(ml).size - 1].activation
-
-double sigmoid_func(double value) {
-    return (1.0f / (1.0f + exp(-value)));
-}
 
 void sigmoid(Vec out) {
     for (unsigned int i = 0; i < out.cols; ++i) {
@@ -78,26 +71,26 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
 void learn(Ml ml, Mat input_mat, Mat output_mat, double learning_rate, unsigned int epochs) {
     for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
         printf("DEBUG_INFO: current epoch: %u\n", epoch + 1);
+        unsigned int* shuffled_indices = create_shuffle_indices(input_mat.rows);
 
         for (unsigned int i = 0; i < input_mat.rows; ++i) {
-            Vec input_vec = get_row_from_mat(input_mat, i, FALSE);
-            Vec output_vec = get_row_from_mat(output_mat, i, FALSE);
+            Vec input_vec = get_row_from_mat(input_mat, shuffled_indices[i], FALSE);
+            Vec output_vec = get_row_from_mat(output_mat, shuffled_indices[i], FALSE);
             Ml gradient = backpropagation(ml, input_vec, output_vec);
-
+        
             for (int l = gradient.size - 1; l > 0; --l) {
                 // Subtract the gradient from the activation layer
                 sum_mat(&(ml.layers[l].activation), scalar_mul(gradient.layers[l].activation, -learning_rate), ml.layers[l].activation);
                 sum_mat(&(ml.layers[l].weights), scalar_mul(gradient.layers[l].weights, -learning_rate), ml.layers[l].weights);
                 sum_mat(&(ml.layers[l].biases), scalar_mul(gradient.layers[l].biases, -learning_rate), ml.layers[l].biases);
             }
-
+        
             deallocate_ml(gradient);
         }
 
+        free(shuffled_indices);
     }
-
     return;
-
 }
 
 double cost(Ml ml, Mat input, Mat output) {

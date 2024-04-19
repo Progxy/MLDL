@@ -1,11 +1,10 @@
 #include <stdio.h>
-#include <time.h>
 #include "./include/structures.h"
 #include "./include/neurons.h"
 #include "./include/functions.h"
 
 int main() {
-    srand(time(NULL));
+    init_seed();
     
     const double input_data[] = {
         1.0, 1.0,
@@ -28,7 +27,7 @@ int main() {
     Mat input_mat = (Mat) { .rows = 4, .cols = 2, .data = (double*) input_data };
     Mat output_mat = (Mat) { .rows = 4, .cols = 1, .data = (double*) output_data };
     
-    learn(ml, input_mat, output_mat, 1, 10000);
+    learn(ml, input_mat, output_mat, 1, 10);
     printf("ML accuracy: %.2lf%%\n", (1.0 - cost(ml, input_mat, output_mat)) * 100.0);
     
     return 0;

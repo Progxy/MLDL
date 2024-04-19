@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h> 
 #include "structures.h"
+#include "./utils.h"
 
 #define MAT_INDEX(mat, row, col) ((mat).data)[(mat).cols * (row) + (col)]
 #define VEC_INDEX(vec, col) ((vec).data)[(col)]
@@ -14,10 +15,6 @@
 #define print_vec(vec) print_mat(vec)
 #define MUL_MAT(a, b) mul_mat(a, b, FALSE)
 #define DISPOSE_TEMP_MAT() mul_mat((Mat) {.cols = 1, .rows = 1, .data = NULL}, (Mat) {.cols = 1, .rows = 1, .data = NULL}, TRUE)
-
-double rand_d() {
-    return ((double) rand() / (double) RAND_MAX);
-}
 
 Mat create_mat(unsigned int rows, unsigned int cols) {
     Mat mat = (Mat) {.cols = cols, .rows = rows};
