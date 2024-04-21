@@ -1,7 +1,17 @@
 #ifndef _NEURONS_H_
 #define _NEURONS_H_
 
-#include "tensor.h"
+#include "./tensor.h"
+#include "./mat.h"
+
+Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
+void rand_ml(Ml ml);
+Ml create_ml(unsigned int size, unsigned int* arch, DataType data_type);
+void print_layer(Layer layer, unsigned int ind);
+void print_ml(Ml ml);
+void deallocate_ml(Ml ml);
+
+/* ----------------------------------------------------------------------------------------- */
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type) {
     Layer layer = (Layer) {.neurons = neurons};
@@ -21,13 +31,13 @@ void rand_ml(Ml ml) {
     return;
 } 
 
-Ml create_ml(unsigned int size, unsigned int* arch) {
+Ml create_ml(unsigned int size, unsigned int* arch, DataType data_type) {
     Ml ml = (Ml) {.size = size, .arch = arch};
     ml.layers = (Layer*) calloc(size, sizeof(Layer));
-    ml.layers[0] = create_layer(1, arch[0]);
+    ml.layers[0] = create_layer(1, arch[0], data_type);
 
     for (unsigned int i = 1; i < size; ++i) {
-        ml.layers[i] = create_layer(arch[i - 1], arch[i]);
+        ml.layers[i] = create_layer(arch[i - 1], arch[i], data_type);
     }
 
     return ml;
@@ -39,8 +49,13 @@ void print_layer(Layer layer, unsigned int ind) {
     for (unsigned int i = 0; i < layer.neurons; ++i) {
         printf("\tNeuron %d: \n", i + 1);
         printf("\tweigths: ");
-        print_vec(get_row_from_mat(layer.weights, i, 0));
-        printf("\tbias: %lf\n", layer.biases.data[i]);
+        Vec temp_vec = ALLOC_TEMP_VEC(1, layer.weights.data_type);
+        Matrix temp_mat = ALLOC_TEMP_MAT(1, 1, layer.weights.data_type);
+        PRINT_VEC(get_row_from_mat(&temp_vec, cast_tensor_to_mat(layer.weights, &temp_mat), i));
+        printf("\tbias: ");
+        print_value(cast_tensor_to_mat(layer.biases, &temp_mat).data + i, layer.biases.data_type);
+        printf("\n");
+        DEALLOCATE_TEMP_MATRICES();
     } 
 
     return;

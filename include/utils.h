@@ -19,6 +19,7 @@ bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigne
 unsigned int* create_shuffle_indices(unsigned int size);
 double sigmoid_func(double value);
 void init_seed();
+void print_value(void* value, DataType data_type);
 
 /* ----------------------------------------------------------------------------------- */
 
@@ -69,6 +70,13 @@ double sigmoid_func(double value) {
 
 void init_seed() {
     srand(time(NULL));
+    return;
+}
+
+void print_value(void* value, DataType data_type) {
+    if (data_type == FLOAT_32) printf("%f", *CAST_PTR(value, float));
+    else if (data_type == FLOAT_64) printf("%lf", *CAST_PTR(value, double));
+    else if (data_type == FLOAT_128) printf("%Lf", *CAST_PTR(value, long double));
     return;
 }
 

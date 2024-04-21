@@ -5,11 +5,14 @@
 
 #define DEALLOCATE_MATRICES(...) deallocate_matrices(sizeof((Matrix[]){__VA_ARGS__}) / sizeof(Matrix), __VA_ARGS__)
 #define MAT_INDEX(mat, row, col, type) CAST_PTR((mat).data, type)[(mat).cols * (row) + (col)]
+#define ALLOC_TEMP_MAT(rows, cols, data_type) alloc_temp_mat(rows, cols, data_type, FALSE)
+#define DEALLOCATE_TEMP_MATRICES() alloc_temp_mat(0, 0, FLOAT_32, TRUE)
+#define ALLOC_TEMP_VEC(cols, data_type) alloc_temp_mat(1, cols, data_type, FALSE)
 #define VEC_INDEX(vec, col, type) (CAST_PTR((vec).data, type))[(col)]
+#define CREATE_VEC(size, data_type) alloc_mat(1, size, data_type)
 #define MAT_SIZE(mat) (mat).rows * (mat).cols
 #define PRINT_VEC(vec) print_mat(vec, #vec)
 #define PRINT_MAT(mat) print_mat(mat, #mat)
-#define CREATE_VEC(size, data_type) alloc_mat(1, size, data_type)
 
 Matrix alloc_mat(unsigned int rows, unsigned int cols, DataType data_type);
 void reshape_mat(Matrix* dest, unsigned int rows, unsigned int cols, DataType data_type);
@@ -37,6 +40,24 @@ Matrix alloc_mat(unsigned int rows, unsigned int cols, DataType data_type) {
     mat.data = calloc(rows * cols, data_type);
     ASSERT(mat.data == NULL, "BAD_MEMORY");
     return mat;
+}
+
+Matrix alloc_temp_mat(unsigned int rows, unsigned int cols, DataType data_type, bool clean_cache_flag) {
+    static Matrix* cache_mat = NULL;
+    static unsigned int cache_size = 0;
+
+    if (clean_cache_flag) {
+        for (unsigned int i = 0; i < cache_size; ++i) DEALLOCATE_MATRICES(cache_mat[i]);
+        free(cache_mat);
+        cache_mat = NULL;
+        cache_size = 0;
+        return (Matrix) {0};
+    } else if (cache_mat == NULL) cache_mat = (Matrix*) calloc(1, sizeof(Matrix));
+    else cache_mat = (Matrix*) realloc(cache_mat, sizeof(Matrix) * (cache_size + 1));
+
+    Matrix temp = alloc_mat(rows, cols, data_type);
+    cache_mat[cache_size++] = temp;
+    return temp;
 }
 
 void reshape_mat(Matrix* dest, unsigned int rows, unsigned int cols, DataType data_type) {

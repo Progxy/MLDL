@@ -1,11 +1,8 @@
 #ifndef _FUNCTIONS_H_
 #define _FUNCTIONS_H_
 
-// Header-only library to define functions used on the neurons
-
-#include <stdlib.h>
+#include "./tensor.h"
 #include "./mat.h"
-#include "./utils.h"
 
 #define INPUT_ML(ml) (ml).layers[0].activation
 #define OUTPUT_ML(ml) (ml).layers[(ml).size - 1].activation

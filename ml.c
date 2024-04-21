@@ -21,7 +21,7 @@ int main() {
     };
 
     unsigned int arch[] = {2, 2, 1};
-    Ml ml = create_ml(ARR_SIZE(arch), arch);
+    Ml ml = create_ml(ARR_SIZE(arch), arch, FLOAT_64);
     rand_ml(ml);
 
     Matrix input_mat = (Matrix) { .rows = 4, .cols = 2, .data = (double*) input_data, .data_type = FLOAT_64 };
