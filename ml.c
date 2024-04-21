@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "./include/structures.h"
+#include <stdlib.h>
 #include "./include/neurons.h"
 #include "./include/functions.h"
 

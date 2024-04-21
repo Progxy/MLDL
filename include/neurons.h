@@ -1,23 +1,22 @@
 #ifndef _NEURONS_H_
 #define _NEURONS_H_
 
-// Header-only file defining neurons behaviour and structure
+#include "tensor.h"
 
-#include <stdlib.h>
-#include "./mat.h"
-
-Layer create_layer(unsigned int input_neurons, unsigned int neurons) {
+Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type) {
     Layer layer = (Layer) {.neurons = neurons};
-    layer.activation = create_vec(neurons);
-    layer.biases = create_vec(neurons);
-    layer.weights = create_mat(neurons, input_neurons);
+    unsigned int activation_shape[] = {neurons};
+    unsigned int weight_shape[] = {neurons, input_neurons};
+    layer.activation = alloc_tensor(activation_shape, 1, data_type);
+    layer.biases = alloc_tensor(activation_shape, 1, data_type);
+    layer.weights = alloc_tensor(weight_shape, 2, data_type);
     return layer;
 }
 
 void rand_ml(Ml ml) {
     for (unsigned int l = 0; l < ml.size; ++l) {
-        randomize_vec(ml.layers[l].biases);
-        randomize_mat(ml.layers[l].weights);
+        randomize_tensor(ml.layers[l].biases);
+        randomize_tensor(ml.layers[l].weights);
     }
     return;
 } 
@@ -60,9 +59,7 @@ void print_ml(Ml ml) {
 
 void deallocate_ml(Ml ml) {
     for (unsigned int i = 0; i < ml.size; ++i) {
-        deallocate_vec(ml.layers[i].biases);
-        deallocate_vec(ml.layers[i].activation);
-        deallocate_mat(ml.layers[i].weights);
+        DEALLOCATE_TENSORS(ml.layers[i].biases, ml.layers[i].activation, ml.layers[i].weights);
     }
     free(ml.layers);
     return;
