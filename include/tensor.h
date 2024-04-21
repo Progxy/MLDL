@@ -46,6 +46,14 @@ static void insert_spacing(unsigned int index, Tensor tensor) {
     return;
 }
 
+static bool is_valid_shape(unsigned int* shape, unsigned int dim) {
+    if (shape == NULL) return FALSE;
+    for (unsigned int i = 0; i < dim; ++i) {
+        if (!shape[i]) return FALSE;
+    }
+    return TRUE;
+}
+
 void deallocate_tensors(int len, ...) {
     va_list args;
     va_start(args, len);
@@ -61,6 +69,7 @@ void deallocate_tensors(int len, ...) {
 Tensor alloc_tensor(unsigned int* shape, unsigned int dim, DataType data_type) {
     ASSERT(!is_valid_enum(data_type, (unsigned char*) data_types, ARR_SIZE(data_types)), "INVALID_DATA_TYPE");
     ASSERT(!dim, "INVALID_DIM");
+    ASSERT(!is_valid_shape(shape, dim), "INVALID_TENSOR_SHAPE");
     Tensor tensor = { .shape = NULL, .dim = dim, .data_type = data_type, .data = NULL };
     tensor.shape = (unsigned int*) calloc(tensor.dim, sizeof(unsigned int));
     ASSERT(tensor.shape == NULL, "BAD_MEMORY");
@@ -145,7 +154,7 @@ void copy_tensor(Tensor* dest, Tensor src) {
 }
 
 Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
-    unsigned int dim = IS_mat(mat) ? 2 : 1;
+    unsigned int dim = IS_MAT(mat) ? 2 : 1;
     unsigned int* shape = (unsigned int*) calloc(dim, sizeof(unsigned int));
     if (dim == 2) {
         shape[0] = mat.rows;

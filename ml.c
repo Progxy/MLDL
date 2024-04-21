@@ -24,8 +24,8 @@ int main() {
     Ml ml = create_ml(ARR_SIZE(arch), arch);
     rand_ml(ml);
 
-    Mat input_mat = (Mat) { .rows = 4, .cols = 2, .data = (double*) input_data };
-    Mat output_mat = (Mat) { .rows = 4, .cols = 1, .data = (double*) output_data };
+    Matrix input_mat = (Matrix) { .rows = 4, .cols = 2, .data = (double*) input_data, .data_type = FLOAT_64 };
+    Matrix output_mat = (Matrix) { .rows = 4, .cols = 1, .data = (double*) output_data, .data_type = FLOAT_64 };
     
     learn(ml, input_mat, output_mat, 1, 10);
     printf("ML accuracy: %.2lf%%\n", (1.0 - cost(ml, input_mat, output_mat)) * 100.0);

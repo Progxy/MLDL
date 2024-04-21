@@ -7,6 +7,20 @@
 
 #define ASSERT(condition, err_msg) assert(condition, __LINE__, __FILE__, err_msg);
 #define CAST_AND_OP(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_PTR(a.data, type)[index] op CAST_PTR(b.data, type)[index]; 
+#define IS_MAT(mat) ((mat.rows != 1) && (mat.cols != 1))
+#define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
+#define CAST_PTR(ptr, type) ((type*) (ptr))
+#define IS_ROW_MAJOR(mat) (mat.rows != 1)
+#define NOT_USED(var) (void) var
+
+void assert(bool condition, unsigned int line, char* file, char* err_msg);
+void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
+bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigned int enum_values_count);
+unsigned int* create_shuffle_indices(unsigned int size);
+double sigmoid_func(double value);
+void init_seed();
+
+/* ----------------------------------------------------------------------------------- */
 
 void assert(bool condition, unsigned int line, char* file, char* err_msg) {
     if (condition) {
