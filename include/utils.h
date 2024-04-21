@@ -5,8 +5,10 @@
 #include <math.h>
 #include "./types.h"
 
-#define ASSERT(condition, err_msg) assert(condition, __LINE__, __FILE__, err_msg);
 #define CAST_AND_OP(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_PTR(a.data, type)[index] op CAST_PTR(b.data, type)[index]; 
+#define ASSERT(condition, err_msg) assert(condition, __LINE__, __FILE__, err_msg);
+#define VALUE_TO_STR(value, data_type) value_to_str(value, data_type, FALSE)
+#define DEALLOCATE_TEMP_STRS() value_to_str(NULL, FLOAT_32, TRUE)
 #define IS_MAT(mat) ((mat.rows != 1) && (mat.cols != 1))
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 #define CAST_PTR(ptr, type) ((type*) (ptr))
@@ -17,7 +19,7 @@ void assert(bool condition, unsigned int line, char* file, char* err_msg);
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
 bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigned int enum_values_count);
 unsigned int* create_shuffle_indices(unsigned int size);
-double sigmoid_func(double value);
+void sigmoid_func(void* value, void* result, DataType data_type);
 void init_seed();
 void print_value(void* value, DataType data_type);
 
@@ -64,8 +66,11 @@ unsigned int* create_shuffle_indices(unsigned int size) {
     return shuffle_indices;
 }
 
-double sigmoid_func(double value) {
-    return (1.0f / (1.0f + exp(-value)));
+void sigmoid_func(void* value, void* result, DataType data_type) {
+    if (data_type == FLOAT_32) *CAST_PTR(result, float) = (1.0f / (1.0f + expf(*CAST_PTR(value, float) * -1)));
+    else if (data_type == FLOAT_64) *CAST_PTR(result, double) = (1.0f / (1.0f + exp(*CAST_PTR(value, double) * -1)));
+    else if (data_type == FLOAT_128) *CAST_PTR(result, long double) = (1.0f / (1.0f + expl(*CAST_PTR(value, long double) * -1)));
+    return;
 }
 
 void init_seed() {
@@ -73,10 +78,35 @@ void init_seed() {
     return;
 }
 
+char* value_to_str(void* value, DataType data_type, bool clean_cache_flag) {
+    static char** cache_str = NULL;
+    static unsigned int cache_size = 0;
+
+    if (clean_cache_flag) {
+        for (unsigned int i = 0; i < cache_size; ++i) free(cache_str[i]);
+        free(cache_str);
+        cache_str = NULL;
+        cache_size = 0;
+        return NULL;
+    } else if (cache_str == NULL) cache_str = (char**) calloc(1, sizeof(char*));
+    else cache_str = realloc(cache_str, sizeof(char*) * (cache_size + 1));
+
+    ASSERT(cache_str == NULL, "BAD_MEMORY");
+
+    char* str = (char*) calloc(25, sizeof(char));
+    ASSERT(str == NULL, "BAD_MEMORY");
+    cache_str[cache_size++] = str;
+
+    if (data_type == FLOAT_32) snprintf(str, 25, "%f", *CAST_PTR(value, float));
+    else if (data_type == FLOAT_64) snprintf(str, 25, "%lf", *CAST_PTR(value, double));
+    else if (data_type == FLOAT_128) snprintf(str, 25, "%Lf", *CAST_PTR(value, long double));
+    
+    return str;
+}
+
 void print_value(void* value, DataType data_type) {
-    if (data_type == FLOAT_32) printf("%f", *CAST_PTR(value, float));
-    else if (data_type == FLOAT_64) printf("%lf", *CAST_PTR(value, double));
-    else if (data_type == FLOAT_128) printf("%Lf", *CAST_PTR(value, long double));
+    printf("%s", VALUE_TO_STR(value, data_type));
+    DEALLOCATE_TEMP_STRS();
     return;
 }
 

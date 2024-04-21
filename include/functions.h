@@ -7,9 +7,10 @@
 #define INPUT_ML(ml) (ml).layers[0].activation
 #define OUTPUT_ML(ml) (ml).layers[(ml).size - 1].activation
 
-void sigmoid(Vec out) {
-    for (unsigned int i = 0; i < out.cols; ++i) {
-        VEC_INDEX(out, i) = sigmoid_func(VEC_INDEX(out, i));
+void sigmoid(Tensor out) {
+    unsigned int size = tensor_size(out.shape, out.dim);
+    for (unsigned int i = 0; i < size; ++i) {
+        sigmoid_func(out.data + i, out.data + i, out.data_type);
     }
 }
 
@@ -18,7 +19,9 @@ void feed_forward(Ml ml) {
     sigmoid(ml.layers[0].activation);
 
     for (unsigned int i = 1; i < ml.size; ++i) {
-        sum_mat(&(ml.layers[i].activation), MUL_MAT(ml.layers[i].weights, ml.layers[i - 1].activation), ml.layers[i].biases);
+        Matrix weight = alloc_mat(1, 1, ml.layers[i].weights.data_type);
+
+        sum_mat(&(ml.layers[i].activation), mul_mat(ml.layers[i].weights, ml.layers[i - 1].activation), ml.layers[i].biases);
         DISPOSE_TEMP_MAT();
         sigmoid(ml.layers[i].activation);
         if (IS_INVALID_MAT(ml.layers[i].activation)) {
@@ -89,28 +92,40 @@ void learn(Ml ml, Mat input_mat, Mat output_mat, double learning_rate, unsigned 
     return;
 }
 
-double cost(Ml ml, Mat input, Mat output) {
-    double cost = 0.0f;
+void* cost(Ml ml, Matrix input, Matrix output, void* cost) {
+    ASSERT((ml.layers[0].activation.data_type != input.data_type) && (input.data_type != output.data_type), "DATA_TYPE_MISMATCH");
 
     for (size_t i = 0; i < input.rows; ++i) {
-        Vec input_row = get_row_from_mat(input, i, FALSE);
-        Vec output_row = get_row_from_mat(output, i, FALSE);
+        Vec input_row = ALLOC_VEC(1, input.data_type);
+        get_row_from_mat(&input_row, input, i);
+        Vec output_row = ALLOC_VEC(1, output.data_type);
+        get_row_from_mat(&output_row, output, i);
 
         // Feed the network
         copy_mat(&INPUT_ML(ml), input_row);
         transpose_vec(&(INPUT_ML(ml)));
         feed_forward(ml);
 
+        Matrix output_mat = alloc_mat(1, 1, input.data_type);
+        cast_tensor_to_mat(OUTPUT_ML(ml), &output_mat);
+
         // Calculate the loss
         // (a^L - y)^2
-        for (size_t j = 0; j < output.cols; ++j) {
-            printf("DEBUG_INFO: Input (%lf, %lf), Output: %lf, expected: %lf\n", MAT_INDEX(input, i, 0), MAT_INDEX(input, i, 1), MAT_INDEX(OUTPUT_ML(ml), 0, j), MAT_INDEX(output_row, 0, j));
-            cost += pow(MAT_INDEX(OUTPUT_ML(ml), 0, j) - MAT_INDEX(output_row, 0, j), 2.0f);
+        for (unsigned int j = 0; j < output.cols; ++j) {
+            printf("DEBUG_INFO: Input (%s, %s), Output: %s, expected: %s\n", VALUE_TO_STR(&MAT_INDEX(input, i, 0, void), input.data_type), VALUE_TO_STR(&MAT_INDEX(input, i, 1, void), input.data_type), VALUE_TO_STR(&MAT_INDEX(output_mat, 0, j, void), output_mat.data_type), VALUE_TO_STR(&MAT_INDEX(output_row, 0, j, void), output_row.data_type));
+            if (input.data_type == FLOAT_32) *CAST_PTR(cost, float) += powf(MAT_INDEX(output_mat, 0, j, float) - MAT_INDEX(output_row, 0, j, float), 2.0f);
+            if (input.data_type == FLOAT_32) *CAST_PTR(cost, float) += powf(MAT_INDEX(output_mat, 0, j, float) - MAT_INDEX(output_row, 0, j, float), 2.0f);
+            if (input.data_type == FLOAT_32) *CAST_PTR(cost, float) += powf(MAT_INDEX(output_mat, 0, j, float) - MAT_INDEX(output_row, 0, j, float), 2.0f);
         }
+
+        DEALLOCATE_MATRICES(input_row, output_row, output_mat);
     }
+
+    if (input.data_type == FLOAT_32) *CAST_PTR(cost, float) /= input.rows;
+    if (input.data_type == FLOAT_64) *CAST_PTR(cost, double) /= input.rows;
+    if (input.data_type == FLOAT_128) *CAST_PTR(cost, long double) /= input.rows;
     
-    // Return the average cost
-    return cost / input.rows;
+    return cost;
 }
 
 #endif //_FUNCTIONS_H_

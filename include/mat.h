@@ -9,7 +9,7 @@
 #define DEALLOCATE_TEMP_MATRICES() alloc_temp_mat(0, 0, FLOAT_32, TRUE)
 #define ALLOC_TEMP_VEC(cols, data_type) alloc_temp_mat(1, cols, data_type, FALSE)
 #define VEC_INDEX(vec, col, type) (CAST_PTR((vec).data, type))[(col)]
-#define CREATE_VEC(size, data_type) alloc_mat(1, size, data_type)
+#define ALLOC_VEC(size, data_type) alloc_mat(1, size, data_type)
 #define MAT_SIZE(mat) (mat).rows * (mat).cols
 #define PRINT_VEC(vec) print_mat(vec, #vec)
 #define PRINT_MAT(mat) print_mat(mat, #mat)
