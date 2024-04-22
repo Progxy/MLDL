@@ -13,6 +13,8 @@
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
 #define CAST_PTR(ptr, type) ((type*) (ptr))
 #define IS_ROW_MAJOR(mat) (mat.rows != 1)
+#define MIN(a, b) (a <= b ? a : b)
+#define MAX(a, b) (a >= b ? a : b)
 #define NOT_USED(var) (void) var
 
 void assert(bool condition, unsigned int line, char* file, char* err_msg);

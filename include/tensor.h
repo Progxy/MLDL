@@ -54,6 +54,12 @@ static bool is_valid_shape(unsigned int* shape, unsigned int dim) {
     return TRUE;
 }
 
+static unsigned int calc_shape_offset(unsigned int* shape, unsigned int shape_index) {
+    unsigned int offset = 1;
+    for (int i = shape_index - 1; i > 0; --i) offset *= shape[i];
+    return offset;
+}
+
 void deallocate_tensors(int len, ...) {
     va_list args;
     va_start(args, len);
@@ -68,11 +74,10 @@ void deallocate_tensors(int len, ...) {
 
 Tensor alloc_tensor(unsigned int* shape, unsigned int dim, DataType data_type) {
     ASSERT(!is_valid_enum(data_type, (unsigned char*) data_types, ARR_SIZE(data_types)), "INVALID_DATA_TYPE");
-    ASSERT(!dim, "INVALID_DIM");
     ASSERT(!is_valid_shape(shape, dim), "INVALID_TENSOR_SHAPE");
     Tensor tensor = { .shape = NULL, .dim = dim, .data_type = data_type, .data = NULL };
-    tensor.shape = (unsigned int*) calloc(tensor.dim, sizeof(unsigned int));
-    ASSERT(tensor.shape == NULL, "BAD_MEMORY");
+    tensor.shape = tensor.dim ? (unsigned int*) calloc(tensor.dim, sizeof(unsigned int)) : NULL;
+    ASSERT(tensor.shape == NULL && tensor.dim, "BAD_MEMORY");
     mem_copy(tensor.shape, shape, sizeof(unsigned int), tensor.dim);
     tensor.data = calloc(tensor_size(shape, dim), tensor.data_type); 
     ASSERT(tensor.data == NULL, "BAD_MEMORY");
@@ -239,6 +244,45 @@ Tensor scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag) {
     fill_tensor(scalar, scalar_tensor);
     op_tensor(tensor, *tensor, scalar_tensor, op_flag);
     DEALLOCATE_TENSORS(scalar_tensor);
+    return *tensor;
+}
+
+Tensor contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b) {
+    ASSERT((contraction_index_a == contraction_index_b) || (contraction_index_a >= tensor -> dim) || (contraction_index_b >= tensor -> dim), "INVALID_CONTRACTION_INDICES");
+    ASSERT(tensor -> dim % 2, "INVALID_CONTRACTION_NUM");
+
+    unsigned int* new_shape = (unsigned int*) calloc(tensor -> dim - 2, sizeof(unsigned int));
+    unsigned int* counter = (unsigned int*) calloc(tensor -> dim, sizeof(unsigned int));
+    Tensor temp = alloc_tensor(new_shape, tensor -> dim - 2, tensor -> data_type);
+    free(new_shape);
+
+    unsigned int new_size = tensor_size(temp.shape, temp.dim);
+    for (unsigned int ind = 0; ind < new_size; ++ind) {
+        unsigned int tensor_index = 0;
+        unsigned int temp_index = 0;
+        for (unsigned int d = tensor -> dim - 1; (int) d >= 0; --d) { 
+            if ((d == contraction_index_a) || (d == contraction_index_b)) continue;
+            tensor_index += calc_shape_offset(tensor -> shape, d) * counter[(d > MAX(contraction_index_a, contraction_index_b)) ? d - 2 : d];
+            temp_index += calc_shape_offset(temp.shape, (d > MIN(contraction_index_a, contraction_index_b)) ? d - 2 : d) * counter[d]; 
+        }
+        
+        const unsigned int offset_a = calc_shape_offset(tensor -> shape, contraction_index_a); 
+        const unsigned int offset_b = calc_shape_offset(tensor -> shape, contraction_index_b);
+        for (unsigned int s = 0; s < temp.shape[contraction_index_a]; ++s) {
+            if (temp.data_type == FLOAT_32) CAST_PTR(temp.data, float)[temp_index] = CAST_PTR(tensor -> data, float)[tensor_index + s * offset_a + s * offset_b];
+            else if (temp.data_type == FLOAT_64) CAST_PTR(temp.data, double)[temp_index] = CAST_PTR(tensor -> data, double)[tensor_index + s * offset_a + s * offset_b];
+            else if (temp.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[temp_index] = CAST_PTR(tensor -> data, long double)[tensor_index + s * offset_a + s * offset_b];
+        }
+
+        int p = 0;
+        for (p = temp.dim - 1; p >= 0; --p) if (!((ind + 1) % temp.shape[p])) break;
+        counter[p]++;
+    }
+
+    copy_tensor(tensor, temp);
+    DEALLOCATE_TENSORS(temp);
+    free(counter);
+
     return *tensor;
 }
 
