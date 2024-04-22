@@ -20,9 +20,10 @@ void feed_forward(Ml ml) {
 
     for (unsigned int i = 1; i < ml.size; ++i) {
         Matrix weight = alloc_mat(1, 1, ml.layers[i].weights.data_type);
-
-        sum_mat(&(ml.layers[i].activation), mul_mat(ml.layers[i].weights, ml.layers[i - 1].activation), ml.layers[i].biases);
-        DISPOSE_TEMP_MAT();
+        Tensor temp = alloc_tensor(ml.layers[i].weights.shape, ml.layers[i].weights.dim, ml.layers[i].weights.data_type);
+        unsigned int middle = (ml.layers[i].weights.dim + ml.layers[i - 1].activation.dim) / 2;
+        SUM_TENSOR(&(ml.layers[i].activation), contract_tensor((temp = cross_product_tensor(&temp, ml.layers[i].weights, ml.layers[i - 1].activation), &temp), middle + 1, middle), ml.layers[i].biases);
+        DEALLOCATE_TENSORS(temp);
         sigmoid(ml.layers[i].activation);
         if (IS_INVALID_MAT(ml.layers[i].activation)) {
             return;
@@ -32,23 +33,31 @@ void feed_forward(Ml ml) {
     return;
 }   
 
+
 Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
-    copy_mat(&INPUT_ML(ml), input_vec);
-    transpose_vec(&(INPUT_ML(ml)));
+    // TODO: change from Vec to Tensor
+    Matrix temp_mat = alloc_mat(1, 1, INPUT_ML(ml).data_type);
+    copy_mat((cast_tensor_to_mat(INPUT_ML(ml), &temp_mat), &temp_mat), input_vec);
+    transpose_vec(&temp_mat);
+    cast_mat_to_tensor(temp_mat, &INPUT_ML(ml));
     feed_forward(ml);
 
-    Ml gradient = create_ml(ml.size, ml.arch);
-    copy_mat(&OUTPUT_ML(gradient), output_vec);
-    transpose_vec(&(OUTPUT_ML(gradient)));
+    Ml gradient = create_ml(ml.size, ml.arch, INPUT_ML(ml).data_type);
+    copy_mat((cast_tensor_to_mat(OUTPUT_ML(gradient), &temp_mat), &temp_mat), output_vec);
+    transpose_vec(&temp_mat);
+    cast_mat_to_tensor(temp_mat, &OUTPUT_ML(gradient));
 
     for (int l = ml.size - 1; l > 0; --l) {
-        Vec current_z = create_vec(1);
-        sum_mat(&current_z, MUL_MAT(ml.layers[l].weights, ml.layers[l - 1].activation), ml.layers[l].biases);
-        DISPOSE_TEMP_MAT();
+        Tensor current_z = alloc_tensor(ml.layers[l].weights.shape, ml.layers[l].weights.dim, ml.layers[l].weights.data_type);
+        unsigned int middle = 0;
+        SUM_TENSOR(&current_z, contract_tensor((current_z = cross_product_tensor(&current_z, ml.layers[l].weights, ml.layers[l - 1].activation), &current_z), middle + 1, middle), ml.layers[l].biases);
 
         for (unsigned int j = 0; j < ml.layers[l].neurons; ++j) {
-            double diff_activation = 2 * (VEC_INDEX(ml.layers[l].activation, j) - VEC_INDEX(gradient.layers[l].activation, j));
-            double diff_sigmoid = sigmoid_func(VEC_INDEX(current_z, j)) * (1 - sigmoid_func(VEC_INDEX(current_z, j)));
+            double diff_activation = 2 * (TENSOR_INDEX(ml.layers[l].activation, j) - CAST_PTR(gradient.layers[l].activation.data, float)[j]);
+            void* temp_a = calloc(1, current_z.data_type);
+            void* temp_b = calloc(1, current_z.data_type);
+            void* diff_sigmoid = calloc(1, current_z.data_type);
+            *CAST_PTR(diff_sigmoid, float) = (sigmoid_func(current_z.data + j, temp_a, current_z.data_type), *CAST_PTR(temp_a, float)) * (1 - (sigmoid_func(current_z.data + j, temp_b, current_z.data_type), *CAST_PTR(temp_b, float)));
 
             // Store the dC/dw[j][k]^L
             for (unsigned int k = 0; k < ml.layers[l - 1].neurons; ++k) {

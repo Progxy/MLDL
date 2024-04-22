@@ -5,6 +5,7 @@
 #include <math.h>
 #include "./types.h"
 
+#define TYPE_CAST_PTR(data, data_type) (((data_type) == FLOAT_32) ? CAST_PTR((data), float) : (((data_type) == FLOAT_64) ? CAST_PTR((data), double) : CAST_PTR((data), long double)))
 #define CAST_AND_OP(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_PTR(a.data, type)[index] op CAST_PTR(b.data, type)[index]; 
 #define ASSERT(condition, err_msg) assert(condition, __LINE__, __FILE__, err_msg);
 #define VALUE_TO_STR(value, data_type) value_to_str(value, data_type, FALSE)

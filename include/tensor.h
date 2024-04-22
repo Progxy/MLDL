@@ -6,15 +6,16 @@
 
 #define DEALLOCATE_TENSORS(...) deallocate_tensors(sizeof((Tensor[]){__VA_ARGS__}) / sizeof(Tensor), __VA_ARGS__)
 #define DEALLOCATE_TEMP_TENSORS() alloc_temp_tensor(NULL, 0, FLOAT_32, TRUE)
+#define TENSOR_INDEX(tensor, index) TYPE_CAST_PTR(tensor.data, tensor.data_type)[index]
 #define PRINT_TENSOR(tensor) print_tensor(tensor, #tensor)
-#define SUBTRACT_TENSOR(c, a, b) op_tensor(c, a, b, SUBTRACTION)
-#define SUM_TENSOR(c, a, b) op_tensor(c, a, b, SUM)
 #define MULTIPLY_TENSOR(c, a, b) op_tensor(c, a, b, MULTIPLICATION)
+#define SUBTRACT_TENSOR(c, a, b) op_tensor(c, a, b, SUBTRACTION)
 #define DIVIDE_TENSOR(c, a, b) op_tensor(c, a, b, DIVISION)
-#define SCALAR_SUB_TENSOR(c, a, val) scalar_op_tensor(c, a, val, SUBTRACTION)
-#define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUM)
+#define SUM_TENSOR(c, a, b) op_tensor(c, a, b, SUM)
 #define SCALAR_MUL_TENSOR(a, val) scalar_op_tensor(a, val, MULTIPLICATION)
+#define SCALAR_SUB_TENSOR(a, val) scalar_op_tensor(a, val, SUBTRACTION)
 #define SCALAR_DIV_TENSOR(a, val) scalar_op_tensor(a, val, DIVISION)
+#define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUM)
 
 void deallocate_tensors(int len, ...);
 Tensor alloc_tensor(unsigned int* shape, unsigned int dim, DataType data_type);
