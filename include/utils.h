@@ -5,6 +5,7 @@
 #include <math.h>
 #include "./types.h"
 
+#define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
 #define TYPE_CAST_PTR(data, data_type) (((data_type) == FLOAT_32) ? CAST_PTR((data), float) : (((data_type) == FLOAT_64) ? CAST_PTR((data), double) : CAST_PTR((data), long double)))
 #define CAST_AND_OP(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_PTR(a.data, type)[index] op CAST_PTR(b.data, type)[index]; 
 #define ASSERT(condition, err_msg) assert(condition, __LINE__, __FILE__, err_msg);
@@ -110,6 +111,17 @@ char* value_to_str(void* value, DataType data_type, bool clean_cache_flag) {
 void print_value(void* value, DataType data_type) {
     printf("%s", VALUE_TO_STR(value, data_type));
     DEALLOCATE_TEMP_STRS();
+    return;
+}
+
+void deallocate_ptrs(int len, ...) {
+    va_list args;
+    va_start(args, len);
+    for (int i = 0; i < len; ++i) {
+        void* ptr = va_arg(args, void*);
+        free(ptr);
+    }
+    va_end(args);
     return;
 }
 

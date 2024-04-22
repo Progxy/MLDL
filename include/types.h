@@ -41,6 +41,7 @@ typedef struct Ml {
     unsigned int size;
     unsigned int* arch;
     Layer* layers;
+    DataType data_type;
 } Ml;
 
 #endif //_TYPES_H_

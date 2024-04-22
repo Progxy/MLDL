@@ -32,7 +32,8 @@ void rand_ml(Ml ml) {
 } 
 
 Ml create_ml(unsigned int size, unsigned int* arch, DataType data_type) {
-    Ml ml = (Ml) {.size = size, .arch = arch};
+    // TODO: remove the data_type field from the Layer struct
+    Ml ml = (Ml) {.size = size, .arch = arch, .data_type = data_type};
     ml.layers = (Layer*) calloc(size, sizeof(Layer));
     ml.layers[0] = create_layer(1, arch[0], data_type);
 
