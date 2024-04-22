@@ -27,6 +27,7 @@ void copy_tensor(Tensor* dest, Tensor src);
 Tensor op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
 Tensor cross_product_tensor(Tensor* c, Tensor a, Tensor b);
 Tensor scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
+Tensor contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
