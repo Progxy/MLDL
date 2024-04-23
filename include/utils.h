@@ -24,7 +24,9 @@ bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigne
 unsigned int* create_shuffle_indices(unsigned int size);
 void* sigmoid_func(void* value, void* result, DataType data_type);
 void init_seed();
+char* value_to_str(void* value, DataType data_type, bool clean_cache_flag);
 void print_value(void* value, DataType data_type);
+void deallocate_ptrs(int len, ...);
 
 /* ----------------------------------------------------------------------------------- */
 
