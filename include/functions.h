@@ -49,7 +49,6 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
     for (int l = ml.size - 1; l > 0; --l) {
         Tensor current_z = alloc_tensor(ml.layers[l].weights.shape, ml.layers[l].weights.dim, ml.layers[l].weights.data_type);
         unsigned int middle = (ml.layers[l].weights.dim + ml.layers[l - 1].activation.dim) / 2;
-        PRINT_TENSOR(ml.layers[l].biases);
         SUM_TENSOR(&current_z, *contract_tensor(cross_product_tensor(&current_z, ml.layers[l].weights, ml.layers[l - 1].activation), middle, middle - 1), ml.layers[l].biases);
 
         for (unsigned int j = 0; j < ml.layers[l].neurons; ++j) {
