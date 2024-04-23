@@ -8,9 +8,9 @@
 #define OUTPUT_ML(ml) (ml).layers[(ml).size - 1].activation
 
 void feed_forward(Ml ml);
-Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec);
-void train(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsigned int epochs);
-void* cost(Ml ml, Matrix input, Matrix output, void* cost);
+Ml backpropagation(Ml ml, Tensor input_vec, Tensor output_vec);
+void train(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int epochs);
+void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost);
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
 
@@ -39,19 +39,12 @@ void feed_forward(Ml ml) {
     return;
 }   
 
-Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
-    // TODO: change from Vec to Tensor
-    Matrix temp_mat = alloc_mat(1, 1, ml.data_type);
-    copy_mat((cast_tensor_to_mat(INPUT_ML(ml), &temp_mat), &temp_mat), input_vec);
-    transpose_vec(&temp_mat);
-    cast_mat_to_tensor(temp_mat, &INPUT_ML(ml));
+Ml backpropagation(Ml ml, Tensor input, Tensor output) {
+    copy_tensor(&INPUT_ML(ml), input);
     feed_forward(ml);
 
     Ml gradient = create_ml(ml.size, ml.arch, ml.data_type);
-    copy_mat((cast_tensor_to_mat(OUTPUT_ML(gradient), &temp_mat), &temp_mat), output_vec);
-    transpose_vec(&temp_mat);
-    cast_mat_to_tensor(temp_mat, &OUTPUT_ML(gradient));
-    DEALLOCATE_MATRICES(temp_mat);
+    copy_tensor(&OUTPUT_ML(gradient), output);
 
     for (int l = ml.size - 1; l > 0; --l) {
         Tensor current_z = alloc_tensor(ml.layers[l].weights.shape, ml.layers[l].weights.dim, ml.layers[l].weights.data_type);
@@ -96,19 +89,22 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
     return gradient;
 }
 
-void train(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsigned int epochs) {
+void train(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int epochs) {
+    ASSERT((ml.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
+
     long unsigned int time_a = time(NULL);
     for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
         printf("\033[1;1H\033[2JDEBUG_INFO: current epoch: %u/%u (%.2f%%)%c", epoch + 1, epochs, (float) (epoch + 1) / epochs * 100.0f, epoch + 1 == epochs ? '\0' : '\n');
-        unsigned int* shuffled_indices = create_shuffle_indices(input_mat.rows);
+        unsigned int* shuffled_indices = create_shuffle_indices(inputs.shape[0]);
 
-        for (unsigned int i = 0; i < input_mat.rows; ++i) {
-            Vec input_vec = ALLOC_VEC(1, input_mat.data_type);
-            get_row_from_mat(&input_vec, input_mat, shuffled_indices[i]);
-            Vec output_vec = ALLOC_VEC(1, input_mat.data_type);
-            get_row_from_mat(&output_vec, output_mat, shuffled_indices[i]);
-            Ml gradient = backpropagation(ml, input_vec, output_vec);
-        
+        for (unsigned int i = 0; i < inputs.shape[0]; ++i) {
+            Tensor input_tensor = alloc_tensor(inputs.shape, inputs.dim, inputs.data_type);
+            Tensor output_tensor = alloc_tensor(outputs.shape, outputs.dim, outputs.data_type);
+            extract_tensor(&input_tensor, inputs, shuffled_indices[i], 0);
+            extract_tensor(&output_tensor, outputs, shuffled_indices[i], 0);
+            Ml gradient = backpropagation(ml, *change_tensor_rank(&input_tensor, input_tensor.dim + 1), *change_tensor_rank(&output_tensor, output_tensor.dim + 1));
+            DEALLOCATE_TENSORS(input_tensor, output_tensor);
+
             for (int l = gradient.size - 1; l > 0; --l) {
                 // Subtract the gradient from the activation layer
                 SUBTRACT_TENSOR(&(ml.layers[l].activation), ml.layers[l].activation, *reshape_tensor(SCALAR_MUL_TENSOR(&gradient.layers[l].activation, learning_rate), ml.layers[l].activation.shape, ml.layers[l].activation.dim, ml.data_type));
@@ -116,7 +112,6 @@ void train(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsi
                 SUBTRACT_TENSOR(&(ml.layers[l].biases), ml.layers[l].biases, *SCALAR_MUL_TENSOR(&gradient.layers[l].biases, learning_rate));
             }
 
-            DEALLOCATE_MATRICES(input_vec, output_vec);
             deallocate_ml(gradient);
         }
         free(shuffled_indices);
@@ -128,43 +123,31 @@ void train(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsi
     return;
 }
 
-void* cost(Ml ml, Matrix input, Matrix output, void* cost) {
-    ASSERT((ml.layers[0].activation.data_type != input.data_type) && (input.data_type != output.data_type), "DATA_TYPE_MISMATCH");
+void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
+    ASSERT((ml.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
 
-    for (size_t i = 0; i < input.rows; ++i) {
-        Vec input_row = ALLOC_VEC(1, input.data_type);
-        get_row_from_mat(&input_row, input, i);
-        Vec output_row = ALLOC_VEC(1, output.data_type);
-        get_row_from_mat(&output_row, output, i);
-
-        // Feed the network
-        Matrix input_mat = alloc_mat(1, 1, input.data_type);
-        cast_tensor_to_mat(INPUT_ML(ml), &input_mat);
-        copy_mat(&input_mat, input_row);
-        transpose_vec(&input_mat);
-        cast_mat_to_tensor(input_mat, &INPUT_ML(ml));
+    for (unsigned int i = 0; i < inputs.shape[0]; ++i) {
+        Tensor input_tensor = alloc_tensor(inputs.shape, inputs.dim, inputs.data_type);
+        Tensor output_tensor = alloc_tensor(outputs.shape, outputs.dim, outputs.data_type);
+        extract_tensor(&input_tensor, inputs, i, 0);
+        extract_tensor(&output_tensor, outputs, i, 0);
+        copy_tensor(&INPUT_ML(ml), *change_tensor_rank(&input_tensor, input_tensor.dim + 1));
         feed_forward(ml);
-
-        Matrix output_mat = alloc_mat(1, 1, output.data_type);
-        cast_tensor_to_mat(OUTPUT_ML(ml), &output_mat);
 
         // Calculate the loss
         // (a^L - y)^2
-        for (unsigned int j = 0; j < output.cols; ++j) {
-            if (input.data_type == FLOAT_32) printf("DEBUG_INFO: Input (%s, %s), Output: %s, expected: %s\n", VALUE_TO_STR(&MAT_INDEX(input, i, 0, float), input.data_type), VALUE_TO_STR(&MAT_INDEX(input, i, 1, float), input.data_type), VALUE_TO_STR(&MAT_INDEX(output_mat, 0, j, float), output_mat.data_type), VALUE_TO_STR(&MAT_INDEX(output_row, 0, j, float), output_row.data_type));
-            else if (input.data_type == FLOAT_64) printf("DEBUG_INFO: Input (%s, %s), Output: %s, expected: %s\n", VALUE_TO_STR(&MAT_INDEX(input, i, 0, double), input.data_type), VALUE_TO_STR(&MAT_INDEX(input, i, 1, double), input.data_type), VALUE_TO_STR(&MAT_INDEX(output_mat, 0, j, double), output_mat.data_type), VALUE_TO_STR(&MAT_INDEX(output_row, 0, j, double), output_row.data_type));
-            else if (input.data_type == FLOAT_128) printf("DEBUG_INFO: Input (%s, %s), Output: %s, expected: %s\n", VALUE_TO_STR(&MAT_INDEX(input, i, 0, long double), input.data_type), VALUE_TO_STR(&MAT_INDEX(input, i, 1, long double), input.data_type), VALUE_TO_STR(&MAT_INDEX(output_mat, 0, j, long double), output_mat.data_type), VALUE_TO_STR(&MAT_INDEX(output_row, 0, j, long double), output_row.data_type));
-            if (input.data_type == FLOAT_32) *CAST_PTR(cost, float) += powf(MAT_INDEX(output_mat, 0, j, float) - MAT_INDEX(output_row, 0, j, float), 2.0f);
-            else if (input.data_type == FLOAT_64) *CAST_PTR(cost, double) += pow(MAT_INDEX(output_mat, 0, j, double) - MAT_INDEX(output_row, 0, j, double), 2.0);
-            else if (input.data_type == FLOAT_128) *CAST_PTR(cost, long double) += powl(MAT_INDEX(output_mat, 0, j, long double) - MAT_INDEX(output_row, 0, j, long double), 2.0L);
+        for (unsigned int j = 0; j < outputs.shape[outputs.dim - 1]; ++j) {
+            if (ml.data_type == FLOAT_32) *CAST_PTR(cost, float) += powf(CAST_PTR(OUTPUT_ML(ml).data, float)[j] - CAST_PTR(output_tensor.data, float)[j], 2.0f);
+            else if (ml.data_type == FLOAT_64) *CAST_PTR(cost, double) += pow(CAST_PTR(OUTPUT_ML(ml).data, double)[  j] - CAST_PTR(output_tensor.data, double)[j], 2.0);
+            else if (ml.data_type == FLOAT_128) *CAST_PTR(cost, long double) += powl(CAST_PTR(OUTPUT_ML(ml).data, long double)[  j] - CAST_PTR(output_tensor.data, long double)[j], 2.0L);
         }
 
-        DEALLOCATE_MATRICES(input_row, output_row, input_mat, output_mat);
+        DEALLOCATE_TENSORS(input_tensor, output_tensor);
     }
 
-    if (input.data_type == FLOAT_32) *CAST_PTR(cost, float) /= input.rows;
-    if (input.data_type == FLOAT_64) *CAST_PTR(cost, double) /= input.rows;
-    if (input.data_type == FLOAT_128) *CAST_PTR(cost, long double) /= input.rows;
+    if (ml.data_type == FLOAT_32) *CAST_PTR(cost, float) /= inputs.shape[0];
+    if (ml.data_type == FLOAT_64) *CAST_PTR(cost, double) /= inputs.shape[0];
+    if (ml.data_type == FLOAT_128) *CAST_PTR(cost, long double) /= inputs.shape[0];
     
     return cost;
 }

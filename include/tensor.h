@@ -6,6 +6,7 @@
 
 #define DEALLOCATE_TENSORS(...) deallocate_tensors(sizeof((Tensor[]){__VA_ARGS__}) / sizeof(Tensor), __VA_ARGS__)
 #define DEALLOCATE_TEMP_TENSORS() alloc_temp_tensor(NULL, 0, FLOAT_32, TRUE)
+#define ALLOC_TEMP_TENSOR(shape, dim, data_type) alloc_temp_tensor(shape, dim, data_type, FALSE)
 #define PRINT_TENSOR(tensor) print_tensor(tensor, #tensor)
 #define MULTIPLY_TENSOR(c, a, b) op_tensor(c, a, b, MULTIPLICATION)
 #define SUBTRACT_TENSOR(c, a, b) op_tensor(c, a, b, SUBTRACTION)
@@ -21,6 +22,7 @@ Tensor alloc_tensor(unsigned int* shape, unsigned int dim, DataType data_type);
 Tensor alloc_temp_tensor(unsigned int* shape, unsigned int dim, DataType data_type, bool clean_cache_flag);
 void print_tensor(Tensor tensor, char* tensor_name);
 void fill_tensor(void* val, Tensor tensor);
+void set_tensor(void* new_data, Tensor tensor);
 void randomize_tensor(Tensor tensor);
 Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int dim, DataType data_type);
 void copy_tensor(Tensor* dest, Tensor src);
@@ -29,6 +31,8 @@ Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b);
 Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
 Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
 Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
+Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim);
+Tensor* transpose_tensor(Tensor* tensor);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -131,6 +135,16 @@ void fill_tensor(void* val, Tensor tensor) {
         if (tensor.data_type == FLOAT_32) CAST_PTR(tensor.data, float)[i] = *CAST_PTR(val, float);
         if (tensor.data_type == FLOAT_64) CAST_PTR(tensor.data, double)[i] = *CAST_PTR(val, double);
         if (tensor.data_type == FLOAT_128) CAST_PTR(tensor.data, long double)[i] = *CAST_PTR(val, long double);
+    }
+    return;
+}
+
+void set_tensor(void* new_data, Tensor tensor) {
+    unsigned int size = tensor_size(tensor.shape, tensor.dim);
+    for (unsigned int i = 0; i < size; ++i) {
+        if (tensor.data_type == FLOAT_32) CAST_PTR(tensor.data, float)[i] = CAST_PTR(new_data, float)[i];
+        if (tensor.data_type == FLOAT_64) CAST_PTR(tensor.data, double)[i] = CAST_PTR(new_data, double)[i];
+        if (tensor.data_type == FLOAT_128) CAST_PTR(tensor.data, long double)[i] = CAST_PTR(new_data, long double)[i];
     }
     return;
 }
@@ -319,6 +333,27 @@ Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim) {
     tensor -> dim = new_dim;
     free(new_shape);
 
+    return tensor;
+}
+
+Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim) {
+    unsigned int new_dim = tensor.dim - (index_dim + 1); 
+    unsigned int* new_shape = (unsigned int*) calloc(new_dim, sizeof(unsigned int));
+    for (unsigned int i = 0; i < new_dim; ++i) new_shape[i] = tensor.shape[i + (index_dim + 1)];
+    reshape_tensor(out, new_shape, new_dim, tensor.data_type);
+    free(new_shape);
+    unsigned int offset = calc_shape_offset(tensor.shape, index_dim, tensor.dim) * index;
+    if (tensor.data_type == FLOAT_32) mem_copy(out -> data, CAST_PTR(tensor.data, float) + offset, tensor.data_type, tensor_size(out -> shape, out -> dim));
+    else if (tensor.data_type == FLOAT_64) mem_copy(out -> data, CAST_PTR(tensor.data, double) + offset, tensor.data_type, tensor_size(out -> shape, out -> dim));
+    else if (tensor.data_type == FLOAT_128) mem_copy(out -> data, CAST_PTR(tensor.data, long double) + offset, tensor.data_type, tensor_size(out -> shape, out -> dim));
+    return out;
+}
+
+Tensor* transpose_tensor(Tensor* tensor) {
+    unsigned int* new_shape = (unsigned int*) calloc(tensor -> dim, sizeof(unsigned int));
+    for (unsigned int i = 0, j = tensor -> dim - 1; i < tensor -> dim; ++i, --j) new_shape[i] = tensor -> shape[j];
+    mem_copy(tensor -> shape, new_shape, sizeof(unsigned int), tensor -> dim);
+    free(new_shape);
     return tensor;
 }
 
