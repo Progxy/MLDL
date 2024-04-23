@@ -28,6 +28,7 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
 Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b);
 Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
 Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
+Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -50,7 +51,6 @@ static void insert_spacing(unsigned int index, Tensor tensor) {
 static bool is_valid_shape(unsigned int* shape, unsigned int dim) {
     if (shape == NULL) return FALSE;
     for (unsigned int i = 0; i < dim; ++i) {
-        if (!shape[i]) printf("DEBUG_INFO: shape[%u]: %u, dim: %u\n", i, shape[i], dim);
         if (!shape[i]) return FALSE;
     }
     return TRUE;
@@ -181,7 +181,6 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
     }
     
     Tensor temp = alloc_tensor(a.shape, a.dim, a.data_type);
-    PRINT_TENSOR(temp);
 
     unsigned int size = tensor_size(a.shape, a.dim);
     if (op_flag == SUM) {
@@ -255,6 +254,8 @@ Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsign
     ASSERT(tensor -> dim % 2, "INVALID_CONTRACTION_NUM");
 
     unsigned int* new_shape = (unsigned int*) calloc(tensor -> dim - 2, sizeof(unsigned int));
+    for (unsigned int i = 0; i < MIN(contraction_index_a, contraction_index_b); ++i) new_shape[i] = tensor -> shape[i];
+    for (unsigned int i = MAX(contraction_index_a, contraction_index_b) + 1; i < tensor -> dim; ++i) new_shape[i - 2] = tensor -> shape[i];
     unsigned int* counter = (unsigned int*) calloc(tensor -> dim, sizeof(unsigned int));
     Tensor temp = alloc_tensor(new_shape, tensor -> dim - 2, tensor -> data_type);
     free(new_shape);
@@ -291,16 +292,16 @@ Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsign
 
 Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim) {
     if (tensor -> dim == new_dim) return tensor;
-    
+
     unsigned int* new_shape = (unsigned int*) calloc(new_dim, sizeof(unsigned int));
     if (tensor -> dim < new_dim) {
         for (unsigned int i = 0; i < tensor -> dim; --i) new_shape[i] = tensor -> shape[i]; 
         for (unsigned int i = tensor -> dim; i < new_dim; ++i) new_shape[i] = 1;
     } else {
-        for (unsigned int i = 1; i < new_dim; ++i) new_shape[i] = tensor -> shape[i + (tensor -> dim - new_dim)];
+        for (unsigned int i = 0; i < new_dim; ++i) new_shape[i] = tensor -> shape[i + (tensor -> dim - new_dim)];
         unsigned int shape_0 = 1;
-        for (unsigned int i = tensor -> dim - 1; i >= new_dim; --i) shape_0 *= tensor -> shape[i];
-        new_shape[0] = shape_0;
+        for (unsigned int i = 0; i < tensor -> dim - new_dim; ++i) shape_0 *= tensor -> shape[i];
+        new_shape[0] *= shape_0;
     }
 
     tensor -> shape = (unsigned int*) realloc(tensor -> shape, sizeof(unsigned int) * new_dim);
@@ -308,7 +309,7 @@ Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim) {
     mem_copy(tensor -> shape, new_shape, sizeof(unsigned int), new_dim);
     tensor -> dim = new_dim;
     free(new_shape);
-    
+
     return tensor;
 }
 
