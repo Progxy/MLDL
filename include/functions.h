@@ -97,6 +97,7 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
 }
 
 void train(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsigned int epochs) {
+    long unsigned int time_a = time(NULL);
     for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
         printf("\033[1;1H\033[2J");
         printf("DEBUG_INFO: current epoch: %u/%u (%.2f%%)\n", epoch + 1, epochs, (float) (epoch + 1) / epochs * 100.0f);
@@ -121,6 +122,9 @@ void train(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsi
         }
         free(shuffled_indices);
     }
+
+    printf("DEBUG_INFO: Elapsed time: %lu sec\n", time(NULL) - time_a);
+
     return;
 }
 
