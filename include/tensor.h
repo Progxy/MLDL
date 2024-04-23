@@ -183,10 +183,8 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
     for (unsigned int i = 0; i < a.dim; ++i) {
         if (a.shape[i] != b.shape[i]) {
-            printf("DEBUG_INFO: a shape ");
-            print_shape(a.shape, a.dim);
-            printf("DEBUG_INFO: b shape ");
-            print_shape(b.shape, b.dim);
+            PRINT_TENSOR(a);
+            PRINT_TENSOR(b);
         }
         ASSERT(a.shape[i] != b.shape[i], "SHAPE_MISMATCH");
     }
