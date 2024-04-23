@@ -6,7 +6,6 @@
 #include "./types.h"
 
 #define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
-#define TYPE_CAST_PTR(data, data_type) (((data_type) == FLOAT_32) ? CAST_PTR((data), float) : (((data_type) == FLOAT_64) ? CAST_PTR((data), double) : CAST_PTR((data), long double)))
 #define CAST_AND_OP(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_PTR(a.data, type)[index] op CAST_PTR(b.data, type)[index]; 
 #define ASSERT(condition, err_msg) assert(condition, __LINE__, __FILE__, err_msg);
 #define VALUE_TO_STR(value, data_type) value_to_str(value, data_type, FALSE)
@@ -23,7 +22,7 @@ void assert(bool condition, unsigned int line, char* file, char* err_msg);
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
 bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigned int enum_values_count);
 unsigned int* create_shuffle_indices(unsigned int size);
-void sigmoid_func(void* value, void* result, DataType data_type);
+void* sigmoid_func(void* value, void* result, DataType data_type);
 void init_seed();
 void print_value(void* value, DataType data_type);
 
@@ -70,11 +69,11 @@ unsigned int* create_shuffle_indices(unsigned int size) {
     return shuffle_indices;
 }
 
-void sigmoid_func(void* value, void* result, DataType data_type) {
+void* sigmoid_func(void* value, void* result, DataType data_type) {
     if (data_type == FLOAT_32) *CAST_PTR(result, float) = (1.0f / (1.0f + expf(*CAST_PTR(value, float) * -1)));
     else if (data_type == FLOAT_64) *CAST_PTR(result, double) = (1.0f / (1.0f + exp(*CAST_PTR(value, double) * -1)));
     else if (data_type == FLOAT_128) *CAST_PTR(result, long double) = (1.0f / (1.0f + expl(*CAST_PTR(value, long double) * -1)));
-    return;
+    return result;
 }
 
 void init_seed() {

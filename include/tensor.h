@@ -6,7 +6,6 @@
 
 #define DEALLOCATE_TENSORS(...) deallocate_tensors(sizeof((Tensor[]){__VA_ARGS__}) / sizeof(Tensor), __VA_ARGS__)
 #define DEALLOCATE_TEMP_TENSORS() alloc_temp_tensor(NULL, 0, FLOAT_32, TRUE)
-#define TENSOR_INDEX(tensor, index) TYPE_CAST_PTR(tensor.data, tensor.data_type)[index]
 #define PRINT_TENSOR(tensor) print_tensor(tensor, #tensor)
 #define MULTIPLY_TENSOR(c, a, b) op_tensor(c, a, b, MULTIPLICATION)
 #define SUBTRACT_TENSOR(c, a, b) op_tensor(c, a, b, SUBTRACTION)
@@ -25,10 +24,10 @@ void fill_tensor(void* val, Tensor tensor);
 void randomize_tensor(Tensor tensor);
 void reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int dim, DataType data_type);
 void copy_tensor(Tensor* dest, Tensor src);
-Tensor op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
-Tensor cross_product_tensor(Tensor* c, Tensor a, Tensor b);
-Tensor scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
-Tensor contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
+Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
+Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b);
+Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
+Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -51,6 +50,7 @@ static void insert_spacing(unsigned int index, Tensor tensor) {
 static bool is_valid_shape(unsigned int* shape, unsigned int dim) {
     if (shape == NULL) return FALSE;
     for (unsigned int i = 0; i < dim; ++i) {
+        if (!shape[i]) printf("DEBUG_INFO: shape[%u]: %u, dim: %u\n", i, shape[i], dim);
         if (!shape[i]) return FALSE;
     }
     return TRUE;
@@ -172,7 +172,7 @@ Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
     return *tensor;
 }
 
-Tensor op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
+Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
     ASSERT(!is_valid_enum(op_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATOR");
     ASSERT(a.dim != b.dim, "DIM_MISMATCH");
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
@@ -181,7 +181,8 @@ Tensor op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
     }
     
     Tensor temp = alloc_tensor(a.shape, a.dim, a.data_type);
-    
+    PRINT_TENSOR(temp);
+
     unsigned int size = tensor_size(a.shape, a.dim);
     if (op_flag == SUM) {
         for (unsigned int i = 0; i < size; ++i) {
@@ -212,10 +213,10 @@ Tensor op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
     copy_tensor(c, temp);
     DEALLOCATE_TENSORS(temp);
 
-    return *c;
+    return c;
 }
 
-Tensor cross_product_tensor(Tensor* c, Tensor a, Tensor b) {
+Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b) {
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
 
     unsigned int* new_shape = (unsigned int*) calloc(a.dim + b.dim, sizeof(unsigned int));
@@ -237,19 +238,19 @@ Tensor cross_product_tensor(Tensor* c, Tensor a, Tensor b) {
     copy_tensor(c, temp);
     DEALLOCATE_TENSORS(temp);
 
-    return *c;
+    return c;
 }
 
-Tensor scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag) {
+Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag) {
     ASSERT(!is_valid_enum(op_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATOR");
     Tensor scalar_tensor = alloc_tensor(tensor -> shape, tensor -> dim, tensor -> data_type);
     fill_tensor(scalar, scalar_tensor);
     op_tensor(tensor, *tensor, scalar_tensor, op_flag);
     DEALLOCATE_TENSORS(scalar_tensor);
-    return *tensor;
+    return tensor;
 }
 
-Tensor contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b) {
+Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b) {
     ASSERT((contraction_index_a == contraction_index_b) || (contraction_index_a >= tensor -> dim) || (contraction_index_b >= tensor -> dim), "INVALID_CONTRACTION_INDICES");
     ASSERT(tensor -> dim % 2, "INVALID_CONTRACTION_NUM");
 
@@ -285,7 +286,30 @@ Tensor contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigne
     DEALLOCATE_TENSORS(temp);
     free(counter);
 
-    return *tensor;
+    return tensor;
+}
+
+Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim) {
+    if (tensor -> dim == new_dim) return tensor;
+    
+    unsigned int* new_shape = (unsigned int*) calloc(new_dim, sizeof(unsigned int));
+    if (tensor -> dim < new_dim) {
+        for (unsigned int i = 0; i < tensor -> dim; --i) new_shape[i] = tensor -> shape[i]; 
+        for (unsigned int i = tensor -> dim; i < new_dim; ++i) new_shape[i] = 1;
+    } else {
+        for (unsigned int i = 1; i < new_dim; ++i) new_shape[i] = tensor -> shape[i + (tensor -> dim - new_dim)];
+        unsigned int shape_0 = 1;
+        for (unsigned int i = tensor -> dim - 1; i >= new_dim; --i) shape_0 *= tensor -> shape[i];
+        new_shape[0] = shape_0;
+    }
+
+    tensor -> shape = (unsigned int*) realloc(tensor -> shape, sizeof(unsigned int) * new_dim);
+    ASSERT(tensor -> shape == NULL, "BAD_MEMORY");
+    mem_copy(tensor -> shape, new_shape, sizeof(unsigned int), new_dim);
+    tensor -> dim = new_dim;
+    free(new_shape);
+    
+    return tensor;
 }
 
 #endif //_TENSOR_H_

@@ -187,7 +187,9 @@ Matrix create_id_mat(unsigned int size, DataType data_type) {
 
 Vec get_row_from_mat(Vec* vec, Matrix mat, unsigned int row) {
     reshape_mat(vec, 1, mat.cols, mat.data_type);
-    mem_copy(vec -> data, mat.data + (row * mat.cols), mat.cols, mat.data_type);
+    if (mat.data_type == FLOAT_32) mem_copy(vec -> data, CAST_PTR(mat.data, float) + (row * mat.cols), mat.cols, mat.data_type);
+    if (mat.data_type == FLOAT_64) mem_copy(vec -> data, CAST_PTR(mat.data, double) + (row * mat.cols), mat.cols, mat.data_type);
+    if (mat.data_type == FLOAT_128) mem_copy(vec -> data, CAST_PTR(mat.data, long double) + (row * mat.cols), mat.cols, mat.data_type);
     return *vec;
 }
 

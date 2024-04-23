@@ -32,7 +32,6 @@ void rand_ml(Ml ml) {
 } 
 
 Ml create_ml(unsigned int size, unsigned int* arch, DataType data_type) {
-    // TODO: remove the data_type field from the Layer struct
     Ml ml = (Ml) {.size = size, .arch = arch, .data_type = data_type};
     ml.layers = (Layer*) calloc(size, sizeof(Layer));
     ml.layers[0] = create_layer(1, arch[0], data_type);
@@ -54,7 +53,9 @@ void print_layer(Layer layer, unsigned int ind) {
         Matrix temp_mat = ALLOC_TEMP_MAT(1, 1, layer.weights.data_type);
         PRINT_VEC(get_row_from_mat(&temp_vec, cast_tensor_to_mat(layer.weights, &temp_mat), i));
         printf("\tbias: ");
-        print_value(cast_tensor_to_mat(layer.biases, &temp_mat).data + i, layer.biases.data_type);
+        if (layer.biases.data_type == FLOAT_32) print_value(CAST_PTR(cast_tensor_to_mat(layer.biases, &temp_mat).data, float) + i, layer.biases.data_type);
+        else if (layer.biases.data_type == FLOAT_64) print_value(CAST_PTR(cast_tensor_to_mat(layer.biases, &temp_mat).data, double) + i, layer.biases.data_type);
+        else if (layer.biases.data_type == FLOAT_128) print_value(CAST_PTR(cast_tensor_to_mat(layer.biases, &temp_mat).data, long double) + i, layer.biases.data_type);
         printf("\n");
         DEALLOCATE_TEMP_MATRICES();
     } 
