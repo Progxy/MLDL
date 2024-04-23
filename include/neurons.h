@@ -20,9 +20,7 @@ Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType da
     unsigned int weight_shape[] = {neurons, input_neurons};
     layer.activation = alloc_tensor(activation_shape, 2, data_type);
     layer.biases = alloc_tensor(bias_shape, 2, data_type);
-    randomize_tensor(layer.biases);
     layer.weights = alloc_tensor(weight_shape, 2, data_type);
-    randomize_tensor(layer.weights);
     return layer;
 }
 

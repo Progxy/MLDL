@@ -91,7 +91,8 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
 
 void learn(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsigned int epochs) {
     for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
-        printf("DEBUG_INFO: current epoch: %u\n", epoch + 1);
+        printf("\e[1;1H\e[2J");
+        printf("DEBUG_INFO: current epoch: %u/%u (%.2f%%)\n", epoch + 1, epochs, (float) (epoch + 1) / epochs * 100.0f);
         unsigned int* shuffled_indices = create_shuffle_indices(input_mat.rows);
 
         for (unsigned int i = 0; i < input_mat.rows; ++i) {
