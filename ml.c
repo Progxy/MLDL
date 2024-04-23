@@ -28,7 +28,7 @@ int main() {
     Matrix output_mat = (Matrix) { .rows = 4, .cols = 1, .data = (double*) output_data, .data_type = FLOAT_64 };
     
     double learning_rate = 0.01;
-    learn(ml, input_mat, output_mat, &learning_rate, 10000);
+    train(ml, input_mat, output_mat, &learning_rate, 1000000);
     double cost_d = 0.0;
     printf("ML accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(ml, input_mat, output_mat, &cost_d), double)) * 100.0);
     

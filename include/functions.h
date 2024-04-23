@@ -7,7 +7,14 @@
 #define INPUT_ML(ml) (ml).layers[0].activation
 #define OUTPUT_ML(ml) (ml).layers[(ml).size - 1].activation
 
-void sigmoid(Tensor out) {
+void feed_forward(Ml ml);
+Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec);
+void train(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsigned int epochs);
+void* cost(Ml ml, Matrix input, Matrix output, void* cost);
+
+/* ------------------------------------------------------------------------------------------------------------------------------- */
+
+static void sigmoid(Tensor out) {
     unsigned int size = tensor_size(out.shape, out.dim);
     for (unsigned int i = 0; i < size; ++i) {
         if (out.data_type == FLOAT_32) sigmoid_func(CAST_PTR(out.data, float) + i, CAST_PTR(out.data, float) + i, out.data_type);
@@ -89,9 +96,9 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
     return gradient;
 }
 
-void learn(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsigned int epochs) {
+void train(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsigned int epochs) {
     for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
-        printf("\e[1;1H\e[2J");
+        printf("\033[1;1H\033[2J");
         printf("DEBUG_INFO: current epoch: %u/%u (%.2f%%)\n", epoch + 1, epochs, (float) (epoch + 1) / epochs * 100.0f);
         unsigned int* shuffled_indices = create_shuffle_indices(input_mat.rows);
 
