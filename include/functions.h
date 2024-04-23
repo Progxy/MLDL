@@ -89,8 +89,7 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
     return gradient;
 }
 
-void learn(Ml ml, Matrix input_mat, Matrix output_mat, double learning_rate, unsigned int epochs) {
-    learning_rate = -learning_rate;
+void learn(Ml ml, Matrix input_mat, Matrix output_mat, void* learning_rate, unsigned int epochs) {
     for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
         printf("DEBUG_INFO: current epoch: %u\n", epoch + 1);
         unsigned int* shuffled_indices = create_shuffle_indices(input_mat.rows);
@@ -104,9 +103,9 @@ void learn(Ml ml, Matrix input_mat, Matrix output_mat, double learning_rate, uns
         
             for (int l = gradient.size - 1; l > 0; --l) {
                 // Subtract the gradient from the activation layer
-                SUM_TENSOR(&(ml.layers[l].activation), *SCALAR_MUL_TENSOR(&gradient.layers[l].activation, &learning_rate), ml.layers[l].activation);
-                SUM_TENSOR(&(ml.layers[l].weights), *SCALAR_MUL_TENSOR(&gradient.layers[l].weights, &learning_rate), ml.layers[l].weights);
-                SUM_TENSOR(&(ml.layers[l].biases), *SCALAR_MUL_TENSOR(&gradient.layers[l].biases, &learning_rate), ml.layers[l].biases);
+                SUBTRACT_TENSOR(&(ml.layers[l].activation), ml.layers[l].activation, *reshape_tensor(SCALAR_MUL_TENSOR(&gradient.layers[l].activation, learning_rate), ml.layers[l].activation.shape, ml.layers[l].activation.dim, ml.data_type));
+                SUBTRACT_TENSOR(&(ml.layers[l].weights), ml.layers[l].weights, *SCALAR_MUL_TENSOR(&gradient.layers[l].weights, learning_rate));
+                SUBTRACT_TENSOR(&(ml.layers[l].biases), ml.layers[l].biases, *SCALAR_MUL_TENSOR(&gradient.layers[l].biases, learning_rate));
             }
 
             DEALLOCATE_MATRICES(input_vec, output_vec);

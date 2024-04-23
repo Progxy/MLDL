@@ -22,7 +22,7 @@ Tensor alloc_temp_tensor(unsigned int* shape, unsigned int dim, DataType data_ty
 void print_tensor(Tensor tensor, char* tensor_name);
 void fill_tensor(void* val, Tensor tensor);
 void randomize_tensor(Tensor tensor);
-void reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int dim, DataType data_type);
+Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int dim, DataType data_type);
 void copy_tensor(Tensor* dest, Tensor src);
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
 Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b);
@@ -146,16 +146,15 @@ void randomize_tensor(Tensor tensor) {
     return;
 }
 
-void reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int dim, DataType data_type) {
+Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int dim, DataType data_type) {
     dest -> shape = (unsigned int*) realloc(dest -> shape, sizeof(unsigned int) * dim);
     ASSERT(dest -> shape == NULL, "BAD_MEMORY");
     mem_copy(dest -> shape, shape, sizeof(unsigned int), dim);
     dest -> dim = dim;
     dest -> data_type = data_type;
-    free(dest -> data);
-    dest -> data = calloc(tensor_size(dest -> shape, dest -> dim), dest -> data_type);
+    dest -> data = realloc(dest -> data, tensor_size(dest -> shape, dest -> dim) * dest -> data_type);
     ASSERT(dest -> data == NULL, "BAD_MEMORY");
-    return;
+    return dest;
 }
 
 void copy_tensor(Tensor* dest, Tensor src) {
@@ -171,8 +170,8 @@ Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
     shape[0] = mat.rows;
     shape[1] = mat.cols; 
     reshape_tensor(tensor, shape, dim, mat.data_type);
-    free(shape);
     mem_copy(tensor -> data, mat.data, tensor -> data_type, tensor_size(tensor -> shape, tensor -> dim));
+    free(shape);
     return *tensor;
 }
 
