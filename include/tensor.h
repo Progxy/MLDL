@@ -113,11 +113,9 @@ Tensor alloc_temp_tensor(unsigned int* shape, unsigned int dim, DataType data_ty
 
 void print_tensor(Tensor tensor, char* tensor_name) {
     const unsigned int size = tensor_size(tensor.shape, tensor.dim);
-    printf("DEBUG_INFO: Tensor '%s' has shape: [ ", tensor_name);
-    for (unsigned int i = 0; i < tensor.dim; ++i) {
-        printf("%u%c ", tensor.shape[i], i == (tensor.dim - 1) ? '\0' : ',');
-    }
-    printf("]\n\n");
+    printf("DEBUG_INFO: Tensor '%s' with shape ", tensor_name);
+    print_shape(tensor.shape, tensor.dim);
+    printf("\n");
     for (unsigned int i = 0; i < size; ++i) {
         if (tensor.data_type == FLOAT_32) printf("%f", CAST_PTR(tensor.data, float)[i]);
         if (tensor.data_type == FLOAT_64) printf("%lf", CAST_PTR(tensor.data, double)[i]);
