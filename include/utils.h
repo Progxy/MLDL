@@ -27,6 +27,7 @@ void init_seed();
 char* value_to_str(void* value, DataType data_type, bool clean_cache_flag);
 void print_value(void* value, DataType data_type);
 void deallocate_ptrs(int len, ...);
+void print_time_format(long unsigned int time);
 
 /* ----------------------------------------------------------------------------------- */
 
@@ -123,6 +124,17 @@ void deallocate_ptrs(int len, ...) {
         free(ptr);
     }
     va_end(args);
+    return;
+}
+
+void print_time_format(long unsigned int time) {
+    unsigned int time_sec = time % 60;
+    unsigned int time_min = ((time - time_sec) / 60) % 60;
+    unsigned int time_hour = (time - (time_sec + time_min * 60)) / 3600;
+    if (time_hour) printf(" %u hour", time_hour);
+    if (time_min) printf(" %u min", time_min);
+    if (time_sec) printf(" %u sec", time_sec);
+    printf("\n");
     return;
 }
 
