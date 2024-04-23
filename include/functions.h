@@ -23,10 +23,11 @@ void feed_forward(Ml ml) {
     for (unsigned int i = 1; i < ml.size; ++i) {
         Tensor temp = alloc_tensor(ml.layers[i].weights.shape, ml.layers[i].weights.dim, ml.layers[i].weights.data_type);
         unsigned int middle = (ml.layers[i].weights.dim + ml.layers[i - 1].activation.dim) / 2;
-        SUM_TENSOR(&(ml.layers[i].activation), *change_tensor_rank(contract_tensor(cross_product_tensor(&temp, ml.layers[i].weights, *change_tensor_rank(&ml.layers[i - 1].activation, ml.layers[i].weights.dim)), middle + 1, middle), ml.layers[i].biases.dim), ml.layers[i].biases);
+        SUM_TENSOR(&(ml.layers[i].activation), *contract_tensor(cross_product_tensor(&temp, ml.layers[i].weights, ml.layers[i - 1].activation), middle + 1, middle), ml.layers[i].biases);
         DEALLOCATE_TENSORS(temp);
         sigmoid(ml.layers[i].activation);
     }
+    
 
     return;
 }   
@@ -49,7 +50,7 @@ Ml backpropagation(Ml ml, Vec input_vec, Vec output_vec) {
         Tensor current_z = alloc_tensor(ml.layers[l].weights.shape, ml.layers[l].weights.dim, ml.layers[l].weights.data_type);
         unsigned int middle = (ml.layers[l].weights.dim + ml.layers[l - 1].activation.dim) / 2;
         PRINT_TENSOR(ml.layers[l].biases);
-        SUM_TENSOR(&current_z, *change_tensor_rank(contract_tensor(cross_product_tensor(&current_z, ml.layers[l].weights, *change_tensor_rank(&ml.layers[l - 1].activation, ml.layers[l].weights.dim)), middle + 1, middle), ml.layers[l].biases.dim), ml.layers[l].biases);
+        SUM_TENSOR(&current_z, *contract_tensor(cross_product_tensor(&current_z, ml.layers[l].weights, ml.layers[l - 1].activation), middle + 1, middle), ml.layers[l].biases);
 
         for (unsigned int j = 0; j < ml.layers[l].neurons; ++j) {
             void* diff_activation = calloc(1, ml.data_type);

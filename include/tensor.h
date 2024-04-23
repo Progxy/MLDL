@@ -166,14 +166,13 @@ void copy_tensor(Tensor* dest, Tensor src) {
 }
 
 Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
-    unsigned int dim = IS_MAT(mat) ? 2 : 1;
+    unsigned int dim = 2;
     unsigned int* shape = (unsigned int*) calloc(dim, sizeof(unsigned int));
-    if (dim == 2) {
-        shape[0] = mat.rows;
-        shape[1] = mat.cols; 
-    } else shape[0] = IS_ROW_MAJOR(mat) ? mat.rows : mat.cols; 
+    shape[0] = mat.rows;
+    shape[1] = mat.cols; 
     reshape_tensor(tensor, shape, dim, mat.data_type);
     free(shape);
+    mem_copy(tensor -> data, mat.data, tensor -> data_type, tensor_size(tensor -> shape, tensor -> dim));
     return *tensor;
 }
 

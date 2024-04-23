@@ -15,11 +15,14 @@ void deallocate_ml(Ml ml);
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type) {
     Layer layer = (Layer) {.neurons = neurons};
-    unsigned int activation_shape[] = {neurons};
+    unsigned int activation_shape[] = {1, neurons};
+    unsigned int bias_shape[] = {neurons, 1};
     unsigned int weight_shape[] = {neurons, input_neurons};
-    layer.activation = alloc_tensor(activation_shape, 1, data_type);
-    layer.biases = alloc_tensor(activation_shape, 1, data_type);
+    layer.activation = alloc_tensor(activation_shape, 2, data_type);
+    layer.biases = alloc_tensor(bias_shape, 2, data_type);
+    randomize_tensor(layer.biases);
     layer.weights = alloc_tensor(weight_shape, 2, data_type);
+    randomize_tensor(layer.weights);
     return layer;
 }
 
