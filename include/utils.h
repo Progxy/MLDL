@@ -134,7 +134,6 @@ void print_time_format(long unsigned int time) {
     if (time_hour) printf(" %u hour", time_hour);
     if (time_min) printf(" %u min", time_min);
     if (time_sec) printf(" %u sec", time_sec);
-    printf("\n");
     return;
 }
 

@@ -94,7 +94,21 @@ void train(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned i
 
     long unsigned int time_a = time(NULL);
     for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
-        printf("\033[1;1H\033[2JDEBUG_INFO: current epoch: %u/%u (%.2f%%)%c", epoch + 1, epochs, (float) (epoch + 1) / epochs * 100.0f, epoch + 1 == epochs ? '\0' : '\n');
+        float percentage = ((float) (epoch + 1) / epochs * 100.0f);
+        printf("\033[1;1H\033[2J");
+        printf("%.2f%% ", percentage);
+        printf("\033[47m");
+        for (unsigned int j = 0; j < 100; ++j) {
+            if (j == ((unsigned int) percentage)) printf("\033[0m");
+            printf(" ");
+        }
+        printf("\033[0m");
+        printf("|");
+        printf(" %u/%u ", epoch + 1, epochs);
+        printf("Elapsed time:");
+        print_time_format(time(NULL) - time_a);
+        printf("%c", (epoch + 1) == epochs ? '\0' : '\n');
+
         unsigned int* shuffled_indices = create_shuffle_indices(inputs.shape[0]);
 
         for (unsigned int i = 0; i < inputs.shape[0]; ++i) {
@@ -116,9 +130,7 @@ void train(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned i
         }
         free(shuffled_indices);
     }
-
-    printf(", elapsed time:");
-    print_time_format(time(NULL) - time_a);
+    printf("\n");
 
     return;
 }
