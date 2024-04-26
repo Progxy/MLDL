@@ -32,6 +32,17 @@ void rand_ml(Ml ml) {
     return;
 } 
 
+unsigned int get_ml_size(Ml ml) {
+    unsigned int size = 0;
+    for (unsigned int i = 0; i < ml.size; ++i) {
+        Layer layer = ml.layers[i];
+        size += tensor_size(layer.activation.shape, layer.activation.dim);
+        size += tensor_size(layer.weights.shape, layer.weights.dim);
+        size += tensor_size(layer.biases.shape, layer.biases.dim);
+    }
+    return size;
+}
+
 Ml create_ml(unsigned int size, unsigned int* arch, DataType data_type) {
     Ml ml = (Ml) {.size = size, .arch = arch, .data_type = data_type};
     ml.layers = (Layer*) calloc(size, sizeof(Layer));

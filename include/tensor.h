@@ -33,6 +33,8 @@ Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsign
 Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
 Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim);
 Tensor* transpose_tensor(Tensor* tensor);
+Tensor empty_tensor(DataType data_type);
+Tensor* concat_tensors(Tensor* dest, Tensor src);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -355,6 +357,41 @@ Tensor* transpose_tensor(Tensor* tensor) {
     mem_copy(tensor -> shape, new_shape, sizeof(unsigned int), tensor -> dim);
     free(new_shape);
     return tensor;
+}
+
+Tensor empty_tensor(DataType data_type) {
+    unsigned int shape[] = { 1 };
+    Tensor tensor = alloc_tensor(shape, 1, data_type);
+    free(tensor.data);
+    free(tensor.shape);
+    tensor.data = NULL;
+    tensor.shape = NULL;
+    return tensor;
+}
+
+Tensor* concat_tensors(Tensor* dest, Tensor src) {
+    if (dest -> shape == NULL || dest -> data == NULL) {
+        copy_tensor(dest, src);
+        return dest;
+    }
+
+    ASSERT(dest -> data_type != src.data_type, "DATA_TYPE_MISMATCH");
+    ASSERT(dest -> dim != src.dim, "DIM_MISMATCH");
+    for (unsigned int i = 0; i < dest -> dim; ++i) {
+        dest -> shape[i] += src.shape[i];
+    } 
+    
+    unsigned int size = tensor_size(src.shape, src.dim);
+    unsigned int offset = tensor_size(dest -> shape, dest -> dim);
+    dest -> data = realloc(dest -> data, dest -> data_type * (size + offset));
+    
+    for (unsigned int i = 0; i < size; ++i) {
+        if (dest -> data_type == FLOAT_32) CAST_PTR(dest -> data, float)[offset + i] = CAST_PTR(src.data, float)[i];
+        if (dest -> data_type == FLOAT_64) CAST_PTR(dest -> data, double)[offset + i] = CAST_PTR(src.data, double)[i];
+        if (dest -> data_type == FLOAT_128) CAST_PTR(dest -> data, long double)[offset + i] = CAST_PTR(src.data, long double)[i];
+    }   
+
+    return dest;
 }
 
 #endif //_TENSOR_H_

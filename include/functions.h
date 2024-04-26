@@ -164,10 +164,49 @@ void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
     return cost;
 }
 
-void adam_optim(Ml ml, Tensor input, Tensor output) {
+// Return the gradient as a flattened tensor
+Tensor* gradient(Ml ml, Tensor input, Tensor output, Tensor* gradient_tensor) {
+    Ml gradient_ml = backpropagation(ml, input, output);
+
+    // Flatten tensors
+    for (unsigned int i = 1; i < gradient_ml.size; ++i) {
+        Layer layer = gradient_ml.layers[i];
+        unsigned int shape[] = {0};
+        shape[0] = tensor_size(layer.activation.shape, layer.activation.dim);
+        reshape_tensor(&(layer.activation), shape, 1, layer.activation.data_type);
+        shape[0] = tensor_size(layer.weights.shape, layer.weights.dim);
+        reshape_tensor(&(layer.weights), shape, 1, layer.weights.data_type);
+        shape[0] = tensor_size(layer.biases.shape, layer.biases.dim);
+        reshape_tensor(&(layer.biases), shape, 1, layer.biases.data_type);
+    }
+    
+    // Concat tensors
+    for (unsigned int i = 1; i < gradient_ml.size; ++i) {
+        Layer layer = gradient_ml.layers[i];
+        concat_tensors(gradient_tensor, layer.activation);
+        concat_tensors(gradient_tensor, layer.weights);
+        concat_tensors(gradient_tensor, layer.biases);
+    }
+
+    return gradient_tensor;
+}
+
+void adam_optim(Ml ml, Tensor input, Tensor output, void* alpha, void* first_moment, void* second_moment) {
     NOT_USED(ml);
     NOT_USED(input);
     NOT_USED(output);
+    NOT_USED(alpha);
+    NOT_USED(first_moment);
+    NOT_USED(second_moment);
+
+    unsigned int t = 0; 
+    unsigned int shape[] = { get_ml_size(ml) };
+    Tensor first_moment_vec = alloc_tensor(shape, 1, ml.data_type);
+    NOT_USED(first_moment_vec);
+    NOT_USED(t);
+
+    // Continue 
+
     return;
 }
 
