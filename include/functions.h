@@ -152,4 +152,11 @@ void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
     return cost;
 }
 
+void adam_optim(Ml ml, Tensor input, Tensor output) {
+    NOT_USED(ml);
+    NOT_USED(input);
+    NOT_USED(output);
+    return;
+}
+
 #endif //_FUNCTIONS_H_
