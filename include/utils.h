@@ -206,6 +206,7 @@ bool compare_op(void* a, void* b, DataType data_type, OperatorFlag operator_flag
         else if (data_type == FLOAT_64) return CAST_AND_COMPARE(a, b, double, ==);
         else if (data_type == FLOAT_128) return CAST_AND_COMPARE(a, b, long double, ==);
     }
+    return FALSE;
 }
 
 #endif //_UTILS_H_

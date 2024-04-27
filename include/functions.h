@@ -195,11 +195,12 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
     unsigned int shape[] = { get_ml_size(ml) };
     Tensor first_moment_vec = alloc_tensor(shape, 1, ml.data_type);
     Tensor second_moment_vec = alloc_tensor(shape, 1, ml.data_type);
+    Tensor theta_vec = alloc_tensor(shape, 1, ml.data_type);
     void* temp = calloc(1, ml.data_type);
     void* tmp = calloc(1, ml.data_type);
-    Tensor theta_vec = alloc_tensor(shape, 1, ml.data_type);
 
     for (unsigned int t = 0; t < max_epochs || COMPARE(cost(ml, inputs, outputs, temp), threshold, ml.data_type, LESS_OR_EQUAL); ++t) {
+        printf("\033[1;1H\033[2JCurrent epoch: %u (MAX_EPOCH: %u)\n", t, max_epochs);
         // TODO: Extract the input and output
         Tensor g_t = alloc_tensor(shape, 1, ml.data_type);
         gradient(ml, inputs, outputs, &g_t); // gt ← ∇θft(θt−1)
@@ -225,8 +226,7 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
     }
 
     DEALLOCATE_TENSORS(first_moment_vec, second_moment_vec, theta_vec);
-
-    // Continue 
+    DEALLOCATE_PTRS(temp, tmp);
 
     return;
 }
