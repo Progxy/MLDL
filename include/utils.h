@@ -5,16 +5,19 @@
 #include <math.h>
 #include "./types.h"
 
-#define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
 #define CAST_AND_OP_INDEX(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_PTR(a.data, type)[index] op CAST_PTR(b.data, type)[index]; 
+#define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
 #define CAST_AND_OP(a, b, c, type, op) *CAST_PTR(c, type) = *CAST_PTR(a, type) op *CAST_PTR(b, type)
 #define MULTIPLY(res, a, b, data_type) data_type_op(MULTIPLICATION, res, a, b, data_type)
 #define SUBTRACT(res, a, b, data_type) data_type_op(SUBTRACTION, res, a, b, data_type)
+#define CAST_AND_COMPARE(a, b, type, op) (*CAST_PTR(a, type) op *CAST_PTR(b, type))
 #define DIVIDE(res, a, b, data_type) data_type_op(DIVISION, res, a, b, data_type)
 #define ASSERT(condition, err_msg) assert(condition, __LINE__, __FILE__, err_msg)
 #define ASSIGN(val, new_val, data_type) assign_value(val, new_val, data_type)
+#define POW(res, val, exp, data_type) data_type_pow(res, val, exp, data_type)
 #define VALUE_TO_STR(value, data_type) value_to_str(value, data_type, FALSE)
 #define SUM(res, a, b, data_type) data_type_op(SUM, res, a, b, data_type)
+#define COMPARE(a, b, type, operator) compare_op(a, b, type, operator)
 #define DEALLOCATE_TEMP_STRS() value_to_str(NULL, FLOAT_32, TRUE)
 #define IS_MAT(mat) ((mat.rows != 1) && (mat.cols != 1))
 #define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
@@ -23,7 +26,6 @@
 #define MIN(a, b) (a <= b ? a : b)
 #define MAX(a, b) (a >= b ? a : b)
 #define NOT_USED(var) (void) var
-#define POW(res, val, exp, data_type) data_type_pow(res, val, exp, data_type)
 
 void assert(bool condition, unsigned int line, char* file, char* err_msg);
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
@@ -179,6 +181,31 @@ void* data_type_pow(void* res, void* val, unsigned int exp, DataType data_type) 
     else if (data_type == FLOAT_128) ASSIGN(res, *CAST_PTR(val, long double), data_type);
     for (unsigned int i = 1; i < exp; ++i) MULTIPLY(res, res, val, data_type);
     return res;
+}
+
+bool compare_op(void* a, void* b, DataType data_type, OperatorFlag operator_flag) {
+    ASSERT(!is_valid_enum(operator_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATOR");
+    if (operator_flag == LESS) {
+        if (data_type == FLOAT_32) return CAST_AND_COMPARE(a, b, float, <);
+        else if (data_type == FLOAT_64) return CAST_AND_COMPARE(a, b, double, <);
+        else if (data_type == FLOAT_128) return CAST_AND_COMPARE(a, b, long double, <);
+    } else if (operator_flag == LESS_OR_EQUAL) {
+        if (data_type == FLOAT_32) return CAST_AND_COMPARE(a, b, float, <=);
+        else if (data_type == FLOAT_64) return CAST_AND_COMPARE(a, b, double, <=);
+        else if (data_type == FLOAT_128) return CAST_AND_COMPARE(a, b, long double, <=);
+    } else if (operator_flag == GREATER) {
+        if (data_type == FLOAT_32) return CAST_AND_COMPARE(a, b, float, >);
+        else if (data_type == FLOAT_64) return CAST_AND_COMPARE(a, b, double, >);
+        else if (data_type == FLOAT_128) return CAST_AND_COMPARE(a, b, long double, >);
+    } else if (operator_flag == GREATER_OR_EQUAL) {
+        if (data_type == FLOAT_32) return CAST_AND_COMPARE(a, b, float, >=);
+        else if (data_type == FLOAT_64) return CAST_AND_COMPARE(a, b, double, >=);
+        else if (data_type == FLOAT_128) return CAST_AND_COMPARE(a, b, long double, >=);
+    } else if (operator_flag == EQUAL) {
+        if (data_type == FLOAT_32) return CAST_AND_COMPARE(a, b, float, ==);
+        else if (data_type == FLOAT_64) return CAST_AND_COMPARE(a, b, double, ==);
+        else if (data_type == FLOAT_128) return CAST_AND_COMPARE(a, b, long double, ==);
+    }
 }
 
 #endif //_UTILS_H_

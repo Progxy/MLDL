@@ -9,10 +9,10 @@
 typedef unsigned char bool;
 
 typedef enum DataType { FLOAT_32 = sizeof(float), FLOAT_64 = sizeof(double), FLOAT_128 = sizeof(long double) } DataType;
-typedef enum OperatorFlag { SUM, SUBTRACTION, MULTIPLICATION, DIVISION } OperatorFlag;
+typedef enum OperatorFlag { SUM, SUBTRACTION, MULTIPLICATION, DIVISION, LESS, LESS_OR_EQUAL, GREATER, GREATER_OR_EQUAL, EQUAL } OperatorFlag;
 
 const unsigned char data_types[] = { FLOAT_32, FLOAT_64, FLOAT_128 };
-const unsigned char operators_flags[] = { SUM, SUBTRACTION, MULTIPLICATION, DIVISION };
+const unsigned char operators_flags[] = { SUM, SUBTRACTION, MULTIPLICATION, DIVISION, LESS, LESS_OR_EQUAL, GREATER, GREATER_OR_EQUAL, EQUAL };
 
 typedef struct Tensor {
     unsigned int* shape;
