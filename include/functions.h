@@ -191,10 +191,7 @@ Tensor* gradient(Ml ml, Tensor input, Tensor output, Tensor* gradient_tensor) {
     return gradient_tensor;
 }
 
-void adam_optim(Ml ml, Tensor input, Tensor output, void* alpha, void* first_moment, void* second_moment) {
-    NOT_USED(ml);
-    NOT_USED(input);
-    NOT_USED(output);
+void adam_optim(Ml ml, Tensor input, Tensor output, void* alpha, void* eps, void* first_moment, void* second_moment) {
     NOT_USED(alpha);
     NOT_USED(first_moment);
     NOT_USED(second_moment);
@@ -202,8 +199,34 @@ void adam_optim(Ml ml, Tensor input, Tensor output, void* alpha, void* first_mom
     unsigned int t = 0; 
     unsigned int shape[] = { get_ml_size(ml) };
     Tensor first_moment_vec = alloc_tensor(shape, 1, ml.data_type);
-    NOT_USED(first_moment_vec);
-    NOT_USED(t);
+    Tensor second_moment_vec = alloc_tensor(shape, 1, ml.data_type);
+    void* temp = calloc(1, ml.data_type);
+    void* tmp = calloc(1, ml.data_type);
+    Tensor theta_vec = alloc_tensor(shape, 1, ml.data_type);
+
+    while (TRUE) {
+        t++;
+        Tensor g_t = alloc_tensor(shape, 1, ml.data_type);
+        // TODO: Extract the input and output
+        gradient(ml, input, output, &g_t); // gt ← ∇θft(θt−1)
+
+        // mt ← β1 · mt−1 + (1 − β1) · gt
+        SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SUBTRACT(temp, ASSIGN(temp, 1.0L, ml.data_type), first_moment, ml.data_type)));
+        //vt ← β2 · vt−1 + (1 − β2) · g^2(t)
+        SUM_TENSOR(&second_moment_vec, *SCALAR_MUL_TENSOR(&second_moment_vec, second_moment), *SCALAR_MUL_TENSOR(MULTIPLY_TENSOR(&g_t, g_t, g_t), SUBTRACT(temp, ASSIGN(temp, 1.0L, ml.data_type), second_moment, ml.data_type)));
+        //^mt^ ← mt/(1 − β1^t)   
+        Tensor first_moment_vec_hat = alloc_tensor(shape, 1, ml.data_type);
+        copy_tensor(&first_moment_vec_hat, first_moment_vec);
+        SCALAR_DIV_TENSOR(&first_moment_vec_hat, SUBTRACT(temp, ASSIGN(temp, 1.0L, ml.data_type), POW(tmp, first_moment, t, ml.data_type), ml.data_type));       
+
+        //^mv^ ← vt/(1 − β2^t)
+        Tensor second_moment_vec_hat = alloc_tensor(shape, 1, ml.data_type);
+        copy_tensor(&second_moment_vec_hat, second_moment_vec);
+        SCALAR_DIV_TENSOR(&second_moment_vec_hat, SUBTRACT(temp, ASSIGN(temp, 1.0L, ml.data_type), POW(tmp, second_moment, t, ml.data_type), ml.data_type));
+        //θt ← θt−1 − α · ^mt^/(√^mv^ + eps)
+        SUBTRACT_TENSOR(&theta_vec, theta_vec, *DIVIDE_TENSOR(&first_moment_vec_hat, *SCALAR_MUL_TENSOR(&first_moment_vec_hat, alpha), *SCALAR_SUM_TENSOR(pow_tensor(&second_moment_vec_hat, ASSIGN(temp, 2.0L, ml.data_type)), eps)));
+        DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat, g_t);
+    }
 
     // Continue 
 
