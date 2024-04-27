@@ -164,20 +164,36 @@ void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
     return cost;
 }
 
+Tensor* flatten_ml(Tensor* tensor, Ml ml) {
+    // Flatten tensors
+    for (unsigned int i = 1; i < ml.size; ++i) {
+        Layer layer = ml.layers[i];
+        flatten_tensor(&(layer.activation));
+        flatten_tensor(&(layer.weights));
+        flatten_tensor(&(layer.biases));
+    }
+    
+    // Concat tensors
+    for (unsigned int i = 1; i < ml.size; ++i) {
+        Layer layer = ml.layers[i];
+        concat_tensors(tensor, layer.activation);
+        concat_tensors(tensor, layer.weights);
+        concat_tensors(tensor, layer.biases);
+    }
+
+    return tensor;
+}
+
 // Return the gradient as a flattened tensor
 Tensor* gradient(Ml ml, Tensor input, Tensor output, Tensor* gradient_tensor) {
     Ml gradient_ml = backpropagation(ml, input, output);
 
     // Flatten tensors
     for (unsigned int i = 1; i < gradient_ml.size; ++i) {
-        Layer layer = gradient_ml.layers[i];
-        unsigned int shape[] = {0};
-        shape[0] = tensor_size(layer.activation.shape, layer.activation.dim);
-        reshape_tensor(&(layer.activation), shape, 1, layer.activation.data_type);
-        shape[0] = tensor_size(layer.weights.shape, layer.weights.dim);
-        reshape_tensor(&(layer.weights), shape, 1, layer.weights.data_type);
-        shape[0] = tensor_size(layer.biases.shape, layer.biases.dim);
-        reshape_tensor(&(layer.biases), shape, 1, layer.biases.data_type);
+        Layer layer = ml.layers[i];
+        flatten_tensor(&(layer.activation));
+        flatten_tensor(&(layer.weights));
+        flatten_tensor(&(layer.biases));
     }
     
     // Concat tensors
@@ -201,9 +217,17 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
 
     for (unsigned int t = 0; t < max_epochs || COMPARE(cost(ml, inputs, outputs, temp), threshold, ml.data_type, LESS_OR_EQUAL); ++t) {
         printf("\033[1;1H\033[2JCurrent epoch: %u (MAX_EPOCH: %u)\n", t, max_epochs);
-        // TODO: Extract the input and output
+        flatten_ml(&theta_vec, ml);
+
+        // Extract input and output
+        Tensor input_tensor = alloc_tensor(inputs.shape, inputs.dim, inputs.data_type);
+        Tensor output_tensor = alloc_tensor(outputs.shape, outputs.dim, outputs.data_type);
+        extract_tensor(&input_tensor, inputs, t % inputs.shape[0], 0);
+        extract_tensor(&output_tensor, outputs, t % inputs.shape[0], 0);
+
         Tensor g_t = alloc_tensor(shape, 1, ml.data_type);
-        gradient(ml, inputs, outputs, &g_t); // gt ← ∇θft(θt−1)
+        gradient(ml, input_tensor, output_tensor, &g_t); // gt ← ∇θft(θt−1)
+        DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
         // mt ← β1 · mt−1 + (1 − β1) · gt
         SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SUBTRACT(temp, ASSIGN(temp, 1.0L, ml.data_type), first_moment, ml.data_type)));

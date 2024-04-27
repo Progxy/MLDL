@@ -36,6 +36,7 @@ Tensor* transpose_tensor(Tensor* tensor);
 Tensor empty_tensor(DataType data_type);
 Tensor* concat_tensors(Tensor* dest, Tensor src);
 Tensor* pow_tensor(Tensor* tensor, void* exp);
+Tensor* flatten_tensor(Tensor* tensor);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -401,6 +402,12 @@ Tensor* pow_tensor(Tensor* tensor, void* exp) {
         else if (tensor -> data_type == FLOAT_64) CAST_PTR(tensor -> data, double)[i] = pow(CAST_PTR(tensor -> data, double)[i], *CAST_PTR(exp, double));
         else if (tensor -> data_type == FLOAT_128) CAST_PTR(tensor -> data, long double)[i] = powl(CAST_PTR(tensor -> data, long double)[i], *CAST_PTR(exp, long double));
     }
+    return tensor;
+}
+
+Tensor* flatten_tensor(Tensor* tensor) {
+    unsigned int new_shape[] = { tensor_size(tensor -> shape, tensor -> dim) };
+    reshape_tensor(tensor, new_shape, 1, tensor -> data_type);
     return tensor;
 }
 
