@@ -10,6 +10,7 @@ Ml create_ml(unsigned int size, unsigned int* arch, DataType data_type);
 void print_layer(Layer layer, unsigned int ind);
 void print_ml(Ml ml);
 void deallocate_ml(Ml ml);
+Tensor* flatten_ml(Tensor* tensor, Ml ml);
 
 /* ----------------------------------------------------------------------------------------- */
 
@@ -92,6 +93,21 @@ void deallocate_ml(Ml ml) {
     }
     free(ml.layers);
     return;
+}
+
+Tensor* flatten_ml(Tensor* tensor, Ml ml) {
+    // Flatten tensors
+    for (unsigned int i = 1; i < ml.size; ++i) {
+        Layer layer = ml.layers[i];
+        flatten_tensor(&(layer.activation));
+        concat_tensors(tensor, layer.activation);
+        flatten_tensor(&(layer.weights));
+        concat_tensors(tensor, layer.weights);
+        flatten_tensor(&(layer.biases));
+        concat_tensors(tensor, layer.biases);
+    }
+
+    return tensor;
 }
 
 #endif //_NEURONS_H_

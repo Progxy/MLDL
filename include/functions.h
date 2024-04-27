@@ -1,8 +1,7 @@
 #ifndef _FUNCTIONS_H_
 #define _FUNCTIONS_H_
 
-#include "./tensor.h"
-#include "./mat.h"
+#include "./neurons.h"
 
 #define INPUT_ML(ml) (ml).layers[0].activation
 #define OUTPUT_ML(ml) (ml).layers[(ml).size - 1].activation
@@ -162,26 +161,6 @@ void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
     if (ml.data_type == FLOAT_128) *CAST_PTR(cost, long double) /= inputs.shape[0];
     
     return cost;
-}
-
-Tensor* flatten_ml(Tensor* tensor, Ml ml) {
-    // Flatten tensors
-    for (unsigned int i = 1; i < ml.size; ++i) {
-        Layer layer = ml.layers[i];
-        flatten_tensor(&(layer.activation));
-        flatten_tensor(&(layer.weights));
-        flatten_tensor(&(layer.biases));
-    }
-    
-    // Concat tensors
-    for (unsigned int i = 1; i < ml.size; ++i) {
-        Layer layer = ml.layers[i];
-        concat_tensors(tensor, layer.activation);
-        concat_tensors(tensor, layer.weights);
-        concat_tensors(tensor, layer.biases);
-    }
-
-    return tensor;
 }
 
 // Return the gradient as a flattened tensor
