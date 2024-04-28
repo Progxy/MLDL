@@ -431,7 +431,7 @@ Tensor* cut_tensor(Tensor* dest, Tensor* src) {
     
     free(src -> data);
     src -> data = new_ptr;
-    src -> shape[0] -= dest -> shape[0];
+    src -> shape[0] -= cut_size / (src_size / src -> shape[0]);
 
     return dest;
 }
