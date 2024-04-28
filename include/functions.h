@@ -6,8 +6,7 @@
 #define INPUT_ML(nn) (nn).layers[0].activation
 #define OUTPUT_ML(nn) (nn).layers[(nn).size - 1].activation
 
-void feed_forward(NN nn);
-Tensor* gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_tensor);
+void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs, void* threshold);
 void backpropagation(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
 void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost);
 
@@ -22,7 +21,7 @@ static void sigmoid(Tensor out) {
     }
 }
 
-void feed_forward(NN nn) {
+static void feed_forward(NN nn) {
     // Feed input
     sigmoid(nn.layers[0].activation);
 
@@ -38,7 +37,7 @@ void feed_forward(NN nn) {
     return;
 }   
 
-Tensor* gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_tensor) {
+static Tensor* gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_tensor) {
     copy_tensor(&INPUT_ML(nn), input);
     feed_forward(nn);
 

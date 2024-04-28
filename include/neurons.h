@@ -5,14 +5,14 @@
 #include "./mat.h"
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
-void rand_ml(NN nn);
-unsigned int ml_size(NN nn);
 NN create_ml(unsigned int size, unsigned int* arch, DataType data_type);
 void print_layer(Layer layer, unsigned int ind);
-void print_ml(NN nn);
-void deallocate_ml(NN nn);
 Tensor* flatten_ml(Tensor* tensor, NN nn);
 void unflatten_ml(NN nn, Tensor* tensor);
+unsigned int ml_size(NN nn);
+void deallocate_ml(NN nn);
+void print_ml(NN nn);
+void rand_ml(NN nn);
 
 /* ----------------------------------------------------------------------------------------- */
 

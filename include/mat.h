@@ -14,22 +14,22 @@
 #define PRINT_VEC(vec) print_mat(vec, #vec)
 #define PRINT_MAT(mat) print_mat(mat, #mat)
 
-Matrix alloc_mat(unsigned int rows, unsigned int cols, DataType data_type);
 void reshape_mat(Matrix* dest, unsigned int rows, unsigned int cols, DataType data_type);
-Matrix cast_tensor_to_mat(Tensor tensor, Matrix* mat);
-void randomize_mat(Matrix mat);
-void fill_mat(Matrix mat, void* value);
-void print_mat(Matrix mat, char* mat_name);
-Matrix sum_mat(Matrix* dest, Matrix a, Matrix b);
-Matrix mul_mat(Matrix* dest, Matrix a, Matrix b);
-Matrix create_id_mat(unsigned int size, DataType data_type);
+Matrix alloc_mat(unsigned int rows, unsigned int cols, DataType data_type);
 Vec get_row_from_mat(Vec* vec, Matrix mat, unsigned int row);
 Vec get_col_from_mat(Vec* vec, Matrix mat, unsigned int col);
+Matrix create_id_mat(unsigned int size, DataType data_type);
+Matrix cast_tensor_to_mat(Tensor tensor, Matrix* mat);
+Matrix mul_mat(Matrix* dest, Matrix a, Matrix b);
+Matrix sum_mat(Matrix* dest, Matrix a, Matrix b);
 Matrix scalar_mul(Matrix mat, void* scalar);
-void norm(Matrix mat, void* norm);
+void print_mat(Matrix mat, char* mat_name);
 void copy_mat(Matrix* dest, Matrix src);
-void transpose_vec(Vec* vec);
+void fill_mat(Matrix mat, void* value);
 void deallocate_matrices(int len, ...);
+void norm(Matrix mat, void* norm);
+void randomize_mat(Matrix mat);
+void transpose_vec(Vec* vec);
 
 /* -------------------------------------------------------------------------------------------- */
 
