@@ -37,6 +37,7 @@ Tensor empty_tensor(DataType data_type);
 Tensor* concat_tensors(Tensor* dest, Tensor src);
 Tensor* pow_tensor(Tensor* tensor, void* exp);
 Tensor* flatten_tensor(Tensor* dest, Tensor src);
+Tensor* cut_tensor(Tensor* dest, Tensor* src);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -414,16 +415,24 @@ Tensor* flatten_tensor(Tensor* dest, Tensor src) {
 
 Tensor* cut_tensor(Tensor* dest, Tensor* src) {
     ASSERT(dest -> data_type != src -> data_type, "DATA_TYPE_MISMATCH");
-    ASSERT(dest -> dim > src -> dim, "INVALID_DIM");
-    mem_copy(dest -> data, src -> data, dest -> data_type, tensor_size(dest -> shape, dest -> dim));
-    if (src -> data_type == FLOAT_32) src -> data = CAST_PTR(src -> data, float) + tensor_size(dest -> shape, dest -> dim);
-    else if (src -> data_type == FLOAT_64) src -> data = CAST_PTR(src -> data, double) + tensor_size(dest -> shape, dest -> dim);
-    else if (src -> data_type == FLOAT_128) src -> data = CAST_PTR(src -> data, long double) + tensor_size(dest -> shape, dest -> dim);
-    src -> data = realloc(src -> data, src -> data_type * (tensor_size(src -> shape, src -> dim) - tensor_size(dest -> shape, dest -> dim)));
-    unsigned int* new_shape = (unsigned int*) calloc(src -> dim, sizeof(unsigned int));
-    for (int i = src -> dim - dest -> dim; i >= 0; --i) {
-        new_shape[i] = src -> shape[i] - dest -> shape[i];
+
+    unsigned int cut_size = tensor_size(dest -> shape, dest -> dim);
+    unsigned int src_size = tensor_size(src -> shape, src -> dim);
+    ASSERT(src_size < cut_size, "SIZE_MISMATCH");
+    ASSERT(cut_size % (src_size / src -> shape[0]), "INVALID_SHAPE");
+    mem_copy(dest -> data, src -> data, dest -> data_type, cut_size);
+
+    void* new_ptr = calloc(src_size - cut_size, src -> data_type);
+    for (unsigned int i = 0; i < (src_size - cut_size); ++i) {
+        if (src -> data_type == FLOAT_32) CAST_PTR(new_ptr, float)[i] = CAST_PTR(src -> data, float)[i + cut_size];
+        else if (src -> data_type == FLOAT_64) CAST_PTR(new_ptr, double)[i] = CAST_PTR(src -> data, double)[i + cut_size];
+        else if (src -> data_type == FLOAT_128) CAST_PTR(new_ptr, long double)[i] = CAST_PTR(src -> data, long double)[i + cut_size];
     }
+    
+    free(src -> data);
+    src -> data = new_ptr;
+    src -> shape[0] -= dest -> shape[0];
+
     return dest;
 }
 

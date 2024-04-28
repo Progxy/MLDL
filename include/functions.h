@@ -124,8 +124,9 @@ void backpropagation(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, 
             DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
             Tensor ml_tensor = empty_tensor(ml.data_type);
+            flatten_ml(&ml_tensor, ml);
             SUBTRACT_TENSOR(&ml_tensor, ml_tensor, *SCALAR_MUL_TENSOR(&gradient_tensor, learning_rate));
-            unflate_ml(ml, ml_tensor);
+            unflate_ml(ml, &ml_tensor);
             DEALLOCATE_TENSORS(ml_tensor, gradient_tensor);
         }
 

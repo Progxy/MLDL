@@ -110,7 +110,7 @@ Tensor* flatten_ml(Tensor* tensor, Ml ml) {
     return tensor;
 }
 
-void unflate_ml(Ml ml, Tensor tensor) {
+void unflate_ml(Ml ml, Tensor* tensor) {
     for (unsigned int i = 1; i < ml.size; ++i) {
         Layer layer = ml.layers[i];
         cut_tensor(&layer.activation, tensor);

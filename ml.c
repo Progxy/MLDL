@@ -32,7 +32,7 @@ int main() {
     set_tensor((void*) output_data, output);
 
     double learning_rate = 0.01;
-    train(ml, input, output, &learning_rate, 100000);
+    backpropagation(ml, input, output, &learning_rate, 100000);
     double cost_d = 0.0;
     printf("ML accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(ml, input, output, &cost_d), double)) * 100.0);
     
