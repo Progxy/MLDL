@@ -79,7 +79,6 @@ void deallocate_tensors(int len, ...) {
     va_start(args, len);
     for (int i = 0; i < len; ++i) {
         Tensor tensor = va_arg(args, Tensor);
-        printf("DEALLOCATING: data: %p\n", tensor.data);
         free(tensor.data);
         free(tensor.shape);
     }

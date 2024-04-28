@@ -22,18 +22,14 @@ static void sigmoid(Tensor out) {
 }
 
 static void feed_forward(NN nn) {
-    // Feed input
     sigmoid(nn.layers[0].activation);
-
+    Tensor temp = empty_tensor(nn.data_type);
     for (unsigned int i = 1; i < nn.size; ++i) {
-        Tensor temp = alloc_tensor(nn.layers[i].weights.shape, nn.layers[i].weights.rank, nn.layers[i].weights.data_type);
         unsigned int middle = (nn.layers[i].weights.rank + nn.layers[i - 1].activation.rank) / 2;
         SUM_TENSOR(&(nn.layers[i].activation), *contract_tensor(cross_product_tensor(&temp, nn.layers[i].weights, nn.layers[i - 1].activation), middle, middle - 1), nn.layers[i].biases);
-        DEALLOCATE_TENSORS(temp);
         sigmoid(nn.layers[i].activation);
     }
-    
-
+    DEALLOCATE_TENSORS(temp);
     return;
 }   
 
