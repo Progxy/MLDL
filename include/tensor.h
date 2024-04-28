@@ -17,28 +17,29 @@
 #define SCALAR_DIV_TENSOR(a, val) scalar_op_tensor(a, val, DIVISION)
 #define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUMMATION)
 
-void deallocate_tensors(int len, ...);
-unsigned int tensor_size(unsigned int* shape, unsigned int rank);
-Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type);
 Tensor alloc_temp_tensor(unsigned int* shape, unsigned int rank, DataType data_type, bool clean_cache_flag);
-void print_tensor(Tensor tensor, char* tensor_name);
-void fill_tensor(void* val, Tensor tensor);
-void set_tensor(void* new_data, Tensor tensor);
-void randomize_tensor(Tensor tensor);
-Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type);
-void copy_tensor(Tensor* dest, Tensor src);
-Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
-Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b);
-Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
 Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
-Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
+Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type);
 Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim);
+Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type);
+Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
+Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
+unsigned int tensor_size(unsigned int* shape, unsigned int rank);
+Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
+Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b);
+Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor);
+void print_tensor(Tensor tensor, char* tensor_name);
+Tensor* concat_tensors(Tensor* dest, Tensor src);
+Tensor* flatten_tensor(Tensor* dest, Tensor src);
+void set_tensor(void* new_data, Tensor tensor);
+Tensor* pow_tensor(Tensor* tensor, void* exp);
+Tensor* cut_tensor(Tensor* dest, Tensor* src);
+void fill_tensor(void* val, Tensor tensor);
+void copy_tensor(Tensor* dest, Tensor src);
 Tensor* transpose_tensor(Tensor* tensor);
 Tensor empty_tensor(DataType data_type);
-Tensor* concat_tensors(Tensor* dest, Tensor src);
-Tensor* pow_tensor(Tensor* tensor, void* exp);
-Tensor* flatten_tensor(Tensor* dest, Tensor src);
-Tensor* cut_tensor(Tensor* dest, Tensor* src);
+void deallocate_tensors(int len, ...);
+void randomize_tensor(Tensor tensor);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
