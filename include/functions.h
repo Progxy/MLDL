@@ -141,6 +141,7 @@ void backpropagation(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, 
 
 void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
     ASSERT((ml.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
+    ASSIGN(cost, 0.0L, ml.data_type);
 
     for (unsigned int i = 0; i < inputs.shape[0]; ++i) {
         Tensor input_tensor = alloc_tensor(inputs.shape, inputs.dim, inputs.data_type);
@@ -164,7 +165,7 @@ void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
     if (ml.data_type == FLOAT_32) *CAST_PTR(cost, float) /= inputs.shape[0];
     else if (ml.data_type == FLOAT_64) *CAST_PTR(cost, double) /= inputs.shape[0];
     else if (ml.data_type == FLOAT_128) *CAST_PTR(cost, long double) /= inputs.shape[0];
-    
+
     return cost;
 }
 
@@ -177,9 +178,11 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
     void* temp = calloc(1, ml.data_type);
     void* tmp = calloc(1, ml.data_type);
 
-    for (unsigned int t = 0; t < max_epochs && COMPARE(cost(ml, inputs, outputs, temp), threshold, ml.data_type, LESS_OR_EQUAL); ++t) {
-        printf("\033[1;1H\033[2JCurrent epoch: %u (MAX_EPOCH: %u), current cost: ", t, max_epochs);
-        print_value(SUBTRACT(temp, ASSIGN(tmp, 1.0L, ml.data_type), temp, ml.data_type), ml.data_type);
+    for (unsigned int t = 0; t < max_epochs; ++t) {
+        if (COMPARE(cost(ml, inputs, outputs, ASSIGN(temp, 0.0L, ml.data_type)), threshold, ml.data_type, LESS_OR_EQUAL)) break;
+        printf("\033[1;1H\033[2J");
+        printf("Current epoch: %u (MAX_EPOCH: %u), current cost: ", t, max_epochs);
+        print_value_as_percentage(SUBTRACT(temp, ASSIGN(tmp, 1.0L, ml.data_type), temp, ml.data_type), ml.data_type);
         printf("\n");
 
         // Extract input and output
@@ -211,10 +214,12 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         
         // θt ← θt−1 − α · ^mt^/(√^mv^ + eps)
         SUBTRACT_TENSOR(&theta_vec, theta_vec, *DIVIDE_TENSOR(&first_moment_vec_hat, *SCALAR_MUL_TENSOR(&first_moment_vec_hat, alpha), *SCALAR_SUM_TENSOR(pow_tensor(&second_moment_vec_hat, ASSIGN(temp, 2.0L, ml.data_type)), eps)));
-        DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat, g_t);
+        Tensor temp_tensor = empty_tensor(ml.data_type);
+        copy_tensor(&temp_tensor, theta_vec);
+        unflatten_ml(ml, &temp_tensor);
+        DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat, g_t, temp_tensor);
     }
 
-    unflatten_ml(ml, &theta_vec);
 
     DEALLOCATE_TENSORS(first_moment_vec, second_moment_vec, theta_vec);
     DEALLOCATE_PTRS(temp, tmp);

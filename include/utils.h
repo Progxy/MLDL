@@ -125,6 +125,15 @@ void print_value(void* value, DataType data_type) {
     return;
 }
 
+void print_value_as_percentage(void* value, DataType data_type) {
+    if (data_type == FLOAT_32) *CAST_PTR(value, float) = roundf(*CAST_PTR(value, float) * 10000.0f) / 100.0f;
+    else if (data_type == FLOAT_64) *CAST_PTR(value, double) = roundf(*CAST_PTR(value, double) * 10000.0) / 100.0;
+    else if (data_type == FLOAT_128) *CAST_PTR(value, long double) = roundf(*CAST_PTR(value, long double) * 10000.0L) / 100.0L;
+    print_value(value, data_type);
+    printf("%%");
+    return;
+}
+
 void deallocate_ptrs(int len, ...) {
     va_list args;
     va_start(args, len);
