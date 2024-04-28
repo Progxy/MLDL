@@ -96,18 +96,28 @@ void deallocate_ml(Ml ml) {
 }
 
 Tensor* flatten_ml(Tensor* tensor, Ml ml) {
-    // Flatten tensors
+    Tensor temp = empty_tensor(ml.data_type);
     for (unsigned int i = 1; i < ml.size; ++i) {
         Layer layer = ml.layers[i];
-        flatten_tensor(&(layer.activation));
-        concat_tensors(tensor, layer.activation);
-        flatten_tensor(&(layer.weights));
-        concat_tensors(tensor, layer.weights);
-        flatten_tensor(&(layer.biases));
-        concat_tensors(tensor, layer.biases);
+        flatten_tensor(&temp, layer.activation);
+        concat_tensors(tensor, temp);
+        flatten_tensor(&temp, layer.weights);
+        concat_tensors(tensor, temp);
+        flatten_tensor(&temp, layer.biases);
+        concat_tensors(tensor, temp);
     }
-
+    DEALLOCATE_TENSORS(temp);
     return tensor;
+}
+
+void unflate_ml(Ml ml, Tensor tensor) {
+    for (unsigned int i = 1; i < ml.size; ++i) {
+        Layer layer = ml.layers[i];
+        cut_tensor(&layer.activation, tensor);
+        cut_tensor(&layer.activation, tensor);
+        cut_tensor(&layer.activation, tensor);
+    }
+    return;
 }
 
 #endif //_NEURONS_H_

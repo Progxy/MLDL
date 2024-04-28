@@ -7,8 +7,8 @@
 #define OUTPUT_ML(ml) (ml).layers[(ml).size - 1].activation
 
 void feed_forward(Ml ml);
-Ml backpropagation(Ml ml, Tensor input_vec, Tensor output_vec);
-void train(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int epochs);
+Tensor* gradient(Ml ml, Tensor input, Tensor output, Tensor* gradient_tensor);
+void backpropagation(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
 void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost);
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
@@ -38,7 +38,7 @@ void feed_forward(Ml ml) {
     return;
 }   
 
-Ml backpropagation(Ml ml, Tensor input, Tensor output) {
+Tensor* gradient(Ml ml, Tensor input, Tensor output, Tensor* gradient_tensor) {
     copy_tensor(&INPUT_ML(ml), input);
     feed_forward(ml);
 
@@ -85,15 +85,18 @@ Ml backpropagation(Ml ml, Tensor input, Tensor output) {
         DEALLOCATE_TENSORS(current_z);
     }
 
-    return gradient;
+    flatten_ml(gradient_tensor, gradient);
+    deallocate_ml(gradient);
+
+    return gradient_tensor;
 }
 
-void train(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int epochs) {
+void backpropagation(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs) {
     ASSERT((ml.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
 
     long unsigned int time_a = time(NULL);
-    for (unsigned int epoch = 0; epoch < epochs; ++epoch) {
-        float percentage = ((float) (epoch + 1) / epochs * 100.0f);
+    for (unsigned int epoch = 0; epoch < max_epochs; ++epoch) {
+        float percentage = ((float) (epoch + 1) / max_epochs * 100.0f);
         printf("\033[1;1H\033[2J");
         printf("%.2f%% ", percentage);
         printf("\033[47m");
@@ -103,10 +106,10 @@ void train(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned i
         }
         printf("\033[0m");
         printf("|");
-        printf(" %u/%u ", epoch + 1, epochs);
+        printf(" %u/%u ", epoch + 1, max_epochs);
         printf("Elapsed time:");
         print_time_format(time(NULL) - time_a);
-        printf("%c", (epoch + 1) == epochs ? '\0' : '\n');
+        printf("%c", (epoch + 1) == max_epochs ? '\0' : '\n');
 
         unsigned int* shuffled_indices = create_shuffle_indices(inputs.shape[0]);
 
@@ -115,20 +118,21 @@ void train(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, unsigned i
             Tensor output_tensor = alloc_tensor(outputs.shape, outputs.dim, outputs.data_type);
             extract_tensor(&input_tensor, inputs, shuffled_indices[i], 0);
             extract_tensor(&output_tensor, outputs, shuffled_indices[i], 0);
-            Ml gradient = backpropagation(ml, *change_tensor_rank(&input_tensor, input_tensor.dim + 1), *change_tensor_rank(&output_tensor, output_tensor.dim + 1));
+
+            Tensor gradient_tensor = empty_tensor(ml.data_type);
+            gradient(ml, *change_tensor_rank(&input_tensor, input_tensor.dim + 1), *change_tensor_rank(&output_tensor, output_tensor.dim + 1), &gradient_tensor);
             DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
-            for (int l = gradient.size - 1; l > 0; --l) {
-                // Subtract the gradient from the activation layer
-                SUBTRACT_TENSOR(&(ml.layers[l].activation), ml.layers[l].activation, *reshape_tensor(SCALAR_MUL_TENSOR(&gradient.layers[l].activation, learning_rate), ml.layers[l].activation.shape, ml.layers[l].activation.dim, ml.data_type));
-                SUBTRACT_TENSOR(&(ml.layers[l].weights), ml.layers[l].weights, *SCALAR_MUL_TENSOR(&gradient.layers[l].weights, learning_rate));
-                SUBTRACT_TENSOR(&(ml.layers[l].biases), ml.layers[l].biases, *SCALAR_MUL_TENSOR(&gradient.layers[l].biases, learning_rate));
-            }
-
-            deallocate_ml(gradient);
+            Tensor ml_tensor = empty_tensor(ml.data_type);
+            SUBTRACT_TENSOR(&ml_tensor, ml_tensor, *SCALAR_MUL_TENSOR(&gradient_tensor, learning_rate));
+            unflate_ml(ml, ml_tensor);
+            DEALLOCATE_TENSORS(ml_tensor, gradient_tensor);
         }
+
         free(shuffled_indices);
+    
     }
+    
     printf("\n");
 
     return;
@@ -163,29 +167,6 @@ void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
     return cost;
 }
 
-// Return the gradient as a flattened tensor
-Tensor* gradient(Ml ml, Tensor input, Tensor output, Tensor* gradient_tensor) {
-    Ml gradient_ml = backpropagation(ml, input, output);
-
-    // Flatten tensors
-    for (unsigned int i = 1; i < gradient_ml.size; ++i) {
-        Layer layer = ml.layers[i];
-        flatten_tensor(&(layer.activation));
-        flatten_tensor(&(layer.weights));
-        flatten_tensor(&(layer.biases));
-    }
-    
-    // Concat tensors
-    for (unsigned int i = 1; i < gradient_ml.size; ++i) {
-        Layer layer = gradient_ml.layers[i];
-        concat_tensors(gradient_tensor, layer.activation);
-        concat_tensors(gradient_tensor, layer.weights);
-        concat_tensors(gradient_tensor, layer.biases);
-    }
-
-    return gradient_tensor;
-}
-
 void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs, void* threshold) {
     unsigned int shape[] = { get_ml_size(ml) };
     Tensor first_moment_vec = alloc_tensor(shape, 1, ml.data_type);
@@ -204,8 +185,9 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         extract_tensor(&input_tensor, inputs, t % inputs.shape[0], 0);
         extract_tensor(&output_tensor, outputs, t % inputs.shape[0], 0);
 
+        // gt ← ∇θft(θt−1)
         Tensor g_t = alloc_tensor(shape, 1, ml.data_type);
-        gradient(ml, input_tensor, output_tensor, &g_t); // gt ← ∇θft(θt−1)
+        gradient(ml, *change_tensor_rank(&input_tensor, input_tensor.dim + 1), *change_tensor_rank(&output_tensor, output_tensor.dim + 1), &g_t);
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
         // mt ← β1 · mt−1 + (1 − β1) · gt

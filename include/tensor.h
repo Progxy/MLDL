@@ -36,7 +36,7 @@ Tensor* transpose_tensor(Tensor* tensor);
 Tensor empty_tensor(DataType data_type);
 Tensor* concat_tensors(Tensor* dest, Tensor src);
 Tensor* pow_tensor(Tensor* tensor, void* exp);
-Tensor* flatten_tensor(Tensor* tensor);
+Tensor* flatten_tensor(Tensor* dest, Tensor src);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -405,10 +405,26 @@ Tensor* pow_tensor(Tensor* tensor, void* exp) {
     return tensor;
 }
 
-Tensor* flatten_tensor(Tensor* tensor) {
-    unsigned int new_shape[] = { tensor_size(tensor -> shape, tensor -> dim) };
-    reshape_tensor(tensor, new_shape, 1, tensor -> data_type);
-    return tensor;
+Tensor* flatten_tensor(Tensor* dest, Tensor src) {
+    copy_tensor(dest, src);
+    unsigned int new_shape[] = { tensor_size(dest -> shape, dest -> dim) };
+    reshape_tensor(dest, new_shape, 1, dest -> data_type);
+    return dest;
+}
+
+Tensor* cut_tensor(Tensor* dest, Tensor* src) {
+    ASSERT(dest -> data_type != src -> data_type, "DATA_TYPE_MISMATCH");
+    ASSERT(dest -> dim > src -> dim, "INVALID_DIM");
+    mem_copy(dest -> data, src -> data, dest -> data_type, tensor_size(dest -> shape, dest -> dim));
+    if (src -> data_type == FLOAT_32) src -> data = CAST_PTR(src -> data, float) + tensor_size(dest -> shape, dest -> dim);
+    else if (src -> data_type == FLOAT_64) src -> data = CAST_PTR(src -> data, double) + tensor_size(dest -> shape, dest -> dim);
+    else if (src -> data_type == FLOAT_128) src -> data = CAST_PTR(src -> data, long double) + tensor_size(dest -> shape, dest -> dim);
+    src -> data = realloc(src -> data, src -> data_type * (tensor_size(src -> shape, src -> dim) - tensor_size(dest -> shape, dest -> dim)));
+    unsigned int* new_shape = (unsigned int*) calloc(src -> dim, sizeof(unsigned int));
+    for (int i = src -> dim - dest -> dim; i >= 0; --i) {
+        new_shape[i] = src -> shape[i] - dest -> shape[i];
+    }
+    return dest;
 }
 
 #endif //_TENSOR_H_
