@@ -188,7 +188,7 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         Tensor input_tensor = alloc_tensor(inputs.shape, inputs.rank, inputs.data_type);
         Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
         extract_tensor(&input_tensor, inputs, t % inputs.shape[0], 0);
-        extract_tensor(&output_tensor, outputs, t % inputs.shape[0], 0);
+        extract_tensor(&output_tensor, outputs, t % outputs.shape[0], 0);
 
         // gt ← ∇θft(θt−1)
         Tensor g_t = empty_tensor(nn.data_type);
