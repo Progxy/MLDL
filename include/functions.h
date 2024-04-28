@@ -7,7 +7,7 @@
 #define OUTPUT_ML(nn) (nn).layers[(nn).size - 1].activation
 
 void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs, void* threshold);
-void backpropagation(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
+void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
 void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost);
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
@@ -90,7 +90,7 @@ static Tensor* gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_ten
     return gradient_tensor;
 }
 
-void backpropagation(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs) {
+void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs) {
     ASSERT((nn.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
 
     long unsigned int time_a = time(NULL);
