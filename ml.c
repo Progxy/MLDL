@@ -20,7 +20,7 @@ int main() {
         0.0,
     };
 
-    unsigned int arch[] = {2, 2, 1};
+    unsigned int arch[] = {2, 4, 1};
     NN nn = create_ml(ARR_SIZE(arch), arch, FLOAT_64);
     rand_ml(nn);
 

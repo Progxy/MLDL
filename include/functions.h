@@ -51,15 +51,17 @@ static Tensor* gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_ten
 
         for (unsigned int j = 0; j < nn.layers[l].neurons; ++j) {
             void* diff_activation = calloc(1, nn.data_type);
-            if (nn.data_type == FLOAT_32) *CAST_PTR(diff_activation, float) = 2 * (CAST_PTR(nn.layers[l].activation.data, float)[j] - CAST_PTR(gradient.layers[l].activation.data, float)[j]);
-            else if (nn.data_type == FLOAT_64) *CAST_PTR(diff_activation, double) = 2 * (CAST_PTR(nn.layers[l].activation.data, double)[j] - CAST_PTR(gradient.layers[l].activation.data, double)[j]);
-            else if (nn.data_type == FLOAT_128) *CAST_PTR(diff_activation, long double) = 2 * (CAST_PTR(nn.layers[l].activation.data, long double)[j] - CAST_PTR(gradient.layers[l].activation.data, long double)[j]);
+            if (nn.data_type == FLOAT_32) *CAST_PTR(diff_activation, float) = 2.0f * (CAST_PTR(nn.layers[l].activation.data, float)[j] - CAST_PTR(gradient.layers[l].activation.data, float)[j]);
+            else if (nn.data_type == FLOAT_64) *CAST_PTR(diff_activation, double) = 2.0 * (CAST_PTR(nn.layers[l].activation.data, double)[j] - CAST_PTR(gradient.layers[l].activation.data, double)[j]);
+            else if (nn.data_type == FLOAT_128) *CAST_PTR(diff_activation, long double) = 2.0L * (CAST_PTR(nn.layers[l].activation.data, long double)[j] - CAST_PTR(gradient.layers[l].activation.data, long double)[j]);
+            
             void* temp_a = calloc(1, current_z.data_type);
             void* temp_b = calloc(1, current_z.data_type);
             void* diff_sigmoid = calloc(1, current_z.data_type);
-            if (nn.data_type == FLOAT_32) *CAST_PTR(diff_sigmoid, float) = CAST_PTR(sigmoid_func(current_z.data, temp_a, current_z.data_type), float)[j] * (1 - CAST_PTR(sigmoid_func(current_z.data, temp_b, current_z.data_type), float)[j]);
-            else if (nn.data_type == FLOAT_64) *CAST_PTR(diff_sigmoid, double) = CAST_PTR(sigmoid_func(current_z.data, temp_a, current_z.data_type), double)[j] * (1 - CAST_PTR(sigmoid_func(current_z.data, temp_b, current_z.data_type), double)[j]);
-            else if (nn.data_type == FLOAT_128) *CAST_PTR(diff_sigmoid, long double) = CAST_PTR(sigmoid_func(current_z.data, temp_a, current_z.data_type), long double)[j] * (1 - CAST_PTR(sigmoid_func(current_z.data, temp_b, current_z.data_type), long double)[j]);
+
+            if (nn.data_type == FLOAT_32) *CAST_PTR(diff_sigmoid, float) = CAST_PTR(sigmoid_func(current_z.data, temp_a, current_z.data_type), float)[j] * (1.0f - CAST_PTR(sigmoid_func(current_z.data, temp_b, current_z.data_type), float)[j]);
+            else if (nn.data_type == FLOAT_64) *CAST_PTR(diff_sigmoid, double) = CAST_PTR(sigmoid_func(current_z.data, temp_a, current_z.data_type), double)[j] * (1.0 - CAST_PTR(sigmoid_func(current_z.data, temp_b, current_z.data_type), double)[j]);
+            else if (nn.data_type == FLOAT_128) *CAST_PTR(diff_sigmoid, long double) = CAST_PTR(sigmoid_func(current_z.data, temp_a, current_z.data_type), long double)[j] * (1.0L - CAST_PTR(sigmoid_func(current_z.data, temp_b, current_z.data_type), long double)[j]);
 
             // Store the dC/dw[j][k]^L
             for (unsigned int k = 0; k < nn.layers[l - 1].neurons; ++k) {
