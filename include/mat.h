@@ -70,8 +70,8 @@ void reshape_mat(Matrix* dest, unsigned int rows, unsigned int cols, DataType da
 }
 
 Matrix cast_tensor_to_mat(Tensor tensor, Matrix* mat) {
-    ASSERT((tensor.dim > 2) || (tensor.dim == 0), "INVALID_TENSOR_SHAPE");
-    if (tensor.dim == 2) reshape_mat(mat, tensor.shape[0], tensor.shape[1], tensor.data_type); 
+    ASSERT((tensor.rank > 2) || (tensor.rank == 0), "INVALID_TENSOR_SHAPE");
+    if (tensor.rank == 2) reshape_mat(mat, tensor.shape[0], tensor.shape[1], tensor.data_type); 
     else reshape_mat(mat, 1, tensor.shape[0], tensor.data_type);
     mem_copy(mat -> data, tensor.data, MAT_SIZE(*mat), mat -> data_type);
     return *mat;

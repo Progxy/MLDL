@@ -5,14 +5,14 @@
 #include "./mat.h"
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
-void rand_ml(Ml ml);
-unsigned int ml_size(Ml ml);
-Ml create_ml(unsigned int size, unsigned int* arch, DataType data_type);
+void rand_ml(NN nn);
+unsigned int ml_size(NN nn);
+NN create_ml(unsigned int size, unsigned int* arch, DataType data_type);
 void print_layer(Layer layer, unsigned int ind);
-void print_ml(Ml ml);
-void deallocate_ml(Ml ml);
-Tensor* flatten_ml(Tensor* tensor, Ml ml);
-void unflatten_ml(Ml ml, Tensor* tensor);
+void print_ml(NN nn);
+void deallocate_ml(NN nn);
+Tensor* flatten_ml(Tensor* tensor, NN nn);
+void unflatten_ml(NN nn, Tensor* tensor);
 
 /* ----------------------------------------------------------------------------------------- */
 
@@ -27,35 +27,35 @@ Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType da
     return layer;
 }
 
-void rand_ml(Ml ml) {
-    for (unsigned int l = 0; l < ml.size; ++l) {
-        randomize_tensor(ml.layers[l].biases);
-        randomize_tensor(ml.layers[l].weights);
+void rand_ml(NN nn) {
+    for (unsigned int l = 0; l < nn.size; ++l) {
+        randomize_tensor(nn.layers[l].biases);
+        randomize_tensor(nn.layers[l].weights);
     }
     return;
 } 
 
-unsigned int ml_size(Ml ml) {
+unsigned int ml_size(NN nn) {
     unsigned int size = 0;
-    for (unsigned int i = 1; i < ml.size; ++i) {
-        Layer layer = ml.layers[i];
-        size += tensor_size(layer.activation.shape, layer.activation.dim);
-        size += tensor_size(layer.weights.shape, layer.weights.dim);
-        size += tensor_size(layer.biases.shape, layer.biases.dim);
+    for (unsigned int i = 1; i < nn.size; ++i) {
+        Layer layer = nn.layers[i];
+        size += tensor_size(layer.activation.shape, layer.activation.rank);
+        size += tensor_size(layer.weights.shape, layer.weights.rank);
+        size += tensor_size(layer.biases.shape, layer.biases.rank);
     }
     return size;
 }
 
-Ml create_ml(unsigned int size, unsigned int* arch, DataType data_type) {
-    Ml ml = (Ml) {.size = size, .arch = arch, .data_type = data_type};
-    ml.layers = (Layer*) calloc(size, sizeof(Layer));
-    ml.layers[0] = create_layer(1, arch[0], data_type);
+NN create_ml(unsigned int size, unsigned int* arch, DataType data_type) {
+    NN nn = (NN) {.size = size, .arch = arch, .data_type = data_type};
+    nn.layers = (Layer*) calloc(size, sizeof(Layer));
+    nn.layers[0] = create_layer(1, arch[0], data_type);
 
     for (unsigned int i = 1; i < size; ++i) {
-        ml.layers[i] = create_layer(arch[i - 1], arch[i], data_type);
+        nn.layers[i] = create_layer(arch[i - 1], arch[i], data_type);
     }
 
-    return ml;
+    return nn;
 }
 
 void print_layer(Layer layer, unsigned int ind) {
@@ -78,29 +78,29 @@ void print_layer(Layer layer, unsigned int ind) {
     return;
 }
 
-void print_ml(Ml ml) {
-    printf("Ml structure: \n");
+void print_ml(NN nn) {
+    printf("NN structure: \n");
     
-    for (unsigned int i = 1; i < ml.size; ++i) {
-        print_layer(ml.layers[i], i);
+    for (unsigned int i = 1; i < nn.size; ++i) {
+        print_layer(nn.layers[i], i);
         printf("\n");
     }
     
     return;
 }
 
-void deallocate_ml(Ml ml) {
-    for (unsigned int i = 0; i < ml.size; ++i) {
-        DEALLOCATE_TENSORS(ml.layers[i].biases, ml.layers[i].activation, ml.layers[i].weights);
+void deallocate_ml(NN nn) {
+    for (unsigned int i = 0; i < nn.size; ++i) {
+        DEALLOCATE_TENSORS(nn.layers[i].biases, nn.layers[i].activation, nn.layers[i].weights);
     }
-    free(ml.layers);
+    free(nn.layers);
     return;
 }
 
-Tensor* flatten_ml(Tensor* tensor, Ml ml) {
-    Tensor temp = empty_tensor(ml.data_type);
-    for (unsigned int i = 1; i < ml.size; ++i) {
-        Layer layer = ml.layers[i];
+Tensor* flatten_ml(Tensor* tensor, NN nn) {
+    Tensor temp = empty_tensor(nn.data_type);
+    for (unsigned int i = 1; i < nn.size; ++i) {
+        Layer layer = nn.layers[i];
         flatten_tensor(&temp, layer.activation);
         concat_tensors(tensor, temp);
         flatten_tensor(&temp, layer.weights);
@@ -112,9 +112,9 @@ Tensor* flatten_ml(Tensor* tensor, Ml ml) {
     return tensor;
 }
 
-void unflatten_ml(Ml ml, Tensor* tensor) {
-    for (unsigned int i = 1; i < ml.size; ++i) {
-        Layer layer = ml.layers[i];
+void unflatten_ml(NN nn, Tensor* tensor) {
+    for (unsigned int i = 1; i < nn.size; ++i) {
+        Layer layer = nn.layers[i];
         cut_tensor(&layer.activation, tensor);
         cut_tensor(&layer.activation, tensor);
         cut_tensor(&layer.activation, tensor);

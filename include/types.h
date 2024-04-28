@@ -14,7 +14,7 @@ const unsigned char operators_flags[] = { SUMMATION, SUBTRACTION, MULTIPLICATION
 
 typedef struct Tensor {
     unsigned int* shape;
-    unsigned int dim;
+    unsigned int rank;
     void* data;
     DataType data_type;
 } Tensor;
@@ -35,11 +35,11 @@ typedef struct Layer {
     Tensor weights;
 } Layer;
 
-typedef struct Ml {
+typedef struct NN {
     unsigned int size;
     unsigned int* arch;
     Layer* layers;
     DataType data_type;
-} Ml;
+} NN;
 
 #endif //_TYPES_H_
