@@ -31,8 +31,12 @@ int main() {
     Tensor output = alloc_tensor(output_shape, ARR_SIZE(output_shape), ml.data_type);
     set_tensor((void*) output_data, output);
 
-    double learning_rate = 0.01;
-    backpropagation(ml, input, output, &learning_rate, 100000);
+    double alpha = 0.001;
+    double eps = 10e-8;
+    double first_moment_decay = 0.9;
+    double second_moment_decay = 0.999;
+    double threshold = (1.0 - 0.95);
+    adam_optim(ml, input, output, &alpha, &eps, &first_moment_decay, &second_moment_decay, 100000, &threshold);
     double cost_d = 0.0;
     printf("ML accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(ml, input, output, &cost_d), double)) * 100.0);
     

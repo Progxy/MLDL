@@ -193,6 +193,7 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
 
         // mt ← β1 · mt−1 + (1 − β1) · gt
         SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SUBTRACT(temp, ASSIGN(temp, 1.0L, ml.data_type), first_moment, ml.data_type)));
+        
         // vt ← β2 · vt−1 + (1 − β2) · g^2(t)
         SUM_TENSOR(&second_moment_vec, *SCALAR_MUL_TENSOR(&second_moment_vec, second_moment), *SCALAR_MUL_TENSOR(MULTIPLY_TENSOR(&g_t, g_t, g_t), SUBTRACT(temp, ASSIGN(temp, 1.0L, ml.data_type), second_moment, ml.data_type)));
         

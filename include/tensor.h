@@ -11,11 +11,11 @@
 #define MULTIPLY_TENSOR(c, a, b) op_tensor(c, a, b, MULTIPLICATION)
 #define SUBTRACT_TENSOR(c, a, b) op_tensor(c, a, b, SUBTRACTION)
 #define DIVIDE_TENSOR(c, a, b) op_tensor(c, a, b, DIVISION)
-#define SUM_TENSOR(c, a, b) op_tensor(c, a, b, SUM)
+#define SUM_TENSOR(c, a, b) op_tensor(c, a, b, SUMMATION)
 #define SCALAR_MUL_TENSOR(a, val) scalar_op_tensor(a, val, MULTIPLICATION)
 #define SCALAR_SUB_TENSOR(a, val) scalar_op_tensor(a, val, SUBTRACTION)
 #define SCALAR_DIV_TENSOR(a, val) scalar_op_tensor(a, val, DIVISION)
-#define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUM)
+#define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUMMATION)
 
 void deallocate_tensors(int len, ...);
 Tensor alloc_tensor(unsigned int* shape, unsigned int dim, DataType data_type);
@@ -199,17 +199,13 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
     ASSERT(a.dim != b.dim, "DIM_MISMATCH");
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
     for (unsigned int i = 0; i < a.dim; ++i) {
-        if (a.shape[i] != b.shape[i]) {
-            PRINT_TENSOR(a);
-            PRINT_TENSOR(b);
-        }
         ASSERT(a.shape[i] != b.shape[i], "SHAPE_MISMATCH");
     }
     
     Tensor temp = alloc_tensor(a.shape, a.dim, a.data_type);
 
     unsigned int size = tensor_size(a.shape, a.dim);
-    if (op_flag == SUM) {
+    if (op_flag == SUMMATION) {
         for (unsigned int i = 0; i < size; ++i) {
             if (a.data_type == FLOAT_32) CAST_AND_OP_INDEX(a, b, temp, i, float, +);
             if (a.data_type == FLOAT_64) CAST_AND_OP_INDEX(a, b, temp, i, double, +);

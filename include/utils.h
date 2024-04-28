@@ -8,15 +8,15 @@
 #define CAST_AND_OP_INDEX(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_PTR(a.data, type)[index] op CAST_PTR(b.data, type)[index]; 
 #define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
 #define CAST_AND_OP(a, b, c, type, op) *CAST_PTR(c, type) = *CAST_PTR(a, type) op *CAST_PTR(b, type)
+#define ASSERT(condition, err_msg) assert(condition, #condition, __LINE__, __FILE__, err_msg)
 #define MULTIPLY(res, a, b, data_type) data_type_op(MULTIPLICATION, res, a, b, data_type)
 #define SUBTRACT(res, a, b, data_type) data_type_op(SUBTRACTION, res, a, b, data_type)
 #define CAST_AND_COMPARE(a, b, type, op) (*CAST_PTR(a, type) op *CAST_PTR(b, type))
 #define DIVIDE(res, a, b, data_type) data_type_op(DIVISION, res, a, b, data_type)
-#define ASSERT(condition, err_msg) assert(condition, __LINE__, __FILE__, err_msg)
+#define SUM(res, a, b, data_type) data_type_op(SUMMATION, res, a, b, data_type)
 #define ASSIGN(val, new_val, data_type) assign_value(val, new_val, data_type)
 #define POW(res, val, exp, data_type) data_type_pow(res, val, exp, data_type)
 #define VALUE_TO_STR(value, data_type) value_to_str(value, data_type, FALSE)
-#define SUM(res, a, b, data_type) data_type_op(SUM, res, a, b, data_type)
 #define COMPARE(a, b, type, operator) compare_op(a, b, type, operator)
 #define DEALLOCATE_TEMP_STRS() value_to_str(NULL, FLOAT_32, TRUE)
 #define IS_MAT(mat) ((mat.rows != 1) && (mat.cols != 1))
@@ -27,7 +27,7 @@
 #define MAX(a, b) (a >= b ? a : b)
 #define NOT_USED(var) (void) var
 
-void assert(bool condition, unsigned int line, char* file, char* err_msg);
+void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg);
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
 bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigned int enum_values_count);
 unsigned int* create_shuffle_indices(unsigned int size);
@@ -40,10 +40,10 @@ void print_time_format(long unsigned int time);
 
 /* ----------------------------------------------------------------------------------- */
 
-void assert(bool condition, unsigned int line, char* file, char* err_msg) {
+void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg) {
     if (condition) {
-        printf("ERROR: Assert failed in file: %s:%u, with error: %s.\n", file, line, err_msg);
-        exit(-1);
+        printf("%s:%u: Assertion '%s' failed with error: '%s'.\n", file, line, condition_str, err_msg);
+        abort();
     }
     return;
 }
@@ -155,7 +155,7 @@ void* assign_value(void* val, long double new_val, DataType data_type) {
 
 void* data_type_op(OperatorFlag operator_flag, void* res, void* a, void* b, DataType data_type) {
     ASSERT(!is_valid_enum(operator_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATION");
-    if (operator_flag == SUM) {
+    if (operator_flag == SUMMATION) {
         if (data_type == FLOAT_32) CAST_AND_OP(a, b, res, float, +);
         else if (data_type == FLOAT_64) CAST_AND_OP(a, b, res, double, +);
         else if (data_type == FLOAT_128) CAST_AND_OP(a, b, res, long double, +);
