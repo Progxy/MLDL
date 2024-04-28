@@ -1,10 +1,8 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-// Header containing all the structure used
 #define FALSE 0
 #define TRUE 1
-
 
 typedef unsigned char bool;
 

@@ -6,11 +6,13 @@
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
 void rand_ml(Ml ml);
+unsigned int ml_size(Ml ml);
 Ml create_ml(unsigned int size, unsigned int* arch, DataType data_type);
 void print_layer(Layer layer, unsigned int ind);
 void print_ml(Ml ml);
 void deallocate_ml(Ml ml);
 Tensor* flatten_ml(Tensor* tensor, Ml ml);
+void unflatten_ml(Ml ml, Tensor* tensor);
 
 /* ----------------------------------------------------------------------------------------- */
 
@@ -33,7 +35,7 @@ void rand_ml(Ml ml) {
     return;
 } 
 
-unsigned int get_ml_size(Ml ml) {
+unsigned int ml_size(Ml ml) {
     unsigned int size = 0;
     for (unsigned int i = 0; i < ml.size; ++i) {
         Layer layer = ml.layers[i];
@@ -110,7 +112,7 @@ Tensor* flatten_ml(Tensor* tensor, Ml ml) {
     return tensor;
 }
 
-void unflate_ml(Ml ml, Tensor* tensor) {
+void unflatten_ml(Ml ml, Tensor* tensor) {
     for (unsigned int i = 1; i < ml.size; ++i) {
         Layer layer = ml.layers[i];
         cut_tensor(&layer.activation, tensor);

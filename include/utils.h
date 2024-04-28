@@ -5,7 +5,7 @@
 #include <math.h>
 #include "./types.h"
 
-#define CAST_AND_OP_INDEX(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_PTR(a.data, type)[index] op CAST_PTR(b.data, type)[index]; 
+#define CAST_AND_OP_INDEX(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_PTR(a.data, type)[index] op CAST_PTR(b.data, type)[index] 
 #define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
 #define CAST_AND_OP(a, b, c, type, op) *CAST_PTR(c, type) = *CAST_PTR(a, type) op *CAST_PTR(b, type)
 #define ASSERT(condition, err_msg) assert(condition, #condition, __LINE__, __FILE__, err_msg)
@@ -42,7 +42,7 @@ void print_time_format(long unsigned int time);
 
 void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg) {
     if (condition) {
-        printf("%s:%u: Assertion '%s' failed with error: '%s'.\n", file, line, condition_str, err_msg);
+        printf("\033[32m%s:%u\033[0m: Assertion \033[33m%s\033[0m failed with error: \033[31m%s\033[0m.\n", file, line, condition_str, err_msg);
         abort();
     }
     return;

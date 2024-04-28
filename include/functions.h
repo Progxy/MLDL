@@ -126,7 +126,7 @@ void backpropagation(Ml ml, Tensor inputs, Tensor outputs, void* learning_rate, 
             Tensor ml_tensor = empty_tensor(ml.data_type);
             flatten_ml(&ml_tensor, ml);
             SUBTRACT_TENSOR(&ml_tensor, ml_tensor, *SCALAR_MUL_TENSOR(&gradient_tensor, learning_rate));
-            unflate_ml(ml, &ml_tensor);
+            unflatten_ml(ml, &ml_tensor);
             DEALLOCATE_TENSORS(ml_tensor, gradient_tensor);
         }
 
@@ -169,7 +169,7 @@ void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
 }
 
 void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs, void* threshold) {
-    unsigned int shape[] = { get_ml_size(ml) };
+    unsigned int shape[] = { ml_size(ml) };
     Tensor first_moment_vec = alloc_tensor(shape, 1, ml.data_type);
     Tensor second_moment_vec = alloc_tensor(shape, 1, ml.data_type);
     Tensor theta_vec = alloc_tensor(shape, 1, ml.data_type);
@@ -190,6 +190,8 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         Tensor g_t = alloc_tensor(shape, 1, ml.data_type);
         gradient(ml, *change_tensor_rank(&input_tensor, input_tensor.dim + 1), *change_tensor_rank(&output_tensor, output_tensor.dim + 1), &g_t);
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
+
+        printf("grad_size: %u, first_moment_size: %u, ml_size: %u\n", tensor_size(g_t.shape, g_t.dim), tensor_size(first_moment_vec.shape, first_moment_vec.dim), ml_size(ml));
 
         // mt ← β1 · mt−1 + (1 − β1) · gt
         SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SUBTRACT(temp, ASSIGN(temp, 1.0L, ml.data_type), first_moment, ml.data_type)));
