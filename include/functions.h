@@ -85,7 +85,6 @@ Tensor* gradient(Ml ml, Tensor input, Tensor output, Tensor* gradient_tensor) {
         DEALLOCATE_TENSORS(current_z);
     }
     
-    printf("GRAD_SIZE: %u\n", ml_size(gradient));
     flatten_ml(gradient_tensor, gradient);
     deallocate_ml(gradient);
 
@@ -163,8 +162,8 @@ void* cost(Ml ml, Tensor inputs, Tensor outputs, void* cost) {
     }
 
     if (ml.data_type == FLOAT_32) *CAST_PTR(cost, float) /= inputs.shape[0];
-    if (ml.data_type == FLOAT_64) *CAST_PTR(cost, double) /= inputs.shape[0];
-    if (ml.data_type == FLOAT_128) *CAST_PTR(cost, long double) /= inputs.shape[0];
+    else if (ml.data_type == FLOAT_64) *CAST_PTR(cost, double) /= inputs.shape[0];
+    else if (ml.data_type == FLOAT_128) *CAST_PTR(cost, long double) /= inputs.shape[0];
     
     return cost;
 }
@@ -173,13 +172,15 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
     unsigned int shape[] = { ml_size(ml) };
     Tensor first_moment_vec = alloc_tensor(shape, 1, ml.data_type);
     Tensor second_moment_vec = alloc_tensor(shape, 1, ml.data_type);
-    Tensor theta_vec = alloc_tensor(shape, 1, ml.data_type);
+    Tensor theta_vec = empty_tensor(ml.data_type);
+    flatten_ml(&theta_vec, ml);
     void* temp = calloc(1, ml.data_type);
     void* tmp = calloc(1, ml.data_type);
 
-    for (unsigned int t = 0; t < max_epochs || COMPARE(cost(ml, inputs, outputs, temp), threshold, ml.data_type, LESS_OR_EQUAL); ++t) {
-        printf("\033[1;1H\033[2JCurrent epoch: %u (MAX_EPOCH: %u)\n", t, max_epochs);
-        flatten_ml(&theta_vec, ml);
+    for (unsigned int t = 0; t < max_epochs && COMPARE(cost(ml, inputs, outputs, temp), threshold, ml.data_type, LESS_OR_EQUAL); ++t) {
+        printf("\033[1;1H\033[2JCurrent epoch: %u (MAX_EPOCH: %u), current cost: ", t, max_epochs);
+        print_value(SUBTRACT(temp, ASSIGN(tmp, 1.0L, ml.data_type), temp, ml.data_type), ml.data_type);
+        printf("\n");
 
         // Extract input and output
         Tensor input_tensor = alloc_tensor(inputs.shape, inputs.dim, inputs.data_type);
@@ -188,11 +189,9 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         extract_tensor(&output_tensor, outputs, t % inputs.shape[0], 0);
 
         // gt ← ∇θft(θt−1)
-        Tensor g_t = alloc_tensor(shape, 1, ml.data_type);
+        Tensor g_t = empty_tensor(ml.data_type);
         gradient(ml, *change_tensor_rank(&input_tensor, input_tensor.dim + 1), *change_tensor_rank(&output_tensor, output_tensor.dim + 1), &g_t);
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
-
-        printf("grad_size: %u, first_moment_size: %u, ml_size: %u\n", tensor_size(g_t.shape, g_t.dim), tensor_size(first_moment_vec.shape, first_moment_vec.dim), ml_size(ml));
 
         // mt ← β1 · mt−1 + (1 − β1) · gt
         SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SUBTRACT(temp, ASSIGN(temp, 1.0L, ml.data_type), first_moment, ml.data_type)));
@@ -214,6 +213,8 @@ void adam_optim(Ml ml, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         SUBTRACT_TENSOR(&theta_vec, theta_vec, *DIVIDE_TENSOR(&first_moment_vec_hat, *SCALAR_MUL_TENSOR(&first_moment_vec_hat, alpha), *SCALAR_SUM_TENSOR(pow_tensor(&second_moment_vec_hat, ASSIGN(temp, 2.0L, ml.data_type)), eps)));
         DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat, g_t);
     }
+
+    unflatten_ml(ml, &theta_vec);
 
     DEALLOCATE_TENSORS(first_moment_vec, second_moment_vec, theta_vec);
     DEALLOCATE_PTRS(temp, tmp);

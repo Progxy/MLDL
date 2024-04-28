@@ -384,7 +384,6 @@ Tensor* concat_tensors(Tensor* dest, Tensor src) {
     unsigned int offset = tensor_size(dest -> shape, dest -> dim);
     ASSERT(size % (offset / dest -> shape[0]), "INVALID_SHAPE");
     dest -> shape[0] += size / (offset / dest -> shape[0]);
-    
     dest -> data = realloc(dest -> data, dest -> data_type * (size + offset));
     
     for (unsigned int i = 0; i < size; ++i) {
