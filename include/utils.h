@@ -27,16 +27,21 @@
 #define MAX(a, b) (a >= b ? a : b)
 #define NOT_USED(var) (void) var
 
-void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg);
-void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
 bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigned int enum_values_count);
-unsigned int* create_shuffle_indices(unsigned int size);
-void* sigmoid_func(void* value, void* result, DataType data_type);
-void init_seed();
+void* data_type_op(OperatorFlag operator_flag, void* res, void* a, void* b, DataType data_type);
+void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg);
+bool compare_op(void* a, void* b, DataType data_type, OperatorFlag operator_flag);
+void* data_type_pow(void* res, void* val, unsigned int exp, DataType data_type);
 char* value_to_str(void* value, DataType data_type, bool clean_cache_flag);
+void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
+void* assign_value(void* val, long double new_val, DataType data_type);
+void* sigmoid_func(void* value, void* result, DataType data_type);
+void print_value_as_percentage(void* value, DataType data_type);
+unsigned int* create_shuffle_indices(unsigned int size);
 void print_value(void* value, DataType data_type);
-void deallocate_ptrs(int len, ...);
 void print_time_format(long unsigned int time);
+void deallocate_ptrs(int len, ...);
+void init_seed();
 
 /* ----------------------------------------------------------------------------------- */
 
