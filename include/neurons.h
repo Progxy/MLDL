@@ -37,7 +37,7 @@ void rand_ml(Ml ml) {
 
 unsigned int ml_size(Ml ml) {
     unsigned int size = 0;
-    for (unsigned int i = 0; i < ml.size; ++i) {
+    for (unsigned int i = 1; i < ml.size; ++i) {
         Layer layer = ml.layers[i];
         size += tensor_size(layer.activation.shape, layer.activation.dim);
         size += tensor_size(layer.weights.shape, layer.weights.dim);

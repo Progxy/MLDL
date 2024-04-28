@@ -18,6 +18,7 @@
 #define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUMMATION)
 
 void deallocate_tensors(int len, ...);
+unsigned int tensor_size(unsigned int* shape, unsigned int dim);
 Tensor alloc_tensor(unsigned int* shape, unsigned int dim, DataType data_type);
 Tensor alloc_temp_tensor(unsigned int* shape, unsigned int dim, DataType data_type, bool clean_cache_flag);
 void print_tensor(Tensor tensor, char* tensor_name);
@@ -40,12 +41,6 @@ Tensor* flatten_tensor(Tensor* dest, Tensor src);
 Tensor* cut_tensor(Tensor* dest, Tensor* src);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
-
-static unsigned int tensor_size(unsigned int* shape, unsigned int dim) {
-    unsigned int size = 1;
-    for (unsigned int i = 0; i < dim; ++i) size *= shape[i];
-    return size;
-}
 
 static void insert_spacing(unsigned int index, Tensor tensor) {
     unsigned int temp = 1;
@@ -88,6 +83,12 @@ void deallocate_tensors(int len, ...) {
     }
     va_end(args);
     return;
+}
+
+unsigned int tensor_size(unsigned int* shape, unsigned int dim) {
+    unsigned int size = 1;
+    for (unsigned int i = 0; i < dim; ++i) size *= shape[i];
+    return size;
 }
 
 Tensor alloc_tensor(unsigned int* shape, unsigned int dim, DataType data_type) {
@@ -379,19 +380,17 @@ Tensor* concat_tensors(Tensor* dest, Tensor src) {
     }
 
     ASSERT(dest -> data_type != src.data_type, "DATA_TYPE_MISMATCH");
-    ASSERT(dest -> dim != src.dim, "DIM_MISMATCH");
-    for (unsigned int i = 0; i < dest -> dim; ++i) {
-        dest -> shape[i] += src.shape[i];
-    } 
-    
     unsigned int size = tensor_size(src.shape, src.dim);
     unsigned int offset = tensor_size(dest -> shape, dest -> dim);
+    ASSERT(size % (offset / dest -> shape[0]), "INVALID_SHAPE");
+    dest -> shape[0] += size / (offset / dest -> shape[0]);
+    
     dest -> data = realloc(dest -> data, dest -> data_type * (size + offset));
     
     for (unsigned int i = 0; i < size; ++i) {
         if (dest -> data_type == FLOAT_32) CAST_PTR(dest -> data, float)[offset + i] = CAST_PTR(src.data, float)[i];
-        if (dest -> data_type == FLOAT_64) CAST_PTR(dest -> data, double)[offset + i] = CAST_PTR(src.data, double)[i];
-        if (dest -> data_type == FLOAT_128) CAST_PTR(dest -> data, long double)[offset + i] = CAST_PTR(src.data, long double)[i];
+        else if (dest -> data_type == FLOAT_64) CAST_PTR(dest -> data, double)[offset + i] = CAST_PTR(src.data, double)[i];
+        else if (dest -> data_type == FLOAT_128) CAST_PTR(dest -> data, long double)[offset + i] = CAST_PTR(src.data, long double)[i];
     }   
 
     return dest;

@@ -84,7 +84,8 @@ Tensor* gradient(Ml ml, Tensor input, Tensor output, Tensor* gradient_tensor) {
 
         DEALLOCATE_TENSORS(current_z);
     }
-
+    
+    printf("GRAD_SIZE: %u\n", ml_size(gradient));
     flatten_ml(gradient_tensor, gradient);
     deallocate_ml(gradient);
 
