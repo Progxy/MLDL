@@ -39,7 +39,7 @@ int main() {
     double cost_d = 0.0;
     unsigned int max_epochs = 100000;
     backpropagation(ml, input, output, &alpha, max_epochs);
-    adam_optim(ml, input, output, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs / 100, &threshold);
+    adam_optim(ml, input, output, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs / 10, &threshold);
     printf("NN accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(ml, input, output, &cost_d), double)) * 100.0);
     
     DEALLOCATE_TENSORS(input, output);
