@@ -25,7 +25,7 @@ static void feed_forward(NN nn) {
     Tensor temp = empty_tensor(nn.data_type);
     for (unsigned int i = 1; i < nn.size; ++i) {
         unsigned int middle = (nn.layers[i].weights.rank + nn.layers[i - 1].activation.rank) / 2;
-        SUM_TENSOR(&(nn.layers[i].activation), *contract_tensor(cross_product_tensor(&temp, nn.layers[i].weights, nn.layers[i - 1].activation), middle, middle - 1), nn.layers[i].biases);
+        SUM_TENSOR(&(nn.layers[i].activation), *contract_tensor(cross_product_tensor(&temp, nn.layers[i - 1].activation, nn.layers[i].weights), middle, middle - 1), nn.layers[i].biases);
         sigmoid(&(nn.layers[i].activation));
     }
     DEALLOCATE_TENSORS(temp);

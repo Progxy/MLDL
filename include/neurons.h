@@ -20,8 +20,8 @@ void rand_nn(NN nn);
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type) {
     Layer layer = (Layer) {.neurons = neurons};
-    unsigned int bias_shape[] = {neurons, 1};
-    unsigned int weight_shape[] = {neurons, input_neurons};
+    unsigned int bias_shape[] = {1, neurons};
+    unsigned int weight_shape[] = {input_neurons, neurons};
     layer.activation = alloc_tensor(bias_shape, 2, data_type);
     layer.biases = alloc_tensor(bias_shape, 2, data_type);
     layer.weights = alloc_tensor(weight_shape, 2, data_type);
@@ -50,7 +50,7 @@ unsigned int nn_size(NN nn) {
 NN create_nn(unsigned int size, unsigned int* arch, DataType data_type) {
     NN nn = (NN) {.size = size, .arch = arch, .data_type = data_type};
     nn.layers = (Layer*) calloc(size, sizeof(Layer));
-    unsigned int activation_shape[] = { arch[0], 1 };
+    unsigned int activation_shape[] = { 1, arch[0] };
     nn.layers[0].activation = alloc_tensor(activation_shape, 2, data_type);
     nn.layers[0].neurons = arch[0];
 

@@ -327,8 +327,8 @@ Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim) {
 
     unsigned int* new_shape = (unsigned int*) calloc(new_dim, sizeof(unsigned int));
     if (tensor -> rank < new_dim) {
-        for (unsigned int i = 0; i < tensor -> rank; --i) new_shape[i] = tensor -> shape[i]; 
-        for (unsigned int i = tensor -> rank; i < new_dim; ++i) new_shape[i] = 1;
+        for (unsigned int i = 0; i < new_dim - tensor -> rank; ++i) new_shape[i] = 1;  
+        for (unsigned int i = new_dim - tensor -> rank, j = 0; i < new_dim; ++i, ++j) new_shape[i] = tensor -> shape[j];
     } else {
         for (unsigned int i = 0; i < new_dim; ++i) new_shape[i] = tensor -> shape[i + (tensor -> rank - new_dim)];
         unsigned int shape_0 = 1;

@@ -34,15 +34,26 @@ int main() {
 
     double alpha = 0.01;
     double cost_d = 0.0;
-    unsigned int max_epochs = 100000;
+    unsigned int max_epochs = 1000;
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;
     adam_optim(nn, input, output, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs);
     //sgd(nn, input, output, &alpha, max_epochs);
     printf("NN accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(nn, input, output, &cost_d), double)) * 100.0);
-    
     DEALLOCATE_TENSORS(input, output);
+    
+    const double predict_input[] = {
+        0.0, 1.0
+    };
+    unsigned int predict_shape[] = {2, 1};
+    Tensor input_tensor = alloc_tensor(predict_shape, 2, nn.data_type);
+    set_tensor((void*) predict_input, input_tensor);
+    Tensor output_tensor = empty_tensor(nn.data_type);
+    predict(nn, input_tensor, &output_tensor);
+    PRINT_TENSOR(output_tensor);
+    DEALLOCATE_TENSORS(input_tensor, output_tensor);
+
     deallocate_nn(nn);
 
     return 0;
