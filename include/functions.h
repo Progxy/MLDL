@@ -35,7 +35,7 @@ static Tensor* calculate_gradient(NN nn, Tensor input, Tensor output, Tensor* gr
     copy_tensor(&INPUT_NN(nn), input);
     feed_forward(nn);
 
-    NN gradient = create_ml(nn.size, nn.arch, nn.data_type);
+    NN gradient = create_nn(nn.size, nn.arch, nn.data_type);
     copy_tensor(&OUTPUT_NN(gradient), output);
 
     void* temp = calloc(1, nn.data_type);
@@ -58,16 +58,17 @@ static Tensor* calculate_gradient(NN nn, Tensor input, Tensor output, Tensor* gr
 
         copy_tensor(&(gradient.layers[l].biases), diff_activation);
 
+        copy_tensor(&temp_tensor, nn.layers[l].weights);
         contraction_ind = (diff_activation.rank + nn.layers[l].weights.rank) / 2;
-        transpose_tensor(contract_tensor(cross_product_tensor(&(gradient.layers[l - 1].activation), diff_activation, nn.layers[l].weights), contraction_ind, contraction_ind - 1));
+        contract_tensor(cross_product_tensor(&(gradient.layers[l - 1].activation), *transpose_tensor(&temp_tensor), diff_activation), contraction_ind, contraction_ind - 1);
 
         DEALLOCATE_TENSORS(diff_activation, temp_tensor);
     }
 
     DEALLOCATE_PTRS(temp);
 
-    flatten_ml(gradient_tensor, gradient);
-    deallocate_ml(gradient);
+    flatten_nn(gradient_tensor, gradient);
+    deallocate_nn(gradient);
 
     return gradient_tensor;
 }
@@ -105,9 +106,9 @@ void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int
             DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
             Tensor ml_tensor = empty_tensor(nn.data_type);
-            flatten_ml(&ml_tensor, nn);
+            flatten_nn(&ml_tensor, nn);
             SUBTRACT_TENSOR(&ml_tensor, ml_tensor, *SCALAR_MUL_TENSOR(&gradient_tensor, learning_rate));
-            unflatten_ml(nn, &ml_tensor);
+            unflatten_nn(nn, &ml_tensor);
             DEALLOCATE_TENSORS(ml_tensor, gradient_tensor);
         }
 
@@ -149,9 +150,9 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
     void* tmp = calloc(1, nn.data_type);
 
     Tensor theta_vec = empty_tensor(nn.data_type);
-    flatten_ml(&theta_vec, nn);
+    flatten_nn(&theta_vec, nn);
     
-    unsigned int shape[] = { ml_size(nn) };
+    unsigned int shape[] = { nn_size(nn) };
     Tensor first_moment_vec = alloc_tensor(shape, 1, nn.data_type);
     Tensor second_moment_vec = alloc_tensor(shape, 1, nn.data_type);
 
@@ -187,7 +188,7 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         // θ{t} ← θ{t−1} − α · ^m{t}^/(√^v{t}^ + eps)
         SUBTRACT_TENSOR(&theta_vec, theta_vec, *DIVIDE_TENSOR(&first_moment_vec_hat, *SCALAR_MUL_TENSOR(&first_moment_vec_hat, alpha), *SCALAR_SUM_TENSOR(pow_tensor(&second_moment_vec_hat, ASSIGN(temp, 0.5L, nn.data_type)), eps)));
         Tensor temp_tensor = empty_tensor(nn.data_type);
-        unflatten_ml(nn, copy_tensor(&temp_tensor, theta_vec));
+        unflatten_nn(nn, copy_tensor(&temp_tensor, theta_vec));
         DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat, temp_tensor);
     }
 

@@ -368,11 +368,9 @@ Tensor* transpose_tensor(Tensor* tensor) {
 
 Tensor empty_tensor(DataType data_type) {
     unsigned int shape[] = { 1 };
-    Tensor tensor = alloc_tensor(shape, 1, data_type);
+    Tensor tensor = alloc_tensor(shape, 0, data_type);
     free(tensor.data);
-    free(tensor.shape);
     tensor.data = NULL;
-    tensor.shape = NULL;
     return tensor;
 }
 

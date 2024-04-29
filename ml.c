@@ -21,8 +21,8 @@ int main() {
     };
 
     unsigned int arch[] = {2, 2, 2, 1};
-    NN nn = create_ml(ARR_SIZE(arch), arch, FLOAT_64);
-    rand_ml(nn);
+    NN nn = create_nn(ARR_SIZE(arch), arch, FLOAT_64);
+    rand_nn(nn);
 
     unsigned int input_shape[] = {4, 2};
     Tensor input = alloc_tensor(input_shape, ARR_SIZE(input_shape), nn.data_type);
@@ -42,7 +42,7 @@ int main() {
     printf("NN accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(nn, input, output, &cost_d), double)) * 100.0);
     
     DEALLOCATE_TENSORS(input, output);
-    deallocate_ml(nn);
+    deallocate_nn(nn);
 
     return 0;
 }
