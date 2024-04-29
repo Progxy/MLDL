@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "./include/neurons.h"
 #include "./include/functions.h"
+#include "./include/loader.h"
 
 int main() {
     init_seed();
