@@ -20,7 +20,7 @@ int main() {
         0.0,
     };
 
-    unsigned int arch[] = {2, 4, 1};
+    unsigned int arch[] = {2, 2, 2, 1};
     NN nn = create_ml(ARR_SIZE(arch), arch, FLOAT_64);
     rand_ml(nn);
 
@@ -31,9 +31,9 @@ int main() {
     Tensor output = alloc_tensor(output_shape, ARR_SIZE(output_shape), nn.data_type);
     set_tensor((void*) output_data, output);
 
-    double alpha = 0.001;
+    double alpha = 0.01;
     double cost_d = 0.0;
-    unsigned int max_epochs = 1000000;
+    unsigned int max_epochs = 100000;
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;
