@@ -203,12 +203,6 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
     ASSERT(a.rank != b.rank, "RANK_MISMATCH");
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
     for (unsigned int i = 0; i < a.rank; ++i) {
-        if (a.shape[i] != b.shape[i]) {
-            printf("a: ");            
-            print_shape(a.shape, a.rank);
-            printf("b: ");
-            print_shape(b.shape, a.rank);
-        }
         ASSERT(a.shape[i] != b.shape[i], "SHAPE_MISMATCH");
     }
     
