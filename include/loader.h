@@ -38,8 +38,34 @@ char** split(char* str, char splitter, unsigned int* lines_count) {
     return lines;
 }
 
-void parse_dataset(File* dataset, Tensor* inputs, Tensor* outputs) {
-    
+unsigned int str_len(char* str) {
+    unsigned int len = 0;
+    if (str == NULL) return len;
+    for (unsigned int i = 0; str[i] != '\0'; ++i, ++len);
+    return len;
+}
+
+bool str_cmp(char* a, char* b) {
+    if (str_len(a) != str_len(b)) return FALSE;
+    for (unsigned int i = 0; str_len(a); ++i) if (a[i] != b[i]) return FALSE;
+    return TRUE;
+}
+
+void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tensor* outputs, unsigned int output_size) {
+    unsigned int lines_count = 0;
+    char** dataset_lines = split(dataset -> data, '\n', &lines_count);
+    for (unsigned int i = 0; i < lines_count; ++i) {
+        unsigned int line_count = 0;
+        char** dataset_line = split(dataset_lines[i], ',', &line_count);
+        void* input_data = calloc(input_size, inputs -> data_type);
+        unsigned int input_data_size = 0;
+        for (unsigned int j = 0; j < line_count; ++j) {
+            if (j < input_size) {
+                //input_data[input_data_size++] = 
+            }
+        }
+    }
+    DEALLOCATE_PTRS(dataset_lines);
     return;
 }
 
