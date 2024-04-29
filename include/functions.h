@@ -145,17 +145,18 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
 }
 
 void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs) {
-    unsigned int shape[] = { ml_size(nn) };
-    Tensor first_moment_vec = alloc_tensor(shape, 1, nn.data_type);
-    Tensor second_moment_vec = alloc_tensor(shape, 1, nn.data_type);
-    Tensor theta_vec = empty_tensor(nn.data_type);
-    flatten_ml(&theta_vec, nn);
     void* temp = calloc(1, nn.data_type);
     void* tmp = calloc(1, nn.data_type);
 
+    Tensor theta_vec = empty_tensor(nn.data_type);
+    flatten_ml(&theta_vec, nn);
+    
+    unsigned int shape[] = { ml_size(nn) };
+    Tensor first_moment_vec = alloc_tensor(shape, 1, nn.data_type);
+    Tensor second_moment_vec = alloc_tensor(shape, 1, nn.data_type);
+
     for (unsigned int t = 0; t < max_epochs; ++t) {
-        printf("\033[1;1H\033[2J");
-        printf("Epoch: %u/%u\n", t + 1, max_epochs);
+        printf("\033[1;1H\033[2JEpoch: %u/%u\n", t + 1, max_epochs);
 
         // Extract input and output
         Tensor input_tensor = alloc_tensor(inputs.shape, inputs.rank, inputs.data_type);
@@ -176,11 +177,11 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         DEALLOCATE_TENSORS(g_t);
 
         // ^m{t}^ ← m{t}/(1 − β1^t)   
-        Tensor first_moment_vec_hat = alloc_tensor(shape, 1, nn.data_type);
+        Tensor first_moment_vec_hat = empty_tensor(nn.data_type);
         SCALAR_DIV_TENSOR(copy_tensor(&first_moment_vec_hat, first_moment_vec), SUBTRACT(temp, ASSIGN(temp, 1.0L, nn.data_type), POW(tmp, first_moment, ASSIGN(tmp, (long double) t + 1.0L, nn.data_type), nn.data_type), nn.data_type));       
 
         // ^v{t}^ ← v{t}/(1 − β2^t)
-        Tensor second_moment_vec_hat = alloc_tensor(shape, 1, nn.data_type);
+        Tensor second_moment_vec_hat = empty_tensor(nn.data_type);
         SCALAR_DIV_TENSOR(copy_tensor(&second_moment_vec_hat, second_moment_vec), SUBTRACT(temp, ASSIGN(temp, 1.0L, nn.data_type), POW(tmp, first_moment, ASSIGN(tmp, (long double) t + 1.0L, nn.data_type), nn.data_type), nn.data_type));
         
         // θ{t} ← θ{t−1} − α · ^m{t}^/(√^v{t}^ + eps)
@@ -189,7 +190,6 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         unflatten_ml(nn, copy_tensor(&temp_tensor, theta_vec));
         DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat, temp_tensor);
     }
-
 
     DEALLOCATE_TENSORS(first_moment_vec, second_moment_vec, theta_vec);
     DEALLOCATE_PTRS(temp, tmp);

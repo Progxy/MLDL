@@ -33,7 +33,7 @@ int main() {
 
     double alpha = 0.001;
     double cost_d = 0.0;
-    unsigned int max_epochs = 100000;
+    unsigned int max_epochs = 1000000;
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;
