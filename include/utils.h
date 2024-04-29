@@ -31,13 +31,13 @@ bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigne
 void* data_type_op(OperatorFlag operator_flag, void* res, void* a, void* b, DataType data_type);
 void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg);
 bool compare_op(void* a, void* b, DataType data_type, OperatorFlag operator_flag);
-void* data_type_pow(void* res, void* val, unsigned int exp, DataType data_type);
 char* value_to_str(void* value, DataType data_type, bool clean_cache_flag);
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
+void* data_type_pow(void* res, void* val, void* exp, DataType data_type);
 void* assign_value(void* val, long double new_val, DataType data_type);
 void* sigmoid_func(void* value, void* result, DataType data_type);
 void print_value_as_percentage(void* value, DataType data_type);
-unsigned int* create_shuffle_indices(unsigned int size);
+unsigned int* create_shuffled_indices(unsigned int size);
 void print_value(void* value, DataType data_type);
 void print_time_format(long unsigned int time);
 void deallocate_ptrs(int len, ...);
@@ -68,7 +68,7 @@ bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigne
     return FALSE;
 }
 
-unsigned int* create_shuffle_indices(unsigned int size) {
+unsigned int* create_shuffled_indices(unsigned int size) {
     unsigned int* shuffle_indices = (unsigned int*) calloc(size, sizeof(unsigned int));
 
     for (unsigned int i = 0; i < size; ++i) {
@@ -189,11 +189,10 @@ void* data_type_op(OperatorFlag operator_flag, void* res, void* a, void* b, Data
     return res;
 }
 
-void* data_type_pow(void* res, void* val, unsigned int exp, DataType data_type) {
-    if (data_type == FLOAT_32) ASSIGN(res, (long double) *CAST_PTR(val, float), data_type);
-    else if (data_type == FLOAT_64) ASSIGN(res, (long double) *CAST_PTR(val, double), data_type);
-    else if (data_type == FLOAT_128) ASSIGN(res, *CAST_PTR(val, long double), data_type);
-    for (unsigned int i = 1; i < exp; ++i) MULTIPLY(res, res, val, data_type);
+void* data_type_pow(void* res, void* val, void* exp, DataType data_type) {
+    if (data_type == FLOAT_32) *CAST_PTR(res, float) = powf(*CAST_PTR(val, float), *CAST_PTR(exp, float));
+    else if (data_type == FLOAT_64) *CAST_PTR(res, double) = pow(*CAST_PTR(val, double), *CAST_PTR(exp, double));
+    else if (data_type == FLOAT_128) *CAST_PTR(res, long double) = powl(*CAST_PTR(val, long double), *CAST_PTR(exp, long double));
     return res;
 }
 

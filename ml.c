@@ -20,7 +20,7 @@ int main() {
         0.0,
     };
 
-    unsigned int arch[] = {2, 2, 1};
+    unsigned int arch[] = {2, 4, 1};
     NN nn = create_ml(ARR_SIZE(arch), arch, FLOAT_64);
     rand_ml(nn);
 
@@ -32,13 +32,13 @@ int main() {
     set_tensor((void*) output_data, output);
 
     double alpha = 0.001;
+    double cost_d = 0.0;
+    unsigned int max_epochs = 100000;
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;
-    double threshold = (1 - 0.95);
-    double cost_d = 0.0;
-    unsigned int max_epochs = 100000;
-    adam_optim(nn, input, output, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs, &threshold);
+    adam_optim(nn, input, output, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs);
+    //sgd(nn, input, output, &alpha, max_epochs);
     printf("NN accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(nn, input, output, &cost_d), double)) * 100.0);
     
     DEALLOCATE_TENSORS(input, output);

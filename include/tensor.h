@@ -27,6 +27,7 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
 unsigned int tensor_size(unsigned int* shape, unsigned int rank);
 Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
 Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b);
+void* tensor_norm(Tensor tensor, void* norm, void* res);
 Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor);
 void print_tensor(Tensor tensor, char* tensor_name);
 Tensor* concat_tensors(Tensor* dest, Tensor src);
@@ -34,9 +35,9 @@ Tensor* flatten_tensor(Tensor* dest, Tensor src);
 void set_tensor(void* new_data, Tensor tensor);
 Tensor* pow_tensor(Tensor* tensor, void* exp);
 Tensor* cut_tensor(Tensor* dest, Tensor* src);
+Tensor* copy_tensor(Tensor* dest, Tensor src);
 void fill_tensor(void* val, Tensor tensor);
-void copy_tensor(Tensor* dest, Tensor src);
-Tensor* tensor_coniugate(Tensor* tensor);
+Tensor* tensor_conjugate(Tensor* tensor);
 Tensor* transpose_tensor(Tensor* tensor);
 Tensor empty_tensor(DataType data_type);
 void deallocate_tensors(int len, ...);
@@ -179,11 +180,11 @@ Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, Dat
     return dest;
 }
 
-void copy_tensor(Tensor* dest, Tensor src) {
+Tensor* copy_tensor(Tensor* dest, Tensor src) {
     reshape_tensor(dest, src.shape, src.rank, src.data_type);
     unsigned int size = tensor_size(src.shape, src.rank);
     mem_copy(dest -> data, src.data, size, src.data_type);
-    return;
+    return dest;
 }
 
 Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
@@ -398,7 +399,8 @@ Tensor* concat_tensors(Tensor* dest, Tensor src) {
 }
 
 Tensor* pow_tensor(Tensor* tensor, void* exp) {
-    for (unsigned int i = 0; i < tensor_size(tensor -> shape, tensor -> rank); ++i) {
+    unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
+    for (unsigned int i = 0; i < size; ++i) {
         if (tensor -> data_type == FLOAT_32) CAST_PTR(tensor -> data, float)[i] = powf(CAST_PTR(tensor -> data, float)[i], *CAST_PTR(exp, float));
         else if (tensor -> data_type == FLOAT_64) CAST_PTR(tensor -> data, double)[i] = pow(CAST_PTR(tensor -> data, double)[i], *CAST_PTR(exp, double));
         else if (tensor -> data_type == FLOAT_128) CAST_PTR(tensor -> data, long double)[i] = powl(CAST_PTR(tensor -> data, long double)[i], *CAST_PTR(exp, long double));
@@ -436,7 +438,7 @@ Tensor* cut_tensor(Tensor* dest, Tensor* src) {
     return dest;
 }
 
-Tensor* tensor_coniugate(Tensor* tensor) {
+Tensor* tensor_conjugate(Tensor* tensor) {
     unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
     for (unsigned int i = 0; i < size; ++i) {
         if (tensor -> data_type == FLOAT_32) CAST_PTR(tensor -> data, float)[i] *= -1.0f;
@@ -444,6 +446,22 @@ Tensor* tensor_coniugate(Tensor* tensor) {
         else if (tensor -> data_type == FLOAT_128) CAST_PTR(tensor -> data, long double)[i] *= -1.0L;
     }
     return tensor;
+}
+
+void* tensor_norm(Tensor tensor, void* norm, void* res) {
+    Tensor temp_tensor = empty_tensor(tensor.data_type);
+    flatten_tensor(&temp_tensor, tensor);
+    void* temp = calloc(1, tensor.data_type);
+    unsigned int size = tensor_size(temp_tensor.shape, temp_tensor.rank);
+    for (unsigned int i = 0; i < size; ++i) {
+        if (tensor.data_type == FLOAT_32) *CAST_PTR(temp, float) += CAST_PTR(temp_tensor.data, float)[i]; 
+        else if (tensor.data_type == FLOAT_64) *CAST_PTR(temp, double) += CAST_PTR(temp_tensor.data, double)[i]; 
+        else if (tensor.data_type == FLOAT_128) *CAST_PTR(temp, long double) += CAST_PTR(temp_tensor.data, long double)[i]; 
+    }
+    POW(res, temp, norm, tensor.data_type);
+    DEALLOCATE_TENSORS(temp_tensor);
+    DEALLOCATE_PTRS(temp);
+    return res;
 }
 
 #endif //_TENSOR_H_
