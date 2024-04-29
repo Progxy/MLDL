@@ -21,7 +21,7 @@ int main() {
         0.0,
     };
 
-    unsigned int arch[] = {2, 4, 4, 1};
+    unsigned int arch[] = {2, 2, 2, 1};
     NN nn = create_nn(ARR_SIZE(arch), arch, FLOAT_64);
     rand_nn(nn);
 
@@ -46,7 +46,7 @@ int main() {
     const double predict_input[] = {
         0.0, 1.0
     };
-    unsigned int predict_shape[] = {2, 1};
+    unsigned int predict_shape[] = {1, 2};
     Tensor input_tensor = alloc_tensor(predict_shape, 2, nn.data_type);
     set_tensor((void*) predict_input, input_tensor);
     Tensor output_tensor = empty_tensor(nn.data_type);

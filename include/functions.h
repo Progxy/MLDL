@@ -45,7 +45,7 @@ static Tensor* calculate_gradient(NN nn, Tensor input, Tensor output, Tensor* gr
     for (int l = nn.size - 1; l > 0; --l) {
         Tensor current_z = empty_tensor(gradient.data_type);
         unsigned int contraction_ind = (nn.layers[l].weights.rank + nn.layers[l - 1].activation.rank) / 2;
-        SUM_TENSOR(&current_z, *contract_tensor(cross_product_tensor(&current_z, nn.layers[l].weights, nn.layers[l - 1].activation), contraction_ind, contraction_ind - 1), nn.layers[l].biases);
+        SUM_TENSOR(&current_z, *contract_tensor(cross_product_tensor(&current_z, nn.layers[l - 1].activation, nn.layers[l].weights), contraction_ind, contraction_ind - 1), nn.layers[l].biases);
 
         Tensor diff_activation = empty_tensor(nn.data_type);
         copy_tensor(&diff_activation, *sigmoid(&current_z));
@@ -55,13 +55,13 @@ static Tensor* calculate_gradient(NN nn, Tensor input, Tensor output, Tensor* gr
         Tensor temp_tensor = empty_tensor(nn.data_type);
         transpose_tensor(copy_tensor(&temp_tensor, nn.layers[l - 1].activation));
         contraction_ind = (diff_activation.rank + nn.layers[l - 1].activation.rank) / 2;
-        contract_tensor(cross_product_tensor(&(gradient.layers[l].weights), diff_activation, temp_tensor), contraction_ind, contraction_ind - 1);
+        contract_tensor(cross_product_tensor(&(gradient.layers[l].weights), temp_tensor, diff_activation), contraction_ind, contraction_ind - 1);
 
         copy_tensor(&(gradient.layers[l].biases), diff_activation);
 
-        copy_tensor(&temp_tensor, nn.layers[l].weights);
+        transpose_tensor(copy_tensor(&temp_tensor, nn.layers[l].weights));
         contraction_ind = (diff_activation.rank + nn.layers[l].weights.rank) / 2;
-        contract_tensor(cross_product_tensor(&(gradient.layers[l - 1].activation), *transpose_tensor(&temp_tensor), diff_activation), contraction_ind, contraction_ind - 1);
+        contract_tensor(cross_product_tensor(&(gradient.layers[l - 1].activation), diff_activation, temp_tensor), contraction_ind, contraction_ind - 1);
 
         DEALLOCATE_TENSORS(diff_activation, temp_tensor);
     }
@@ -103,7 +103,7 @@ void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int
             extract_tensor(&output_tensor, outputs, shuffled_indices[i], 0);
 
             Tensor gradient_tensor = empty_tensor(nn.data_type);
-            calculate_gradient(nn, *change_tensor_rank(&input_tensor, input_tensor.rank + 1), *change_tensor_rank(&output_tensor, output_tensor.rank + 1), &gradient_tensor);
+            calculate_gradient(nn, input_tensor, output_tensor, &gradient_tensor);
             DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
             Tensor ml_tensor = empty_tensor(nn.data_type);
@@ -131,10 +131,10 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
         Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
         extract_tensor(&input_tensor, inputs, i, 0);
         extract_tensor(&output_tensor, outputs, i, 0);
-        copy_tensor(&INPUT_NN(nn), *change_tensor_rank(&input_tensor, input_tensor.rank + 1));
+        copy_tensor(&INPUT_NN(nn), input_tensor);
         feed_forward(nn);
         
-        pow_tensor(SUBTRACT_TENSOR(&output_tensor, OUTPUT_NN(nn), *change_tensor_rank(&output_tensor, output_tensor.rank + 1)), ASSIGN(temp, 2.0L, nn.data_type));
+        pow_tensor(SUBTRACT_TENSOR(&output_tensor, OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type));
         tensor_norm(output_tensor, ASSIGN(temp, 1.0L, nn.data_type), temp);
         SUM(cost, cost, temp, nn.data_type);
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
@@ -168,7 +168,7 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
 
         // g{t} ← ∇θf{t}(θ{t−1})
         Tensor g_t = empty_tensor(nn.data_type);
-        calculate_gradient(nn, *change_tensor_rank(&input_tensor, input_tensor.rank + 1), *change_tensor_rank(&output_tensor, output_tensor.rank + 1), &g_t);
+        calculate_gradient(nn, input_tensor, output_tensor, &g_t);
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
         // m{t} ← β1 · m{t−1} + (1 − β1) · g{t}

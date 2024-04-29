@@ -204,8 +204,10 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
     for (unsigned int i = 0; i < a.rank; ++i) {
         if (a.shape[i] != b.shape[i]) {
-            PRINT_TENSOR(a);
-            PRINT_TENSOR(b);
+            printf("a: ");            
+            print_shape(a.shape, a.rank);
+            printf("b: ");
+            print_shape(b.shape, a.rank);
         }
         ASSERT(a.shape[i] != b.shape[i], "SHAPE_MISMATCH");
     }
@@ -346,9 +348,10 @@ Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim) {
 }
 
 Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim) {
-    unsigned int new_dim = tensor.rank - (index_dim + 1); 
+    unsigned int new_dim = tensor.rank - index_dim; 
     unsigned int* new_shape = (unsigned int*) calloc(new_dim, sizeof(unsigned int));
-    for (unsigned int i = 0; i < new_dim; ++i) new_shape[i] = tensor.shape[i + (index_dim + 1)];
+    new_shape[0] = 1;
+    for (unsigned int i = 1; i < new_dim; ++i) new_shape[i] = tensor.shape[i + index_dim];
     reshape_tensor(out, new_shape, new_dim, tensor.data_type);
     free(new_shape);
     unsigned int offset = calc_shape_offset(tensor.shape, index_dim, tensor.rank) * index;
