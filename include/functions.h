@@ -3,45 +3,43 @@
 
 #include "./neurons.h"
 
-#define INPUT_ML(nn) (nn).layers[0].activation
-#define OUTPUT_ML(nn) (nn).layers[(nn).size - 1].activation
-
 void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs, void* threshold);
 void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
 void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost);
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
 
-static void sigmoid(Tensor out) {
-    unsigned int size = tensor_size(out.shape, out.rank);
+static Tensor* sigmoid(Tensor* out) {
+    unsigned int size = tensor_size(out -> shape, out -> rank);
     for (unsigned int i = 0; i < size; ++i) {
-        if (out.data_type == FLOAT_32) sigmoid_func(CAST_PTR(out.data, float) + i, CAST_PTR(out.data, float) + i, out.data_type);
-        else if (out.data_type == FLOAT_64) sigmoid_func(CAST_PTR(out.data, double) + i, CAST_PTR(out.data, double) + i, out.data_type);
-        else if (out.data_type == FLOAT_128) sigmoid_func(CAST_PTR(out.data, long double) + i, CAST_PTR(out.data, long double) + i, out.data_type);
+        if (out -> data_type == FLOAT_32) sigmoid_func(CAST_PTR(out -> data, float) + i, CAST_PTR(out -> data, float) + i, out -> data_type);
+        else if (out -> data_type == FLOAT_64) sigmoid_func(CAST_PTR(out -> data, double) + i, CAST_PTR(out -> data, double) + i, out -> data_type);
+        else if (out -> data_type == FLOAT_128) sigmoid_func(CAST_PTR(out -> data, long double) + i, CAST_PTR(out -> data, long double) + i, out -> data_type);
     }
+    return out;
 }
 
 static void feed_forward(NN nn) {
-    sigmoid(nn.layers[0].activation);
+    sigmoid(&(nn.layers[0].activation));
     Tensor temp = empty_tensor(nn.data_type);
     for (unsigned int i = 1; i < nn.size; ++i) {
         unsigned int middle = (nn.layers[i].weights.rank + nn.layers[i - 1].activation.rank) / 2;
         SUM_TENSOR(&(nn.layers[i].activation), *contract_tensor(cross_product_tensor(&temp, nn.layers[i].weights, nn.layers[i - 1].activation), middle, middle - 1), nn.layers[i].biases);
-        sigmoid(nn.layers[i].activation);
+        sigmoid(&(nn.layers[i].activation));
     }
     DEALLOCATE_TENSORS(temp);
     return;
 }   
 
-static Tensor* gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_tensor) {
-    copy_tensor(&INPUT_ML(nn), input);
+static Tensor* calculate_gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_tensor) {
+    copy_tensor(&INPUT_NN(nn), input);
     feed_forward(nn);
 
     NN gradient = create_ml(nn.size, nn.arch, nn.data_type);
-    copy_tensor(&OUTPUT_ML(gradient), output);
+    copy_tensor(&OUTPUT_NN(gradient), output);
 
     for (int l = nn.size - 1; l > 0; --l) {
-        Tensor current_z = alloc_tensor(nn.layers[l].weights.shape, nn.layers[l].weights.rank, nn.layers[l].weights.data_type);
+        Tensor current_z = empty_tensor(gradient.data_type);
         unsigned int middle = (nn.layers[l].weights.rank + nn.layers[l - 1].activation.rank) / 2;
         SUM_TENSOR(&current_z, *contract_tensor(cross_product_tensor(&current_z, nn.layers[l].weights, nn.layers[l - 1].activation), middle, middle - 1), nn.layers[l].biases);
 
@@ -88,6 +86,59 @@ static Tensor* gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_ten
     return gradient_tensor;
 }
 
+static Tensor* b_gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_tensor) {
+    copy_tensor(&INPUT_NN(nn), input);
+    feed_forward(nn);
+
+    NN gradient = create_ml(nn.size, nn.arch, nn.data_type);
+    copy_tensor(&OUTPUT_NN(gradient), output);
+
+    void* temp = calloc(1, nn.data_type);
+    SCALAR_MUL_TENSOR(SUBTRACT_TENSOR(&OUTPUT_NN(gradient), OUTPUT_NN(nn), OUTPUT_NN(gradient)), ASSIGN(temp, 2.0L, nn.data_type));
+
+    for (int l = nn.size - 1; l > 0; --l) {
+        printf("l: %u\n", l);
+        Tensor current_z = empty_tensor(gradient.data_type);
+        unsigned int middle = (nn.layers[l].weights.rank + nn.layers[l - 1].activation.rank) / 2;
+        SUM_TENSOR(&current_z, *contract_tensor(cross_product_tensor(&current_z, nn.layers[l].weights, nn.layers[l - 1].activation), middle, middle - 1), nn.layers[l].biases);
+
+        Tensor diff_activation = empty_tensor(nn.data_type);
+        sigmoid(&current_z);
+        copy_tensor(&diff_activation, current_z);
+        printf("gradient activation l: ");
+        print_shape(gradient.layers[l].activation.shape, gradient.layers[l].activation.rank);
+        printf("current z: ");
+        print_shape(current_z.shape, current_z.rank);
+        MULTIPLY_TENSOR(&diff_activation, gradient.layers[l].activation, *MULTIPLY_TENSOR(&diff_activation, diff_activation, *SCALAR_SUM_TENSOR(tensor_coniugate(&current_z), ASSIGN(temp, 1.0L, nn.data_type))));
+        DEALLOCATE_TENSORS(current_z);
+
+        unsigned int contraction_ind = (diff_activation.rank + nn.layers[l - 1].activation.rank) / 2;
+        contract_tensor(cross_product_tensor(&(gradient.layers[l].weights), diff_activation, nn.layers[l - 1].activation), contraction_ind, contraction_ind - 1);
+        printf("nn activation l - 1: ");
+        print_shape(nn.layers[l - 1].activation.shape, nn.layers[l - 1].activation.rank);
+        printf("gradient weights: ");
+        print_shape(gradient.layers[l].weights.shape, gradient.layers[l].weights.rank);
+
+        copy_tensor(&(gradient.layers[l].biases), diff_activation);
+
+        contraction_ind = (diff_activation.rank + nn.layers[l].weights.rank) / 2;
+        printf("nn weights: ");
+        print_shape(nn.layers[l].weights.shape, nn.layers[l].weights.rank);
+        contract_tensor(cross_product_tensor(&(gradient.layers[l - 1].activation), diff_activation, nn.layers[l].weights), contraction_ind, contraction_ind - 1);
+        printf("gradient activation l - 1: ");
+        print_shape(gradient.layers[l - 1].activation.shape, gradient.layers[l - 1].activation.rank);
+
+        DEALLOCATE_TENSORS(diff_activation);
+    }
+
+    DEALLOCATE_PTRS(temp);
+
+    flatten_ml(gradient_tensor, gradient);
+    deallocate_ml(gradient);
+
+    return gradient_tensor;
+}
+
 void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs) {
     ASSERT((nn.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
 
@@ -117,7 +168,7 @@ void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int
             extract_tensor(&output_tensor, outputs, shuffled_indices[i], 0);
 
             Tensor gradient_tensor = empty_tensor(nn.data_type);
-            gradient(nn, *change_tensor_rank(&input_tensor, input_tensor.rank + 1), *change_tensor_rank(&output_tensor, output_tensor.rank + 1), &gradient_tensor);
+            calculate_gradient(nn, *change_tensor_rank(&input_tensor, input_tensor.rank + 1), *change_tensor_rank(&output_tensor, output_tensor.rank + 1), &gradient_tensor);
             DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
             Tensor ml_tensor = empty_tensor(nn.data_type);
@@ -145,15 +196,15 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
         Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
         extract_tensor(&input_tensor, inputs, i, 0);
         extract_tensor(&output_tensor, outputs, i, 0);
-        copy_tensor(&INPUT_ML(nn), *change_tensor_rank(&input_tensor, input_tensor.rank + 1));
+        copy_tensor(&INPUT_NN(nn), *change_tensor_rank(&input_tensor, input_tensor.rank + 1));
         feed_forward(nn);
 
         // Calculate the loss
         // (a^L - y)^2
         for (unsigned int j = 0; j < outputs.shape[outputs.rank - 1]; ++j) {
-            if (nn.data_type == FLOAT_32) *CAST_PTR(cost, float) += powf(CAST_PTR(OUTPUT_ML(nn).data, float)[j] - CAST_PTR(output_tensor.data, float)[j], 2.0f);
-            else if (nn.data_type == FLOAT_64) *CAST_PTR(cost, double) += pow(CAST_PTR(OUTPUT_ML(nn).data, double)[  j] - CAST_PTR(output_tensor.data, double)[j], 2.0);
-            else if (nn.data_type == FLOAT_128) *CAST_PTR(cost, long double) += powl(CAST_PTR(OUTPUT_ML(nn).data, long double)[  j] - CAST_PTR(output_tensor.data, long double)[j], 2.0L);
+            if (nn.data_type == FLOAT_32) *CAST_PTR(cost, float) += powf(CAST_PTR(OUTPUT_NN(nn).data, float)[j] - CAST_PTR(output_tensor.data, float)[j], 2.0f);
+            else if (nn.data_type == FLOAT_64) *CAST_PTR(cost, double) += pow(CAST_PTR(OUTPUT_NN(nn).data, double)[  j] - CAST_PTR(output_tensor.data, double)[j], 2.0);
+            else if (nn.data_type == FLOAT_128) *CAST_PTR(cost, long double) += powl(CAST_PTR(OUTPUT_NN(nn).data, long double)[  j] - CAST_PTR(output_tensor.data, long double)[j], 2.0L);
         }
 
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
@@ -190,7 +241,7 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
 
         // gt ← ∇θft(θt−1)
         Tensor g_t = empty_tensor(nn.data_type);
-        gradient(nn, *change_tensor_rank(&input_tensor, input_tensor.rank + 1), *change_tensor_rank(&output_tensor, output_tensor.rank + 1), &g_t);
+        b_gradient(nn, *change_tensor_rank(&input_tensor, input_tensor.rank + 1), *change_tensor_rank(&output_tensor, output_tensor.rank + 1), &g_t);
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
         // mt ← β1 · mt−1 + (1 − β1) · gt

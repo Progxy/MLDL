@@ -4,6 +4,9 @@
 #include "./tensor.h"
 #include "./mat.h"
 
+#define INPUT_NN(nn) (nn).layers[0].activation
+#define OUTPUT_NN(nn) (nn).layers[(nn).size - 1].activation
+
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
 NN create_ml(unsigned int size, unsigned int* arch, DataType data_type);
 void print_layer(Layer layer, unsigned int ind);
@@ -18,10 +21,9 @@ void rand_ml(NN nn);
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type) {
     Layer layer = (Layer) {.neurons = neurons};
-    unsigned int activation_shape[] = {1, neurons};
     unsigned int bias_shape[] = {neurons, 1};
     unsigned int weight_shape[] = {neurons, input_neurons};
-    layer.activation = alloc_tensor(activation_shape, 2, data_type);
+    layer.activation = alloc_tensor(bias_shape, 2, data_type);
     layer.biases = alloc_tensor(bias_shape, 2, data_type);
     layer.weights = alloc_tensor(weight_shape, 2, data_type);
     return layer;
@@ -49,7 +51,8 @@ unsigned int ml_size(NN nn) {
 NN create_ml(unsigned int size, unsigned int* arch, DataType data_type) {
     NN nn = (NN) {.size = size, .arch = arch, .data_type = data_type};
     nn.layers = (Layer*) calloc(size, sizeof(Layer));
-    nn.layers[0] = create_layer(1, arch[0], data_type);
+    unsigned int activation_shape[] = { arch[0], 1 };
+    nn.layers[0].activation = alloc_tensor(activation_shape, 2, data_type);
 
     for (unsigned int i = 1; i < size; ++i) {
         nn.layers[i] = create_layer(arch[i - 1], arch[i], data_type);
@@ -90,7 +93,8 @@ void print_ml(NN nn) {
 }
 
 void deallocate_ml(NN nn) {
-    for (unsigned int i = 0; i < nn.size; ++i) {
+    DEALLOCATE_TENSORS(INPUT_NN(nn));
+    for (unsigned int i = 1; i < nn.size; ++i) {
         DEALLOCATE_TENSORS(nn.layers[i].biases, nn.layers[i].activation, nn.layers[i].weights);
     }
     free(nn.layers);

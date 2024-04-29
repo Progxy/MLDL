@@ -36,6 +36,7 @@ Tensor* pow_tensor(Tensor* tensor, void* exp);
 Tensor* cut_tensor(Tensor* dest, Tensor* src);
 void fill_tensor(void* val, Tensor tensor);
 void copy_tensor(Tensor* dest, Tensor src);
+Tensor* tensor_coniugate(Tensor* tensor);
 Tensor* transpose_tensor(Tensor* tensor);
 Tensor empty_tensor(DataType data_type);
 void deallocate_tensors(int len, ...);
@@ -433,6 +434,16 @@ Tensor* cut_tensor(Tensor* dest, Tensor* src) {
     src -> shape[0] -= cut_size / (src_size / src -> shape[0]);
 
     return dest;
+}
+
+Tensor* tensor_coniugate(Tensor* tensor) {
+    unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
+    for (unsigned int i = 0; i < size; ++i) {
+        if (tensor -> data_type == FLOAT_32) CAST_PTR(tensor -> data, float)[i] *= -1.0f;
+        else if (tensor -> data_type == FLOAT_64) CAST_PTR(tensor -> data, double)[i] *= -1.0;
+        else if (tensor -> data_type == FLOAT_128) CAST_PTR(tensor -> data, long double)[i] *= -1.0L;
+    }
+    return tensor;
 }
 
 #endif //_TENSOR_H_
