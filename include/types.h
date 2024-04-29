@@ -42,4 +42,10 @@ typedef struct NN {
     DataType data_type;
 } NN;
 
+typedef struct File {
+    unsigned char* data;
+    unsigned int size;
+    char* file_name;
+} File;
+
 #endif //_TYPES_H_
