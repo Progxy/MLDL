@@ -1,7 +1,7 @@
 #ifndef _FUNCTIONS_H_
 #define _FUNCTIONS_H_
 
-#include "./neurons.h"
+#include "./nn.h"
 
 void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs);
 void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);

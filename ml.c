@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "./include/neurons.h"
 #include "./include/functions.h"
 #include "./include/loader.h"
 
