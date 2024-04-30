@@ -6,7 +6,7 @@
 int main() {
     //init_seed();
 
-    unsigned int arch[] = {9, 7, 7, 1};
+    unsigned int arch[] = {9, 7, 8, 7, 1};
     NN nn = create_nn(ARR_SIZE(arch), arch, FLOAT_64);
     rand_nn(nn);
 
@@ -17,12 +17,12 @@ int main() {
 
     double alpha = 0.01;
     double cost_d = 0.0;
-    unsigned int max_epochs = 10;
+    unsigned int max_epochs = 100000;
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;
     adam_optim(nn, inputs, outputs, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs);
-    //sgd(nn, input, output, &alpha, max_epochs);
+    //sgd(nn, inputs, outputs, &alpha, max_epochs);
     printf("NN accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(nn, inputs, outputs, &cost_d), double)) * 100.0);
     DEALLOCATE_TENSORS(inputs, outputs);
     

@@ -1,4 +1,4 @@
-FLAGS = -std=c11 -Wall -Wextra -pedantic
+FLAGS = -std=c11 -Wall -Wextra -pedantic -O3
 
 LIBRARIES = -lm
 
