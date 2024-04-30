@@ -21,9 +21,7 @@ int main() {
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;
-    print_nn(nn);
     adam_optim(nn, inputs, outputs, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs);
-    print_nn(nn);
     //sgd(nn, input, output, &alpha, max_epochs);
     printf("NN accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(nn, inputs, outputs, &cost_d), double)) * 100.0);
     DEALLOCATE_TENSORS(inputs, outputs);
