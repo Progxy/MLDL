@@ -62,12 +62,12 @@ NN create_nn(unsigned int size, unsigned int* arch, DataType data_type) {
 }
 
 static void print_layer(Layer layer) {
-    printf("\tactivation: ");
-    print_shape(layer.activation.shape, layer.activation.rank);
-    printf("\tweigths: ");
-    print_shape(layer.weights.shape, layer.weights.rank);
-    printf("\tbias: ");
-    print_shape(layer.biases.shape, layer.biases.rank);
+    printf("\tactivation: \n\t");
+    PRINT_TENSOR(layer.activation);
+    printf("\tweigths: \n\t");
+    PRINT_TENSOR(layer.weights);
+    printf("\tbias: \n\t");
+    PRINT_TENSOR(layer.biases);
     printf("\n");
     return;
 }

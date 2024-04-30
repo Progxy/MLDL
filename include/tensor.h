@@ -71,7 +71,7 @@ static unsigned int calc_shape_offset(unsigned int* shape, unsigned int shape_in
 
 static void print_shape(unsigned int* shape, unsigned int rank) {
     printf("(%u): [ ", rank);
-    for (unsigned int i = 0; i < rank; ++i) printf("%u%c ", shape[i], i == rank - 1 ? '\0' : ',');
+    for (unsigned int i = 0; i < rank; ++i) printf("%u%s", shape[i], i == rank - 1 ? " " : ", ");
     printf("]\n");
     return;
 }
@@ -89,6 +89,7 @@ void deallocate_tensors(int len, ...) {
 }
 
 unsigned int tensor_size(unsigned int* shape, unsigned int rank) {
+    if (shape == NULL) return 0;
     unsigned int size = 1;
     for (unsigned int i = 0; i < rank; ++i) size *= shape[i];
     return size;
@@ -126,7 +127,7 @@ Tensor alloc_temp_tensor(unsigned int* shape, unsigned int rank, DataType data_t
 
 void print_tensor(Tensor tensor, char* tensor_name) {
     const unsigned int size = tensor_size(tensor.shape, tensor.rank);
-    printf("DEBUG_INFO: Tensor '%s' with shape ", tensor_name);
+    printf("Tensor '%s' with shape ", tensor_name);
     print_shape(tensor.shape, tensor.rank);
     printf("\n");
     for (unsigned int i = 0; i < size; ++i) {
