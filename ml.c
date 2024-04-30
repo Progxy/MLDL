@@ -4,7 +4,7 @@
 #include "./include/loader.h"
 
 int main() {
-    //init_seed();
+    init_seed();
 
     unsigned int arch[] = {9, 7, 8, 7, 1};
     NN nn = create_nn(ARR_SIZE(arch), arch, FLOAT_64);
@@ -15,15 +15,18 @@ int main() {
     File dataset = (File) { .file_name = "././datasets/tic_tac_toe_ds.arff", .data = NULL, .size = 0 };
     parse_dataset(&dataset, &inputs, nn.arch[0], &outputs, nn.arch[nn.size - 1]);
 
-    double alpha = 0.01;
+    double alpha = 0.001;
     double cost_d = 0.0;
     unsigned int max_epochs = 100000;
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;
+    
+    double og_cost = (1.0 - *CAST_PTR(cost(nn, inputs, outputs, &cost_d), double)) * 100.0;
     adam_optim(nn, inputs, outputs, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs);
     //sgd(nn, inputs, outputs, &alpha, max_epochs);
-    printf("NN accuracy: %.2lf%%\n", (1.0 - *CAST_PTR(cost(nn, inputs, outputs, &cost_d), double)) * 100.0);
+    double accuracy = (1.0 - *CAST_PTR(cost(nn, inputs, outputs, &cost_d), double)) * 100.0;
+    printf("NN accuracy: %.2lf%%, original cost: %.2lf%% (delta: %.2f%%)\n", accuracy, og_cost, accuracy - og_cost);
     DEALLOCATE_TENSORS(inputs, outputs);
     
     const double predict_input[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
