@@ -188,11 +188,10 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         
         // θ{t} ← θ{t−1} − α · ^m{t}^/(√^v{t}^ + eps)
         SUBTRACT_TENSOR(&theta_vec, theta_vec, *DIVIDE_TENSOR(&first_moment_vec_hat, *SCALAR_MUL_TENSOR(&first_moment_vec_hat, alpha), *SCALAR_SUM_TENSOR(pow_tensor(&second_moment_vec_hat, ASSIGN(temp, 0.5L, nn.data_type)), eps)));
-        Tensor temp_tensor = empty_tensor(nn.data_type);
-        unflatten_nn(nn, copy_tensor(&temp_tensor, theta_vec));
-        DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat, temp_tensor);
+        DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat);
     }
 
+    unflatten_nn(nn, &theta_vec);
     DEALLOCATE_TENSORS(first_moment_vec, second_moment_vec, theta_vec);
     DEALLOCATE_PTRS(temp, tmp);
 

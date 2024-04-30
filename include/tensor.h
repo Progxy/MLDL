@@ -7,7 +7,7 @@
 #define DEALLOCATE_TENSORS(...) deallocate_tensors(sizeof((Tensor[]){__VA_ARGS__}) / sizeof(Tensor), __VA_ARGS__)
 #define DEALLOCATE_TEMP_TENSORS() alloc_temp_tensor(NULL, 0, FLOAT_32, TRUE)
 #define ALLOC_TEMP_TENSOR(shape, rank, data_type) alloc_temp_tensor(shape, rank, data_type, FALSE)
-#define PRINT_TENSOR(tensor) print_tensor(tensor, #tensor)
+#define PRINT_TENSOR(tensor, prefix_str) print_tensor(tensor, prefix_str, #tensor)
 #define MULTIPLY_TENSOR(c, a, b) op_tensor(c, a, b, MULTIPLICATION)
 #define SUBTRACT_TENSOR(c, a, b) op_tensor(c, a, b, SUBTRACTION)
 #define DIVIDE_TENSOR(c, a, b) op_tensor(c, a, b, DIVISION)
@@ -24,12 +24,12 @@ Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned 
 Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type);
 Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
+void print_tensor(Tensor tensor, char* prefix_str, char* tensor_name);
 unsigned int tensor_size(unsigned int* shape, unsigned int rank);
 Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
 Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b);
 void* tensor_norm(Tensor tensor, void* norm, void* res);
 Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor);
-void print_tensor(Tensor tensor, char* tensor_name);
 Tensor* concat_tensors(Tensor* dest, Tensor src);
 Tensor* flatten_tensor(Tensor* dest, Tensor src);
 void set_tensor(void* new_data, Tensor tensor);
@@ -45,12 +45,12 @@ void randomize_tensor(Tensor tensor);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
-static void insert_spacing(unsigned int index, Tensor tensor) {
+static void insert_spacing(unsigned int index, char* prefix_str, Tensor tensor) {
     unsigned int temp = 1;
     if ((index + 1) % tensor.shape[tensor.rank - 1]) printf(", ");
     for (int i = tensor.rank - 1; i >= 0; --i) {
         temp *= tensor.shape[i];
-        if (!((index + 1) % temp)) printf("\n");
+        if (!((index + 1) % temp)) printf("\n%s", prefix_str);
     }
     return;
 }
@@ -125,17 +125,18 @@ Tensor alloc_temp_tensor(unsigned int* shape, unsigned int rank, DataType data_t
     return temp;
 }
 
-void print_tensor(Tensor tensor, char* tensor_name) {
+void print_tensor(Tensor tensor, char* prefix_str, char* tensor_name) {
     const unsigned int size = tensor_size(tensor.shape, tensor.rank);
-    printf("Tensor '%s' with shape ", tensor_name);
+    printf("%sTensor '%s' with shape ", prefix_str, tensor_name);
     print_shape(tensor.shape, tensor.rank);
-    printf("\n");
+    printf("\n%s", prefix_str);
     for (unsigned int i = 0; i < size; ++i) {
         if (tensor.data_type == FLOAT_32) printf("%f", CAST_PTR(tensor.data, float)[i]);
         if (tensor.data_type == FLOAT_64) printf("%lf", CAST_PTR(tensor.data, double)[i]);
         if (tensor.data_type == FLOAT_128) printf("%Lf", CAST_PTR(tensor.data, long double)[i]);
-        insert_spacing(i, tensor);
+        insert_spacing(i, prefix_str, tensor);
     }
+    printf("\n");
     return;
 }
 
