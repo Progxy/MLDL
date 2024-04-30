@@ -54,20 +54,38 @@ bool str_cmp(char* a, char* b) {
 void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tensor* outputs, unsigned int output_size) {
     unsigned int lines_count = 0;
     char** dataset_lines = split(dataset -> data, '\n', &lines_count);
+    void* input_data = calloc(input_size * lines_count, inputs -> data_type);
+    void* output_data = calloc(output_size * lines_count, outputs -> data_type);
+    unsigned int input_data_size = 0;
+    unsigned int output_data_size = 0;
+
     for (unsigned int i = 0; i < lines_count; ++i) {
         unsigned int line_count = 0;
         char** dataset_line = split(dataset_lines[i], ',', &line_count);
-        void* input_data = calloc(input_size, inputs -> data_type);
-        unsigned int input_data_size = 0;
         for (unsigned int j = 0; j < line_count; ++j) {
             if (j < input_size) {
-                if (inputs -> data_type == FLOAT_32) CAST_PTR(input_data, float)[input_data_size++] = str_cmp(dataset_line[i], "b") ? 0 : str_cmp(dataset_line[i], "x") ? 1 : 2; 
-                if (inputs -> data_type == FLOAT_64) CAST_PTR(input_data, double)[input_data_size++] = str_cmp(dataset_line[i], "b") ? 0 : str_cmp(dataset_line[i], "x") ? 1 : 2; 
-                if (inputs -> data_type == FLOAT_128) CAST_PTR(input_data, long double)[input_data_size++] = str_cmp(dataset_line[i], "b") ? 0 : str_cmp(dataset_line[i], "x") ? 1 : 2; 
+                if (inputs -> data_type == FLOAT_32) CAST_PTR(input_data, float)[input_data_size++] = str_cmp(dataset_line[i], "x") ? 2 : str_cmp(dataset_line[i], "o"); 
+                else if (inputs -> data_type == FLOAT_64) CAST_PTR(input_data, double)[input_data_size++] = str_cmp(dataset_line[i], "x") ? 2 : str_cmp(dataset_line[i], "o"); 
+                else if (inputs -> data_type == FLOAT_128) CAST_PTR(input_data, long double)[input_data_size++] = str_cmp(dataset_line[i], "x") ? 2 : str_cmp(dataset_line[i], "o"); 
+            } else {
+                if (outputs -> data_type == FLOAT_32) CAST_PTR(output_data, float)[output_data_size++] = str_cmp(dataset_line[i], "positive"); 
+                else if (outputs -> data_type == FLOAT_64) CAST_PTR(output_data, double)[output_data_size++] = str_cmp(dataset_line[i], "positive"); 
+                else if (outputs -> data_type == FLOAT_128) CAST_PTR(output_data, long double)[output_data_size++] = str_cmp(dataset_line[i], "positive"); 
             }
+            DEALLOCATE_PTRS(dataset_line[i]);
         }
+        DEALLOCATE_PTRS(dataset_lines[i], dataset_line);
     }
+
     DEALLOCATE_PTRS(dataset_lines);
+
+    unsigned int input_shape[] = { lines_count, input_size };
+    unsigned int output_shape[] = { lines_count, output_size };
+    reshape_tensor(inputs, input_shape, ARR_SIZE(input_shape), inputs -> data_type);
+    reshape_tensor(outputs, output_shape, ARR_SIZE(output_shape), outputs -> data_type);
+    set_tensor(input_data, *inputs);
+    set_tensor(input_data, *outputs);
+
     return;
 }
 
