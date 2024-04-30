@@ -61,7 +61,9 @@ void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tenso
         unsigned int input_data_size = 0;
         for (unsigned int j = 0; j < line_count; ++j) {
             if (j < input_size) {
-                //input_data[input_data_size++] = 
+                if (inputs -> data_type == FLOAT_32) CAST_PTR(input_data, float)[input_data_size++] = str_cmp(dataset_line[i], "b") ? 0 : str_cmp(dataset_line[i], "x") ? 1 : 2; 
+                if (inputs -> data_type == FLOAT_64) CAST_PTR(input_data, double)[input_data_size++] = str_cmp(dataset_line[i], "b") ? 0 : str_cmp(dataset_line[i], "x") ? 1 : 2; 
+                if (inputs -> data_type == FLOAT_128) CAST_PTR(input_data, long double)[input_data_size++] = str_cmp(dataset_line[i], "b") ? 0 : str_cmp(dataset_line[i], "x") ? 1 : 2; 
             }
         }
     }
