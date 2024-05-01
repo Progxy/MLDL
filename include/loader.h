@@ -51,7 +51,7 @@ static unsigned int str_len(char* str) {
 
 static bool str_cmp(char* a, char* b) {
     if (str_len(a) != str_len(b)) return FALSE;
-    for (unsigned int i = 0; str_len(a); ++i) if (a[i] != b[i]) return FALSE;
+    for (unsigned int i = 0; i < str_len(a); ++i) if (a[i] != b[i]) return FALSE;
     return TRUE;
 }
 
@@ -84,9 +84,9 @@ void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tenso
         char** dataset_line = split(dataset_lines[i], ',', &line_count);
         for (unsigned int j = 0; j < line_count; ++j) {
             if (j < input_size) {
-                get_input_value(input_data, input_data_size++, dataset_line[i], input_values, inputs -> data_type);
+                get_input_value(input_data, input_data_size++, dataset_line[j], input_values, inputs -> data_type);
             } else {
-                get_input_value(output_data, output_data_size++, dataset_line[i], output_values, outputs -> data_type);
+                get_input_value(output_data, output_data_size++, dataset_line[j], output_values, outputs -> data_type);
             }
             DEALLOCATE_PTRS(dataset_line[j]);
         }
