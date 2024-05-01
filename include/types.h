@@ -48,4 +48,10 @@ typedef struct File {
     char* file_name;
 } File;
 
+typedef struct ValueCheck {
+    unsigned int size;
+    char** values;
+    void* mapped_values;
+} ValueCheck;
+
 #endif //_TYPES_H_

@@ -10,10 +10,28 @@ int main() {
     NN nn = create_nn(ARR_SIZE(arch), arch, FLOAT_64);
     rand_nn(nn);
 
+    char* input_valid_values[] = { "x", "o", "b" };
+    double input_mapped_values[] = { 1.0, 2.0, 0.0 };
+
+    ValueCheck input_values = (ValueCheck) {
+        .size = 3,
+        .values = input_valid_values,
+        .mapped_values = (void*) input_mapped_values
+    };
+
+    char* output_valid_values[] = {"negative", "positive"};
+    double output_mapped_values[] = {0, 1};
+
+    ValueCheck output_values = (ValueCheck) {
+        .size = 2,
+        .values = output_valid_values,
+        .mapped_values = (void*) output_mapped_values
+    };
+
     Tensor inputs = empty_tensor(nn.data_type);
     Tensor outputs = empty_tensor(nn.data_type);
     File dataset = (File) { .file_name = "././datasets/tic_tac_toe_ds.arff", .data = NULL, .size = 0 };
-    parse_dataset(&dataset, &inputs, nn.arch[0], &outputs, nn.arch[nn.size - 1]);
+    parse_dataset(&dataset, &inputs, nn.arch[0], &outputs, nn.arch[nn.size - 1], input_values, output_values);
 
     double alpha = 0.001;
     double cost_d = 0.0;

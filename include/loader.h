@@ -3,7 +3,7 @@
 
 #include "./utils.h"
 
-void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tensor* outputs, unsigned int output_size);
+void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tensor* outputs, unsigned int output_size, ValueCheck input_values, ValueCheck output_values);
 
 /* ----------------------------------------------------------------------------------------------------------------- */
 
@@ -55,7 +55,19 @@ static bool str_cmp(char* a, char* b) {
     return TRUE;
 }
 
-void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tensor* outputs, unsigned int output_size) {
+static void get_input_value(void* res, unsigned int offset, char* value, ValueCheck value_check, DataType data_type) {
+    for (unsigned int i = 0; i < value_check.size; ++i) { 
+        if (str_cmp(value, value_check.values[i])) {
+            if (data_type == FLOAT_32) CAST_PTR(res, float)[offset] = CAST_PTR(value_check.mapped_values, float)[i];
+            else if (data_type == FLOAT_64) CAST_PTR(res, double)[offset] = CAST_PTR(value_check.mapped_values, double)[i];
+            else if (data_type == FLOAT_128) CAST_PTR(res, long double)[offset] = CAST_PTR(value_check.mapped_values, long double)[i];
+            break;
+        }
+    }
+    return;
+}
+
+void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tensor* outputs, unsigned int output_size, ValueCheck input_values, ValueCheck output_values) {
     read_file(dataset);
 
     printf("DEBUG_INFO: parsing the dataset...\n");
@@ -72,13 +84,9 @@ void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tenso
         char** dataset_line = split(dataset_lines[i], ',', &line_count);
         for (unsigned int j = 0; j < line_count; ++j) {
             if (j < input_size) {
-                if (inputs -> data_type == FLOAT_32) CAST_PTR(input_data, float)[input_data_size++] = str_cmp(dataset_line[j], "x") ? 2.0f : (float) str_cmp(dataset_line[j], "o"); 
-                else if (inputs -> data_type == FLOAT_64) CAST_PTR(input_data, double)[input_data_size++] = str_cmp(dataset_line[j], "x") ? 2.0 : (double) str_cmp(dataset_line[j], "o"); 
-                else if (inputs -> data_type == FLOAT_128) CAST_PTR(input_data, long double)[input_data_size++] = str_cmp(dataset_line[j], "x") ? 2.0L : (long double) str_cmp(dataset_line[j], "o"); 
+                get_input_value(input_data, input_data_size++, dataset_line[i], input_values, inputs -> data_type);
             } else {
-                if (outputs -> data_type == FLOAT_32) CAST_PTR(output_data, float)[output_data_size++] = (float) str_cmp(dataset_line[j], "positive"); 
-                else if (outputs -> data_type == FLOAT_64) CAST_PTR(output_data, double)[output_data_size++] = (double) str_cmp(dataset_line[j], "positive"); 
-                else if (outputs -> data_type == FLOAT_128) CAST_PTR(output_data, long double)[output_data_size++] = (long double) str_cmp(dataset_line[j], "positive"); 
+                get_input_value(output_data, output_data_size++, dataset_line[i], output_values, outputs -> data_type);
             }
             DEALLOCATE_PTRS(dataset_line[j]);
         }
