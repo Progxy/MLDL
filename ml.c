@@ -10,8 +10,8 @@ int main() {
     NN nn = create_nn(ARR_SIZE(arch), arch, FLOAT_64);
     rand_nn(nn);
 
-    char* input_valid_values[] = { "x", "o", "b" };
-    double input_mapped_values[] = { 1.0, 2.0, 0.0 };
+    char* input_valid_values[] = { "b", "x", "o" };
+    double input_mapped_values[] = { 0.0, 1.0, 2.0 };
 
     ValueCheck input_values = (ValueCheck) {
         .size = 3,
