@@ -93,6 +93,18 @@ void* sigmoid_func(void* value, void* result, DataType data_type) {
     return result;
 }
 
+void* tanh_func(void* value, DataType data_type) {
+    return value;
+}
+
+void* gelu_func(void* value, void* result, DataType data_type) {
+    // Math: 0.5x(1 + {\tanh}[{\sqrt{2/\pi}}({x} + 0.044715{x}^{3})])
+    void* temp = calloc(1, data_type);
+    MULTIPLY(value, value, ASSIGN(temp, 0.5L, data_type), data_type);
+    DEALLOCATE_PTRS(temp);
+    return value;
+}
+
 void init_seed() {
     srand(time(NULL));
     return;
