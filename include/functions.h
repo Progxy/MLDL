@@ -20,6 +20,16 @@ static Tensor* sigmoid(Tensor* out) {
     return out;
 }
 
+static Tensor* gelu(Tensor* out) {
+    unsigned int size = tensor_size(out -> shape, out -> rank);
+    for (unsigned int i = 0; i < size; ++i) {
+        if (out -> data_type == FLOAT_32) gelu_func(CAST_PTR(out -> data, float) + i, CAST_PTR(out -> data, float) + i, out -> data_type);
+        else if (out -> data_type == FLOAT_64) gelu_func(CAST_PTR(out -> data, double) + i, CAST_PTR(out -> data, double) + i, out -> data_type);
+        else if (out -> data_type == FLOAT_128) gelu_func(CAST_PTR(out -> data, long double) + i, CAST_PTR(out -> data, long double) + i, out -> data_type);
+    }
+    return out;
+}
+
 static void feed_forward(NN nn) {
     sigmoid(&(nn.layers[0].activation));
     Tensor temp = empty_tensor(nn.data_type);
