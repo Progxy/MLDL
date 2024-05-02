@@ -2,6 +2,7 @@
 #define _UTILS_H_
 
 #include <time.h>
+#define __USE_MISC
 #include <math.h>
 #include "./types.h"
 
@@ -93,16 +94,12 @@ void* sigmoid_func(void* value, void* result, DataType data_type) {
     return result;
 }
 
-void* tanh_func(void* value, DataType data_type) {
-    return value;
-}
-
 void* gelu_func(void* value, void* result, DataType data_type) {
     // Math: 0.5x(1 + {\tanh}[{\sqrt{2/\pi}}({x} + 0.044715{x}^{3})])
-    void* temp = calloc(1, data_type);
-    MULTIPLY(value, value, ASSIGN(temp, 0.5L, data_type), data_type);
-    DEALLOCATE_PTRS(temp);
-    return value;
+    if (data_type == FLOAT_32) *CAST_PTR(result, float) = *CAST_PTR(value, float) * 0.5f * (1.0f + tanhf(sqrtf(2.0f / (float) M_PI) * (*CAST_PTR(value, float) + 0.044715f * powf(*CAST_PTR(value, float), 3.0f))));
+    else if (data_type == FLOAT_64) *CAST_PTR(result, double) = *CAST_PTR(value, double) * 0.5 * (1.0 + tanh(sqrt(2.0 / M_PI) * (*CAST_PTR(value, double) + 0.044715 * pow(*CAST_PTR(value, double), 3.0))));
+    else if (data_type == FLOAT_128) *CAST_PTR(result, long double) = *CAST_PTR(value, long double) * 0.5L * (1.0L + tanhl(sqrtf(2.0L / (long double) M_PI) * (*CAST_PTR(value, long double) + 0.044715L * powl(*CAST_PTR(value, long double), 3.0L))));
+    return result;
 }
 
 void init_seed() {
