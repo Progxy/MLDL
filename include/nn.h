@@ -29,9 +29,9 @@ Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType da
 }
 
 void rand_nn(NN nn) {
-    for (unsigned int l = 0; l < nn.size; ++l) {
-        randomize_tensor(nn.layers[l].biases);
+    for (unsigned int l = 1; l < nn.size; ++l) {
         randomize_tensor(nn.layers[l].weights);
+        normal(&(nn.layers[l].weights));
     }
     return;
 } 

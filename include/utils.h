@@ -31,6 +31,7 @@
 bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigned int enum_values_count);
 void* data_type_op(OperatorFlag operator_flag, void* res, void* a, void* b, DataType data_type);
 void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg);
+void* normal_func(void* res, void* value, void* variance, void* mean, DataType data_type);
 bool compare_op(void* a, void* b, DataType data_type, OperatorFlag operator_flag);
 char* value_to_str(void* value, DataType data_type, bool clean_cache_flag);
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
@@ -100,6 +101,14 @@ void* gelu_func(void* value, void* result, DataType data_type) {
     else if (data_type == FLOAT_64) *CAST_PTR(result, double) = *CAST_PTR(value, double) * 0.5 * (1.0 + tanh(sqrt(2.0 / M_PI) * (*CAST_PTR(value, double) + 0.044715 * pow(*CAST_PTR(value, double), 3.0))));
     else if (data_type == FLOAT_128) *CAST_PTR(result, long double) = *CAST_PTR(value, long double) * 0.5L * (1.0L + tanhl(sqrtf(2.0L / (long double) M_PI) * (*CAST_PTR(value, long double) + 0.044715L * powl(*CAST_PTR(value, long double), 3.0L))));
     return result;
+}
+
+void* normal_func(void* res, void* value, void* variance, void* mean, DataType data_type) {
+    // Math: (2\pi\sigma^2)^{-{1/2}}\exp(-\frac{(x-\mu)^2}{2\sigma^2})
+    if (data_type == FLOAT_32) *CAST_PTR(res, float) = powf(2.0f * (float) M_PI * (*CAST_PTR(variance, float)), -0.5f) * expf(-(powf(*CAST_PTR(value, float) - *CAST_PTR(mean, float), 2.0f) * (2.0f * (*CAST_PTR(variance, float)))));
+    else if (data_type == FLOAT_64) *CAST_PTR(res, double) = pow(2.0 * (double) M_PI * (*CAST_PTR(variance, double)), -0.5) * exp(-(pow(*CAST_PTR(value, double) - *CAST_PTR(mean, double), 2.0) * (2.0 * (*CAST_PTR(variance, double)))));
+    else if (data_type == FLOAT_128) *CAST_PTR(res, long double) = powl(2.0L * (long double) M_PI * (*CAST_PTR(variance, long double)), -0.5L) * expl(-(powl(*CAST_PTR(value, long double) - *CAST_PTR(mean, long double), 2.0L) * (2.0L * (*CAST_PTR(variance, long double)))));
+    return res;
 }
 
 void init_seed() {

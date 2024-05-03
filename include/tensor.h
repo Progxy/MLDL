@@ -42,6 +42,9 @@ Tensor* transpose_tensor(Tensor* tensor);
 Tensor empty_tensor(DataType data_type);
 void deallocate_tensors(int len, ...);
 void randomize_tensor(Tensor tensor);
+Tensor* sigmoid(Tensor* tensor);
+Tensor* normal(Tensor* tensor);
+Tensor* gelu(Tensor* tensor);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -459,6 +462,40 @@ void* tensor_norm(Tensor tensor, void* norm, void* res) {
     DEALLOCATE_TENSORS(temp_tensor);
     DEALLOCATE_PTRS(temp);
     return res;
+}
+
+Tensor* normal(Tensor* tensor) {
+    void* variance = calloc(1, tensor -> data_type);
+    void* mean = calloc(1, tensor -> data_type);
+    ASSIGN(variance, 2.0L / (tensor -> shape[0] + tensor -> shape[1]), tensor -> data_type);
+    unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
+    for (unsigned int i = 0; i < size; ++i) {
+        if (tensor -> data_type == FLOAT_32) normal_func(CAST_PTR(tensor -> data, float) + i, CAST_PTR(tensor -> data, float) + i, variance, mean, tensor -> data_type); 
+        else if (tensor -> data_type == FLOAT_64) normal_func(CAST_PTR(tensor -> data, double) + i, CAST_PTR(tensor -> data, double) + i, variance, mean, tensor -> data_type); 
+        else if (tensor -> data_type == FLOAT_128) normal_func(CAST_PTR(tensor -> data, long double) + i, CAST_PTR(tensor -> data, long double) + i, variance, mean, tensor -> data_type); 
+    }
+    DEALLOCATE_PTRS(variance, mean);
+    return tensor;
+}
+
+Tensor* sigmoid(Tensor* tensor) {
+    unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
+    for (unsigned int i = 0; i < size; ++i) {
+        if (tensor -> data_type == FLOAT_32) sigmoid_func(CAST_PTR(tensor -> data, float) + i, CAST_PTR(tensor -> data, float) + i, tensor -> data_type);
+        else if (tensor -> data_type == FLOAT_64) sigmoid_func(CAST_PTR(tensor -> data, double) + i, CAST_PTR(tensor -> data, double) + i, tensor -> data_type);
+        else if (tensor -> data_type == FLOAT_128) sigmoid_func(CAST_PTR(tensor -> data, long double) + i, CAST_PTR(tensor -> data, long double) + i, tensor -> data_type);
+    }
+    return tensor;
+}
+
+Tensor* gelu(Tensor* tensor) {
+    unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
+    for (unsigned int i = 0; i < size; ++i) {
+        if (tensor -> data_type == FLOAT_32) gelu_func(CAST_PTR(tensor -> data, float) + i, CAST_PTR(tensor -> data, float) + i, tensor -> data_type);
+        else if (tensor -> data_type == FLOAT_64) gelu_func(CAST_PTR(tensor -> data, double) + i, CAST_PTR(tensor -> data, double) + i, tensor -> data_type);
+        else if (tensor -> data_type == FLOAT_128) gelu_func(CAST_PTR(tensor -> data, long double) + i, CAST_PTR(tensor -> data, long double) + i, tensor -> data_type);
+    }
+    return tensor;
 }
 
 #endif //_TENSOR_H_
