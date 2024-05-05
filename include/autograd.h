@@ -30,29 +30,43 @@ void deallocate_grad_graph(GradNode* head, DataType data_type) {
     return;
 }
 
-void exec_operation(GradNode* node) {
+void add_child(GradNode* child, GradNode* parent) {
+    return;
+}
+
+void exec_operation(GradNode* node, void* value_a, void* value_b) {
     switch (node -> operation) {
-    case SUMMATION:
-        SUM(node -> value, node -> value, node -> previous -> value, node -> data_type);
-        break;
+        case SUMMATION:
+            SUM(node -> value, value_a, value_b, node -> data_type);
+            break;
+
+        case SUBTRACTION: 
+            SUBTRACT(node -> value, value_a, value_b, node -> data_type);
+            break;        
+        
+        case MULTIPLICATION: 
+            MULTIPLY(node -> value, value_a, value_b, node -> data_type);
+            break;        
+        
+        case DIVISION: 
+            DIVIDE(node -> value, value_a, value_b, node -> data_type);
+            break;
+        
     }
     return;
 }
 
-void compute_graph(GradNode* head, void* value, OperatorFlag operation) {
-    GradNode* tail = head -> next;
-    while (tail != NULL) {
-        tail = tail -> next;
-    }
-    GradNode* new_node = alloc_grad_graph_node(head -> data_type);
-    tail = new_node;
-    tail -> operation = operation;
-    tail -> value = value;
-    exec_operation(tail);
-    return;
+GradNode* compute_graph(GradNode* node_a, GradNode* node_b, OperatorFlag operation) {
+    ASSERT(node_a -> data_type != node_b -> data_type, "DATA_TYPE_MISMATCH");
+    GradNode* new_node = alloc_grad_graph_node(node_a -> data_type);
+    add_child(new_node, node_a);
+    add_child(new_node, node_b);
+    exec_operation(new_node, node_a -> value, node_b -> value);
+    return new_node;
 }
 
 void derive_graph(GradNode* head) {
+    
     return;
 }
 
