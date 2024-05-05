@@ -126,4 +126,9 @@ void forward_graph(GradNode* head) {
     return;
 }
 
+// NOTE: you can use the toposort to linearize the graph and run smoothly the forward and backward pass
+void toposort(GradNode* graph) {
+    return;
+}
+
 #endif //_AUTOGRAD_H_
