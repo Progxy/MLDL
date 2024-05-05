@@ -31,6 +31,8 @@ void deallocate_grad_graph(GradNode* node) {
 }
 
 void add_child(GradNode* child, GradNode* parent) {
+    parent -> children = (GradNode**) realloc(parent -> children, sizeof(GradNode*) * (parent -> children_count + 1));
+    parent -> children[(parent -> children_count)++] = child; 
     return;
 }
 
