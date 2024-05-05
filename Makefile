@@ -11,3 +11,6 @@ build: ml.c
 debug: ml.c
 	gcc $(FLAGS) -ggdb ml.c $(LIBRARIES) -o $(OUT_FILE)
 	gdb ./out/ml
+
+compile: ml.c
+	gcc $(FLAGS) ml.c $(LIBRARIES) -o $(OUT_FILE)
