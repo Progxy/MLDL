@@ -117,4 +117,13 @@ void* derive_node(GradNode* node) {
     return node -> derived_value;
 }
 
+void forward_graph(GradNode* head) {
+    if (head == NULL) return; 
+    for (unsigned int i = 0; i < head -> children_count; ++i) {
+        exec_operation(head -> children[i], head -> value, get_other_parent(head -> children[i] -> parents, head) -> value);
+        forward_graph(head -> children[i]);
+    }
+    return;
+}
+
 #endif //_AUTOGRAD_H_
