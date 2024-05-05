@@ -4,10 +4,10 @@
 #include "./tensor.h"
 
 typedef struct GradNode {
-    OperatorFlag operation;
     void* value;
     void* derived_value;
     DataType data_type;
+    OperatorFlag operation;
     struct GradNode** children;
     struct GradNode* parents[2];
     unsigned int children_count;
@@ -71,7 +71,7 @@ GradNode* get_other_parent(GradNode* parents[2], GradNode* parent) {
     return NULL;
 }
 
-void derive_op(GradNode* node, GradNode* child) {
+void* derive_op(GradNode* node, GradNode* child) {
     switch (child -> operation) {
         case SUMMATION:
             ASSIGN(node -> derived_value, 1.0L, node -> data_type);
@@ -97,14 +97,21 @@ void derive_op(GradNode* node, GradNode* child) {
             DEALLOCATE_PTRS(temp, exp);
             break;
     }
-    return;
+
+    return node -> derived_value;
 }
 
 void* derive_node(GradNode* node) {
+    void* temp = calloc(1, node -> data_type);
+    ASSIGN(temp, 0.0L, node -> data_type);
     for (unsigned int i = 0; i < node -> children_count; ++i) {
-        derive_op(node, node -> children[i]);
-        MULTIPLY(node -> derived_value, derive_node(node -> children + i), node -> derived_value, node -> data_type);
+        MULTIPLY(node -> derived_value, derive_node(node -> children + i), derive_op(node, node -> children[i]), node -> data_type);
+        SUM(temp, temp, node -> derived_value, node -> data_type);
     }
+    if (node -> data_type == FLOAT_32) ASSIGN(node -> derived_value, *CAST_PTR(temp, float), node -> data_type);
+    else if (node -> data_type == FLOAT_64) ASSIGN(node -> derived_value, *CAST_PTR(temp, double), node -> data_type);
+    else if (node -> data_type == FLOAT_128) ASSIGN(node -> derived_value, *CAST_PTR(temp, long double), node -> data_type);
+    DEALLOCATE_PTRS(temp);
     return node -> derived_value;
 }
 
