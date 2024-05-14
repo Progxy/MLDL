@@ -37,6 +37,11 @@ static Tensor* gelu(Tensor* tensor) {
     return tensor;
 }
 
+static Tensor* sigmoid(Tensor* tensor) {
+    // Math: \frac{1}{1 + e^{-x}}
+    return tensor;
+}
+
 static void feed_forward(NN nn) {
     sigmoid(&(nn.layers[0].activation));
     Tensor temp = empty_tensor(nn.data_type);

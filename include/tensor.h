@@ -45,7 +45,6 @@ Tensor* tensor_conjugate(Tensor* tensor);
 Tensor* transpose_tensor(Tensor* tensor);
 Tensor empty_tensor(DataType data_type);
 void randomize_tensor(Tensor tensor);
-Tensor* sigmoid(Tensor* tensor);
 Tensor* normal(Tensor* tensor);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
@@ -521,16 +520,6 @@ Tensor* normal(Tensor* tensor) {
         else if (tensor -> data_type == FLOAT_128) normal_func(CAST_PTR(tensor -> data, long double) + i, CAST_PTR(tensor -> data, long double) + i, variance, mean, tensor -> data_type); 
     }
     DEALLOCATE_PTRS(variance, mean);
-    return tensor;
-}
-
-Tensor* sigmoid(Tensor* tensor) {
-    unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
-    for (unsigned int i = 0; i < size; ++i) {
-        if (tensor -> data_type == FLOAT_32) sigmoid_func(CAST_PTR(tensor -> data, float) + i, CAST_PTR(tensor -> data, float) + i, tensor -> data_type);
-        else if (tensor -> data_type == FLOAT_64) sigmoid_func(CAST_PTR(tensor -> data, double) + i, CAST_PTR(tensor -> data, double) + i, tensor -> data_type);
-        else if (tensor -> data_type == FLOAT_128) sigmoid_func(CAST_PTR(tensor -> data, long double) + i, CAST_PTR(tensor -> data, long double) + i, tensor -> data_type);
-    }
     return tensor;
 }
 
