@@ -28,7 +28,9 @@ static Tensor* my_gelu(Tensor* tensor) {
     TENSOR_GRAPH_MUL(&d, x2, *TENSOR_GRAPH_SUM(&c, *tensor, *TENSOR_GRAPH_MUL(&b, x1, *TENSOR_GRAPH_POW(&a, *tensor, (val = 3.0f, &val), tensor -> data_type))));
     TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_MUL(&g, *tensor, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d, tensor -> data_type)));
     
-    DEALLOCATE_TENSORS(x1, x2, x3, x4, a, b, c, d, e, f, g, h);
+    mem_copy(tensor -> data, h.data, tensor -> data_type, tensor_size(tensor -> shape, tensor -> rank));
+
+    DEALLOCATE_TENSORS(x1, x2, x3, x4);
     return tensor;
 }
 
