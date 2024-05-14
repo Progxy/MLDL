@@ -13,32 +13,51 @@ Tensor* predict(NN nn, Tensor input, Tensor* output);
 
 static Tensor* gelu(Tensor* tensor) {
     Tensor x1, x2, x3, x4;
-    void* val = calloc(1, tensor -> data_type);
+    void* temp = calloc(1, tensor -> data_type);
     void* pi = calloc(1, tensor -> data_type);
-    ASSIGN(val, 2.0L, tensor -> data_type);
+    ASSIGN(temp, 2.0L, tensor -> data_type);
     ASSIGN(pi, M_PI, tensor -> data_type);
     alloc_grad_graph_node(tensor -> data_type, tensor);
-    alloc_tensor_grad_graph_filled(x1, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(val, 0.044715L, tensor -> data_type));
-    alloc_tensor_grad_graph_filled(x2, tensor -> shape, tensor -> rank, tensor -> data_type, SCALAR_SQRT(val, SCALAR_DIV(val, val, pi, tensor -> data_type), tensor -> data_type));
-    alloc_tensor_grad_graph_filled(x3, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(val, 1.0L, tensor -> data_type));
-    alloc_tensor_grad_graph_filled(x4, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(val, 0.5L, tensor -> data_type));
+    alloc_tensor_grad_graph_filled(x1, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 0.044715L, tensor -> data_type));
+    alloc_tensor_grad_graph_filled(x2, tensor -> shape, tensor -> rank, tensor -> data_type, SCALAR_SQRT(temp, SCALAR_DIV(temp, temp, pi, tensor -> data_type), tensor -> data_type));
+    alloc_tensor_grad_graph_filled(x3, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 1.0L, tensor -> data_type));
+    alloc_tensor_grad_graph_filled(x4, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 0.5L, tensor -> data_type));
     
     Tensor a, b, c, d, e, f, g, h;
     EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d, &e, &f, &g, &h);
 
     // Math: 0.5x(1 + {\tanh}[{\sqrt{2/\pi}}({x} + 0.044715{x}^{3})])
-    TENSOR_GRAPH_MUL(&d, x2, *TENSOR_GRAPH_SUM(&c, *tensor, *TENSOR_GRAPH_MUL(&b, x1, *TENSOR_GRAPH_POW(&a, *tensor, ASSIGN(val, 3.0L, tensor -> data_type), tensor -> data_type))));
+    TENSOR_GRAPH_MUL(&d, x2, *TENSOR_GRAPH_SUM(&c, *tensor, *TENSOR_GRAPH_MUL(&b, x1, *TENSOR_GRAPH_POW(&a, *tensor, ASSIGN(temp, 3.0L, tensor -> data_type), tensor -> data_type))));
     TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_MUL(&g, *tensor, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d, tensor -> data_type)));
+    DEALLOCATE_PTRS(temp, pi);
     
     mem_copy(tensor -> data, h.data, tensor -> data_type, tensor_size(tensor -> shape, tensor -> rank));
 
-    DEALLOCATE_TENSORS(x1, x2, x3, x4);
-    DEALLOCATE_PTRS(val, pi);
+    // TODO: delete only x1 node and not it's children
+    DEALLOCATE_GRAD_GRAPHS(x1.grad_node, x2.grad_node, x3.grad_node, x4.grad_node);
+
     return tensor;
 }
 
 static Tensor* sigmoid(Tensor* tensor) {
+    void* temp = calloc(1, tensor -> data_type);
+    Tensor x1;
+    alloc_grad_graph_node(tensor -> data_type, tensor);
+    alloc_tensor_grad_graph_filled(x1, tensor -> shape, tensor -> rank, FLOAT_32, ASSIGN(temp, 1.0L, tensor -> data_type));
+
+    Tensor a, b, c, d;
+    EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d);
+
     // Math: \frac{1}{1 + e^{-x}}
+    TENSOR_GRAPH_POW(&b, *TENSOR_GRAPH_EXP(&a, *tensor, tensor -> data_type), ASSIGN(temp, -1.0L, tensor -> data_type), tensor -> data_type);
+    TENSOR_GRAPH_POW(&d, *TENSOR_GRAPH_SUM(&c, x1, b), temp, tensor -> data_type);
+    DEALLOCATE_PTRS(temp);
+    
+    mem_copy(tensor -> data, d.data, tensor -> data_type, tensor_size(tensor -> shape, tensor -> rank));
+
+    // TODO: delete only x1 node and not it's children
+    DEALLOCATE_GRAD_GRAPHS(x1.grad_node);
+
     return tensor;
 }
 

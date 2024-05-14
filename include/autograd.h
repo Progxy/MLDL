@@ -31,7 +31,7 @@ void* deallocate_grad_graph(GradNode* node) {
     for (unsigned int i = 0; i < node -> children_count; ++i) {
         if (node -> children[i] != NULL) node -> children[i] = deallocate_grad_graph(node -> children[i]);
     }
-    DEALLOCATE_TENSORS(node -> derived_value);
+    DEALLOCATE_TENSORS(node -> derived_value, *(node -> value));
     free(node -> children);
     node -> children = NULL;
     free(node -> parents);
@@ -77,11 +77,6 @@ Tensor* graph_op(Tensor* c, Tensor a, Tensor b, OperatorFlag operation) {
     return c;
 }
 
-GradNode* get_other_parent(GradNode* child, GradNode* parent) {
-    for (unsigned int i = 0; i < child -> parents_count; ++i) if (child -> parents[i] != parent) return child -> parents[i];
-    return NULL;
-}
-
 void derive_op(GradNode* node, GradNode* child) {
     switch (child -> operation) {
         case SUM: {
@@ -102,24 +97,14 @@ void derive_op(GradNode* node, GradNode* child) {
             break;        
         }
 
-        case MULTIPLICATION:
-            copy_tensor(&(node -> derived_value), *(get_other_parent(child, node) -> value));
+        case MULTIPLICATION:{
+            DIVIDE_TENSOR(&(node -> derived_value), *(child -> value), *(node -> value));
             break;       
+        }
         
         case DIVISION: {
-            if (IS_DENOMINATOR(node, child)) {
-                Tensor temp = empty_tensor(node -> derived_value.data_type);
-                void* exp = calloc(1, temp.data_type);
-                POW_TENSOR(&temp, *(node -> value), ASSIGN(exp, -2.0L, temp.data_type), temp.data_type);
-                free(exp);
-                copy_tensor(&(node -> derived_value), *(get_other_parent(child, node) -> value));
-                MULTIPLY_TENSOR(&(node -> derived_value), node -> derived_value, temp);
-                DEALLOCATE_TENSORS(temp);
-            } else {
-                void* exp = calloc(1, node -> derived_value.data_type);
-                POW_TENSOR(&(node -> derived_value), *(get_other_parent(child, node) -> value), ASSIGN(exp, -1.0L, node -> derived_value.data_type), node -> derived_value.data_type);
-                free(exp);
-            }
+            DIVIDE_TENSOR(&(node -> derived_value), *(child -> value), *(node -> value));
+            if (IS_DENOMINATOR(node, child)) tensor_conjugate(&(node -> derived_value));
             break;
         }
 
@@ -179,11 +164,5 @@ void derive_node(GradNode* node) {
     DEALLOCATE_TENSORS(diff);
     return;
 }
-
-// NOTE: you can use the toposort to linearize the graph and run smoothly the forward and backward pass
-// NOTE: may also think to employ pruning techniques
-// void toposort(GradNode* graph) {
-//     return;
-// }
 
 #endif //_AUTOGRAD_H_
