@@ -4,18 +4,23 @@
 #include <stdarg.h>
 #include "./utils.h"
 
+
+#define EMPTY_TENSORS(data_type, ...) empty_tensors((sizeof((Tensor*[]){__VA_ARGS__}) / sizeof(Tensor*)), data_type, __VA_ARGS__)
 #define DEALLOCATE_TENSORS(...) deallocate_tensors(sizeof((Tensor[]){__VA_ARGS__}) / sizeof(Tensor), __VA_ARGS__)
 #define DEALLOCATE_TEMP_TENSORS() alloc_temp_tensor(NULL, 0, FLOAT_32, TRUE)
 #define ALLOC_TEMP_TENSOR(shape, rank, data_type) alloc_temp_tensor(shape, rank, data_type, FALSE)
 #define PRINT_TENSOR(tensor, prefix_str) print_tensor(tensor, prefix_str, #tensor)
+#define POW_TENSOR(c, a, exp, data_type) op_tensor(c, a, alloc_scalar_tensor(exp, data_type), POW)
+#define TANH_TENSOR(c, a, data_type) op_tensor(c, a, empty_tensor(data_type), TANH)
+#define EXP_TENSOR(c, a, data_type) op_tensor(c, a, empty_tensor(data_type), EXP)
 #define MULTIPLY_TENSOR(c, a, b) op_tensor(c, a, b, MULTIPLICATION)
 #define SUBTRACT_TENSOR(c, a, b) op_tensor(c, a, b, SUBTRACTION)
 #define DIVIDE_TENSOR(c, a, b) op_tensor(c, a, b, DIVISION)
-#define SUM_TENSOR(c, a, b) op_tensor(c, a, b, SUMMATION)
+#define SUM_TENSOR(c, a, b) op_tensor(c, a, b, SUM)
 #define SCALAR_MUL_TENSOR(a, val) scalar_op_tensor(a, val, MULTIPLICATION)
 #define SCALAR_SUB_TENSOR(a, val) scalar_op_tensor(a, val, SUBTRACTION)
 #define SCALAR_DIV_TENSOR(a, val) scalar_op_tensor(a, val, DIVISION)
-#define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUMMATION)
+#define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUM)
 
 Tensor alloc_temp_tensor(unsigned int* shape, unsigned int rank, DataType data_type, bool clean_cache_flag);
 Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
@@ -28,6 +33,7 @@ void print_tensor(Tensor tensor, char* prefix_str, char* tensor_name);
 unsigned int tensor_size(unsigned int* shape, unsigned int rank);
 Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
 Tensor* cross_product_tensor(Tensor* c, Tensor a, Tensor b);
+Tensor alloc_scalar_tensor(void* val, DataType data_type);
 void* tensor_norm(Tensor tensor, void* norm, void* res);
 Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor);
 Tensor* concat_tensors(Tensor* dest, Tensor src);
@@ -204,39 +210,84 @@ Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
 }
 
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
+    const bool is_single_operand_flag = (op_flag == POW) || (op_flag == EXP) || (op_flag == TANH);
     ASSERT(!is_valid_enum(op_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATOR");
-    ASSERT(a.rank != b.rank, "RANK_MISMATCH");
+    ASSERT((a.rank != b.rank) && !is_single_operand_flag, "DIM_MISMATCH");
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
-    for (unsigned int i = 0; i < a.rank; ++i) {
+    for (unsigned int i = 0; (i < a.rank) && !is_single_operand_flag; ++i) {
         ASSERT(a.shape[i] != b.shape[i], "SHAPE_MISMATCH");
     }
     
     Tensor temp = alloc_tensor(a.shape, a.rank, a.data_type);
-
+    void* exponent = NULL;
+    if (op_flag == POW) {
+        exponent = calloc(1, a.data_type);
+        mem_copy(exponent, b.data, b.data_type, 1);
+    }  
+    
     unsigned int size = tensor_size(a.shape, a.rank);
-    if (op_flag == SUMMATION) {
-        for (unsigned int i = 0; i < size; ++i) {
-            if (a.data_type == FLOAT_32) CAST_AND_OP_INDEX(a, b, temp, i, float, +);
-            else if (a.data_type == FLOAT_64) CAST_AND_OP_INDEX(a, b, temp, i, double, +);
-            else if (a.data_type == FLOAT_128) CAST_AND_OP_INDEX(a, b, temp, i, long double, +);
+    switch (op_flag) {
+        case SUM: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_AND_OP_INDEX(a, b, temp, i, float, +);
+                if (a.data_type == FLOAT_64) CAST_AND_OP_INDEX(a, b, temp, i, double, +);
+                if (a.data_type == FLOAT_128) CAST_AND_OP_INDEX(a, b, temp, i, long double, +);
+            }
+            break;
         }
-    } else if (op_flag == SUBTRACTION) {
-        for (unsigned int i = 0; i < size; ++i) {
-            if (a.data_type == FLOAT_32) CAST_AND_OP_INDEX(a, b, temp, i, float, -);
-            else if (a.data_type == FLOAT_64) CAST_AND_OP_INDEX(a, b, temp, i, double, -);
-            else if (a.data_type == FLOAT_128) CAST_AND_OP_INDEX(a, b, temp, i, long double, -);
+
+        case SUBTRACTION: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_AND_OP_INDEX(a, b, temp, i, float, -);
+                if (a.data_type == FLOAT_64) CAST_AND_OP_INDEX(a, b, temp, i, double, -);
+                if (a.data_type == FLOAT_128) CAST_AND_OP_INDEX(a, b, temp, i, long double, -);
+            }
+            break;
         }
-    } else if (op_flag == MULTIPLICATION) {
-        for (unsigned int i = 0; i < size; ++i) {
-            if (a.data_type == FLOAT_32) CAST_AND_OP_INDEX(a, b, temp, i, float, *);
-            else if (a.data_type == FLOAT_64) CAST_AND_OP_INDEX(a, b, temp, i, double, *);
-            else if (a.data_type == FLOAT_128) CAST_AND_OP_INDEX(a, b, temp, i, long double, *);
+
+        case MULTIPLICATION: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_AND_OP_INDEX(a, b, temp, i, float, *);
+                if (a.data_type == FLOAT_64) CAST_AND_OP_INDEX(a, b, temp, i, double, *);
+                if (a.data_type == FLOAT_128) CAST_AND_OP_INDEX(a, b, temp, i, long double, *);
+            }
+            break;
         }
-    } else {
-        for (unsigned int i = 0; i < size; ++i) {
-            if (a.data_type == FLOAT_32) CAST_AND_OP_INDEX(a, b, temp, i, float, /);
-            else if (a.data_type == FLOAT_64) CAST_AND_OP_INDEX(a, b, temp, i, double, /);
-            else if (a.data_type == FLOAT_128) CAST_AND_OP_INDEX(a, b, temp, i, long double, /);
+
+        case DIVISION: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_AND_OP_INDEX(a, b, temp, i, float, /);
+                if (a.data_type == FLOAT_64) CAST_AND_OP_INDEX(a, b, temp, i, double, /);
+                if (a.data_type == FLOAT_128) CAST_AND_OP_INDEX(a, b, temp, i, long double, /);
+            }
+            break;
+        }
+
+        case TANH: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] = tanhf(CAST_PTR(a.data, float)[i]);
+                else if (a.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] = tanh(CAST_PTR(a.data, double)[i]);
+                else if (a.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] = tanhl(CAST_PTR(a.data, long double)[i]);
+            }
+            break;
+        }
+
+        case POW: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] = powf(CAST_PTR(a.data, float)[i], *CAST_PTR(exponent, float));
+                else if (a.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] = pow(CAST_PTR(a.data, double)[i], *CAST_PTR(exponent, double));
+                else if (a.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] = powl(CAST_PTR(a.data, long double)[i], *CAST_PTR(exponent, long double));
+            }
+            break;
+        }
+
+        case EXP: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] = expf(CAST_PTR(a.data, float)[i]);
+                else if (a.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] = exp(CAST_PTR(a.data, double)[i]);
+                else if (a.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] = expl(CAST_PTR(a.data, long double)[i]);
+            }
+            break;
         }
     }
 
@@ -458,7 +509,7 @@ void* tensor_norm(Tensor tensor, void* norm, void* res) {
         else if (tensor.data_type == FLOAT_64) *CAST_PTR(temp, double) += CAST_PTR(temp_tensor.data, double)[i]; 
         else if (tensor.data_type == FLOAT_128) *CAST_PTR(temp, long double) += CAST_PTR(temp_tensor.data, long double)[i]; 
     }
-    POW(res, temp, norm, tensor.data_type);
+    SCALAR_POW(res, temp, norm, tensor.data_type);
     DEALLOCATE_TENSORS(temp_tensor);
     DEALLOCATE_PTRS(temp);
     return res;
@@ -495,6 +546,25 @@ Tensor* gelu(Tensor* tensor) {
         else if (tensor -> data_type == FLOAT_64) gelu_func(CAST_PTR(tensor -> data, double) + i, CAST_PTR(tensor -> data, double) + i, tensor -> data_type);
         else if (tensor -> data_type == FLOAT_128) gelu_func(CAST_PTR(tensor -> data, long double) + i, CAST_PTR(tensor -> data, long double) + i, tensor -> data_type);
     }
+    return tensor;
+}
+
+void empty_tensors(int len, ...) {
+    va_list args;
+    va_start(args, len);
+    DataType data_type = va_arg(args, DataType);
+    for (int i = 0; i < len; ++i) {
+        Tensor* tensor = va_arg(args, Tensor*);
+        *tensor = empty_tensor(data_type);
+    }
+    va_end(args);
+    return;
+}
+
+Tensor alloc_scalar_tensor(void* val, DataType data_type) {
+    Tensor tensor = empty_tensor(data_type);
+    free(tensor.data);
+    tensor.data = val;
     return tensor;
 }
 
