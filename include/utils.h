@@ -36,6 +36,7 @@
 #define NOT_USED(var) (void) var
 
 bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigned int enum_values_count);
+void* normal_func(void* res, void* value, void* variance, void* mean, DataType data_type);
 void* scalar_op(void* res, void* a, void* b, DataType data_type, OperatorFlag operation);
 bool comparison_op(void* a, void* b, DataType data_type, ComparisonFlag comparison);
 void* assign_data_type(void* val, long double new_val, DataType data_type);
@@ -260,6 +261,14 @@ unsigned int* create_shuffled_indices(unsigned int size) {
     }
 
     return shuffle_indices;
+}
+
+void* normal_func(void* res, void* value, void* variance, void* mean, DataType data_type) {
+    // Math: (2\pi\sigma^2)^{-{1/2}}\exp(-\frac{(x-\mu)^2}{2\sigma^2})
+    if (data_type == FLOAT_32) *CAST_PTR(res, float) = powf(2.0f * (float) M_PI * (*CAST_PTR(variance, float)), -0.5f) * expf(-(powf(*CAST_PTR(value, float) - *CAST_PTR(mean, float), 2.0f) * (2.0f * (*CAST_PTR(variance, float)))));
+    else if (data_type == FLOAT_64) *CAST_PTR(res, double) = pow(2.0 * (double) M_PI * (*CAST_PTR(variance, double)), -0.5) * exp(-(pow(*CAST_PTR(value, double) - *CAST_PTR(mean, double), 2.0) * (2.0 * (*CAST_PTR(variance, double)))));
+    else if (data_type == FLOAT_128) *CAST_PTR(res, long double) = powl(2.0L * (long double) M_PI * (*CAST_PTR(variance, long double)), -0.5L) * expl(-(powl(*CAST_PTR(value, long double) - *CAST_PTR(mean, long double), 2.0L) * (2.0L * (*CAST_PTR(variance, long double)))));
+    return res;
 }
 
 #endif //_UTILS_H_

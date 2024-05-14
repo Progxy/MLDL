@@ -2,6 +2,7 @@
 #define _FUNCTIONS_H_
 
 #include "./nn.h"
+#include "./autograd.h"
 
 void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs);
 void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
@@ -9,6 +10,31 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost);
 Tensor* predict(NN nn, Tensor input, Tensor* output);
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
+
+static Tensor* my_gelu(Tensor* tensor) {
+    unsigned int shape[] = {1};
+    float val = 1.0f;
+
+    Tensor x, x1, x2, x3, x4;
+    alloc_tensor_grad_graph_filled(x, shape, ARR_SIZE(shape), FLOAT_32, &val);
+    alloc_tensor_grad_graph_filled(x1, shape, ARR_SIZE(shape), FLOAT_32, (val = 0.044715f, &val));
+    alloc_tensor_grad_graph_filled(x2, shape, ARR_SIZE(shape), FLOAT_32, (val = sqrtf(2.0f / M_PI), &val));
+    alloc_tensor_grad_graph_filled(x3, shape, ARR_SIZE(shape), FLOAT_32, (val = 1.0f, &val));
+    alloc_tensor_grad_graph_filled(x4, shape, ARR_SIZE(shape), FLOAT_32, (val = 0.5f, &val));
+    
+    Tensor a, b, c, d, e, f, g, h;
+    EMPTY_TENSORS(x.data_type, &a, &b, &c, &d, &e, &f, &g, &h);
+
+    // Math: 0.5x(1 + {\tanh}[{\sqrt{2/\pi}}({x} + 0.044715{x}^{3})])
+    TENSOR_GRAPH_MUL(&d, x2, *TENSOR_GRAPH_SUM(&c, x, *TENSOR_GRAPH_MUL(&b, x1, *TENSOR_GRAPH_POW(&a, x, (val = 3.0f, &val), x.data_type))));
+    TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_MUL(&g, x, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d, x.data_type)));
+    
+    derive_node(x.grad_node);
+    printf("expr_val: %f, expr_derivative_val: %f\n", CAST_PTR(h.data, float)[0], CAST_PTR(CAST_PTR(x.grad_node, GradNode) -> derived_value.data, float)[0]);
+    DEALLOCATE_GRAD_GRAPHS(x.grad_node, x1.grad_node, x2.grad_node, x3.grad_node, x4.grad_node);
+    DEALLOCATE_TENSORS(x, x1, x2, x3, x4, a, b, c, d, e, f, g, h);
+    return tensor;
+}
 
 static void feed_forward(NN nn) {
     sigmoid(&(nn.layers[0].activation));
@@ -124,13 +150,13 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
         copy_tensor(&INPUT_NN(nn), input_tensor);
         feed_forward(nn);
         
-        pow_tensor(SUBTRACT_TENSOR(&output_tensor, OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type));
+        POW_TENSOR(&output_tensor, *SUBTRACT_TENSOR(&output_tensor, OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type), nn.data_type);
         tensor_norm(output_tensor, ASSIGN(temp, 1.0L, nn.data_type), temp);
-        SUM(cost, cost, temp, nn.data_type);
+        SCALAR_SUM(cost, cost, temp, nn.data_type);
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
     }
 
-    DIVIDE(cost, cost, ASSIGN(temp, (long double) inputs.shape[0], nn.data_type), nn.data_type);
+    SCALAR_DIV(cost, cost, ASSIGN(temp, (long double) inputs.shape[0], nn.data_type), nn.data_type);
     DEALLOCATE_PTRS(temp);
 
     return cost;
@@ -162,22 +188,22 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
         // m{t} ← β1 · m{t−1} + (1 − β1) · g{t}
-        SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SUBTRACT(temp, ASSIGN(temp, 1.0L, nn.data_type), first_moment, nn.data_type)));
+        SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), first_moment, nn.data_type)));
         
         // v{t} ← β2 · v{t−1} + (1 − β2) · g{t}^2
-        SUM_TENSOR(&second_moment_vec, *SCALAR_MUL_TENSOR(&second_moment_vec, second_moment), *SCALAR_MUL_TENSOR(MULTIPLY_TENSOR(&g_t, g_t, g_t), SUBTRACT(temp, ASSIGN(temp, 1.0L, nn.data_type), second_moment, nn.data_type)));
+        SUM_TENSOR(&second_moment_vec, *SCALAR_MUL_TENSOR(&second_moment_vec, second_moment), *SCALAR_MUL_TENSOR(MULTIPLY_TENSOR(&g_t, g_t, g_t), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), second_moment, nn.data_type)));
         DEALLOCATE_TENSORS(g_t);
 
         // ^m{t}^ ← m{t}/(1 − β1^t)   
         Tensor first_moment_vec_hat = empty_tensor(nn.data_type);
-        SCALAR_DIV_TENSOR(copy_tensor(&first_moment_vec_hat, first_moment_vec), SUBTRACT(temp, ASSIGN(temp, 1.0L, nn.data_type), POW(tmp, first_moment, ASSIGN(tmp, t + 1.0L, nn.data_type), nn.data_type), nn.data_type));       
+        SCALAR_DIV_TENSOR(copy_tensor(&first_moment_vec_hat, first_moment_vec), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), SCALAR_POW(tmp, first_moment, ASSIGN(tmp, t + 1.0L, nn.data_type), nn.data_type), nn.data_type));       
 
         // ^v{t}^ ← v{t}/(1 − β2^t)
         Tensor second_moment_vec_hat = empty_tensor(nn.data_type);
-        SCALAR_DIV_TENSOR(copy_tensor(&second_moment_vec_hat, second_moment_vec), SUBTRACT(temp, ASSIGN(temp, 1.0L, nn.data_type), POW(tmp, first_moment, ASSIGN(tmp, t + 1.0L, nn.data_type), nn.data_type), nn.data_type));
+        SCALAR_DIV_TENSOR(copy_tensor(&second_moment_vec_hat, second_moment_vec), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), SCALAR_POW(tmp, first_moment, ASSIGN(tmp, t + 1.0L, nn.data_type), nn.data_type), nn.data_type));
         
         // θ{t} ← θ{t−1} − α · ^m{t}^/(√^v{t}^ + eps)
-        SUBTRACT_TENSOR(&theta_vec, theta_vec, *SCALAR_MUL_TENSOR(DIVIDE_TENSOR(&first_moment_vec_hat, first_moment_vec_hat, *SCALAR_SUM_TENSOR(pow_tensor(&second_moment_vec_hat, ASSIGN(temp, 0.5L, nn.data_type)), eps)), alpha));
+        SUBTRACT_TENSOR(&theta_vec, theta_vec, *SCALAR_MUL_TENSOR(DIVIDE_TENSOR(&first_moment_vec_hat, first_moment_vec_hat, *SCALAR_SUM_TENSOR(POW_TENSOR(&second_moment_vec_hat, second_moment_vec_hat, ASSIGN(temp, 0.5L, nn.data_type), nn.data_type), eps)), alpha));
         DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat);
     }
 

@@ -4,7 +4,6 @@
 #include <stdarg.h>
 #include "./utils.h"
 
-
 #define EMPTY_TENSORS(data_type, ...) empty_tensors((sizeof((Tensor*[]){__VA_ARGS__}) / sizeof(Tensor*)), data_type, __VA_ARGS__)
 #define DEALLOCATE_TENSORS(...) deallocate_tensors(sizeof((Tensor[]){__VA_ARGS__}) / sizeof(Tensor), __VA_ARGS__)
 #define DEALLOCATE_TEMP_TENSORS() alloc_temp_tensor(NULL, 0, FLOAT_32, TRUE)
@@ -39,14 +38,12 @@ Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor);
 Tensor* concat_tensors(Tensor* dest, Tensor src);
 Tensor* flatten_tensor(Tensor* dest, Tensor src);
 void set_tensor(void* new_data, Tensor tensor);
-Tensor* pow_tensor(Tensor* tensor, void* exp);
 Tensor* cut_tensor(Tensor* dest, Tensor* src);
 Tensor* copy_tensor(Tensor* dest, Tensor src);
 void fill_tensor(void* val, Tensor tensor);
 Tensor* tensor_conjugate(Tensor* tensor);
 Tensor* transpose_tensor(Tensor* tensor);
 Tensor empty_tensor(DataType data_type);
-void deallocate_tensors(int len, ...);
 void randomize_tensor(Tensor tensor);
 Tensor* sigmoid(Tensor* tensor);
 Tensor* normal(Tensor* tensor);
@@ -447,16 +444,6 @@ Tensor* concat_tensors(Tensor* dest, Tensor src) {
     }   
 
     return dest;
-}
-
-Tensor* pow_tensor(Tensor* tensor, void* exp) {
-    unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
-    for (unsigned int i = 0; i < size; ++i) {
-        if (tensor -> data_type == FLOAT_32) CAST_PTR(tensor -> data, float)[i] = powf(CAST_PTR(tensor -> data, float)[i], *CAST_PTR(exp, float));
-        else if (tensor -> data_type == FLOAT_64) CAST_PTR(tensor -> data, double)[i] = pow(CAST_PTR(tensor -> data, double)[i], *CAST_PTR(exp, double));
-        else if (tensor -> data_type == FLOAT_128) CAST_PTR(tensor -> data, long double)[i] = powl(CAST_PTR(tensor -> data, long double)[i], *CAST_PTR(exp, long double));
-    }
-    return tensor;
 }
 
 Tensor* flatten_tensor(Tensor* dest, Tensor src) {
