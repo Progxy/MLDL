@@ -47,7 +47,6 @@ Tensor empty_tensor(DataType data_type);
 void randomize_tensor(Tensor tensor);
 Tensor* sigmoid(Tensor* tensor);
 Tensor* normal(Tensor* tensor);
-Tensor* gelu(Tensor* tensor);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -207,7 +206,7 @@ Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
 }
 
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
-    const bool is_single_operand_flag = (op_flag == POW) || (op_flag == EXP) || (op_flag == TANH);
+    const bool is_single_operand_flag = (op_flag == POW) || (op_flag == EXP) || (op_flag == TANH) || (op_flag == SQRT);
     ASSERT(!is_valid_enum(op_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATOR");
     ASSERT((a.rank != b.rank) && !is_single_operand_flag, "DIM_MISMATCH");
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
@@ -283,6 +282,15 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
                 if (a.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] = expf(CAST_PTR(a.data, float)[i]);
                 else if (a.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] = exp(CAST_PTR(a.data, double)[i]);
                 else if (a.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] = expl(CAST_PTR(a.data, long double)[i]);
+            }
+            break;
+        }
+
+        case SQRT: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] = sqrtf(CAST_PTR(a.data, float)[i]);
+                else if (a.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] = sqrt(CAST_PTR(a.data, double)[i]);
+                else if (a.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] = sqrtl(CAST_PTR(a.data, long double)[i]);
             }
             break;
         }
@@ -522,16 +530,6 @@ Tensor* sigmoid(Tensor* tensor) {
         if (tensor -> data_type == FLOAT_32) sigmoid_func(CAST_PTR(tensor -> data, float) + i, CAST_PTR(tensor -> data, float) + i, tensor -> data_type);
         else if (tensor -> data_type == FLOAT_64) sigmoid_func(CAST_PTR(tensor -> data, double) + i, CAST_PTR(tensor -> data, double) + i, tensor -> data_type);
         else if (tensor -> data_type == FLOAT_128) sigmoid_func(CAST_PTR(tensor -> data, long double) + i, CAST_PTR(tensor -> data, long double) + i, tensor -> data_type);
-    }
-    return tensor;
-}
-
-Tensor* gelu(Tensor* tensor) {
-    unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
-    for (unsigned int i = 0; i < size; ++i) {
-        if (tensor -> data_type == FLOAT_32) gelu_func(CAST_PTR(tensor -> data, float) + i, CAST_PTR(tensor -> data, float) + i, tensor -> data_type);
-        else if (tensor -> data_type == FLOAT_64) gelu_func(CAST_PTR(tensor -> data, double) + i, CAST_PTR(tensor -> data, double) + i, tensor -> data_type);
-        else if (tensor -> data_type == FLOAT_128) gelu_func(CAST_PTR(tensor -> data, long double) + i, CAST_PTR(tensor -> data, long double) + i, tensor -> data_type);
     }
     return tensor;
 }
