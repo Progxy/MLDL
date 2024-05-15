@@ -33,14 +33,14 @@ static Tensor* gelu(Tensor* tensor) {
     
     mem_copy(tensor -> data, h.data, tensor -> data_type, tensor_size(tensor -> shape, tensor -> rank));
 
-    // TODO: delete only x1 node and not it's children
-    DEALLOCATE_GRAD_GRAPHS(x1.grad_node, x2.grad_node, x3.grad_node, x4.grad_node);
+    DEALLOCATE_GRAD_SINGLE_GRAPHS(x1.grad_node, x2.grad_node, x3.grad_node, x4.grad_node);
 
     return tensor;
 }
 
 static Tensor* sigmoid(Tensor* tensor) {
     void* temp = calloc(1, tensor -> data_type);
+
     Tensor x1;
     alloc_grad_graph_node(tensor -> data_type, tensor);
     alloc_tensor_grad_graph_filled(x1, tensor -> shape, tensor -> rank, FLOAT_32, ASSIGN(temp, 1.0L, tensor -> data_type));
@@ -55,8 +55,7 @@ static Tensor* sigmoid(Tensor* tensor) {
     
     mem_copy(tensor -> data, d.data, tensor -> data_type, tensor_size(tensor -> shape, tensor -> rank));
 
-    // TODO: delete only x1 node and not it's children
-    DEALLOCATE_GRAD_GRAPHS(x1.grad_node);
+    DEALLOCATE_GRAD_SINGLE_GRAPHS(x1.grad_node);
 
     return tensor;
 }

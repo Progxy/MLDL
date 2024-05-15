@@ -4,7 +4,8 @@
 #include "./tensor.h"
 
 #define IS_DENOMINATOR(parent, child) parent == child -> parents[1]
-#define DEALLOCATE_GRAD_GRAPHS(...) deallocate_grad_graphs(sizeof((GradNode*[]){__VA_ARGS__}) / sizeof(GradNode*), __VA_ARGS__)
+#define DEALLOCATE_GRAD_GRAPHS(...) deallocate_grad_graphs(sizeof((GradNode*[]){__VA_ARGS__}) / sizeof(GradNode*), (int) FALSE, __VA_ARGS__)
+#define DEALLOCATE_GRAD_SINGLE_GRAPHS(...) deallocate_grad_graphs(sizeof((GradNode*[]){__VA_ARGS__}) / sizeof(GradNode*), (int) TRUE, __VA_ARGS__)
 #define alloc_tensor_grad_graph_filled(tensor, shape, rank, data_type, val) alloc_grad_graph_node(data_type, (tensor = alloc_tensor(shape, rank, data_type), fill_tensor(val, tensor), &tensor))
 #define alloc_tensor_grad_graph(tensor, shape, rank, data_type) alloc_grad_graph_node(data_type, (tensor = alloc_tensor(shape, rank, data_type), &tensor))
 #define TENSOR_GRAPH_POW(c, a, val, data_type) graph_op(c, a, alloc_scalar_tensor(val, data_type), POW)
@@ -15,46 +16,11 @@
 #define TENSOR_GRAPH_DIV(c, a, b) graph_op(c, a, b, DIVISION)
 #define TENSOR_GRAPH_SUM(c, a, b) graph_op(c, a, b, SUM)
 
-void alloc_grad_graph_node(DataType data_type, Tensor* value) {
-    GradNode* node = (GradNode*) calloc(1, sizeof(GradNode));
-    node -> children = NULL;
-    node -> value = value;
-    node -> exp = NULL;
-    node -> children_count = 0;
-    node -> derived_value = empty_tensor(data_type);
-    value -> grad_node = node;
-    return;  
-}
+void derive_node(GradNode* node);
 
-void* deallocate_grad_graph(GradNode* node) {
-    if (node -> children == NULL) return NULL;
-    for (unsigned int i = 0; i < node -> children_count; ++i) {
-        if (node -> children[i] != NULL) node -> children[i] = deallocate_grad_graph(node -> children[i]);
-    }
-    DEALLOCATE_TENSORS(node -> derived_value, *(node -> value));
-    free(node -> children);
-    node -> children = NULL;
-    free(node -> parents);
-    node -> parents = NULL;
-    if (node -> exp != NULL) free(node -> exp);
-    node -> exp = NULL;
-    free(node);
-    node = NULL;
-    return node;
-}
+/* ----------------------------------------------------------------------------- */
 
-void deallocate_grad_graphs(int len, ...) {
-    va_list args;
-    va_start(args, len);
-    for (int i = 0; i < len; ++i) {
-        GradNode* node = va_arg(args, GradNode*);
-        deallocate_grad_graph(node);
-    }
-    va_end(args);
-    return;
-}
-
-void add_child(GradNode* child, GradNode* parent) {
+static void add_child(GradNode* child, GradNode* parent) {
     parent -> children = (GradNode**) realloc(parent -> children, sizeof(GradNode*) * (parent -> children_count + 1));
     parent -> children[(parent -> children_count)++] = child;     
     child -> parents = (GradNode**) realloc(child -> parents, sizeof(GradNode*) * (child -> parents_count + 1));
@@ -62,22 +28,7 @@ void add_child(GradNode* child, GradNode* parent) {
     return;
 }
 
-Tensor* graph_op(Tensor* c, Tensor a, Tensor b, OperatorFlag operation) {
-    op_tensor(c, a, b, operation);
-    alloc_grad_graph_node(a.data_type, c);
-    CAST_PTR(c -> grad_node, GradNode) -> operation = operation; 
-    add_child(c -> grad_node, a.grad_node);
-    if (operation == EXP || operation == TANH) return c;
-    else if (operation == POW) {
-        CAST_PTR(c -> grad_node, GradNode) -> exp = calloc(1, a.data_type);
-        mem_copy(CAST_PTR(c -> grad_node, GradNode) -> exp, b.data, b.data_type, 1);
-        return c;
-    }
-    add_child(c -> grad_node, b.grad_node);
-    return c;
-}
-
-void derive_op(GradNode* node, GradNode* child) {
+static void derive_op(GradNode* node, GradNode* child) {
     switch (child -> operation) {
         case SUM: {
             void* temp = calloc(1, node -> derived_value.data_type);
@@ -142,6 +93,61 @@ void derive_op(GradNode* node, GradNode* child) {
             break;
     }
     return;
+}
+
+void alloc_grad_graph_node(DataType data_type, Tensor* value) {
+    GradNode* node = (GradNode*) calloc(1, sizeof(GradNode));
+    node -> children = NULL;
+    node -> value = value;
+    node -> exp = NULL;
+    node -> children_count = 0;
+    node -> derived_value = empty_tensor(data_type);
+    value -> grad_node = node;
+    return;  
+}
+
+void* deallocate_grad_graph(bool single_removal_flag, GradNode* node) {
+    if (node -> children == NULL) return NULL;
+    for (unsigned int i = 0; (i < node -> children_count) && !single_removal_flag; ++i) {
+        if (node -> children[i] != NULL) node -> children[i] = deallocate_grad_graph(single_removal_flag, node -> children[i]);
+    }
+    DEALLOCATE_TENSORS(node -> derived_value, *(node -> value));
+    free(node -> children);
+    node -> children = NULL;
+    free(node -> parents);
+    node -> parents = NULL;
+    if (node -> exp != NULL) free(node -> exp);
+    node -> exp = NULL;
+    free(node);
+    node = NULL;
+    return node;
+}
+
+void deallocate_grad_graphs(int len, ...) {
+    va_list args;
+    va_start(args, len);
+    bool single_removal_flag = va_arg(args, int);
+    for (int i = 0; i < len; ++i) {
+        GradNode* node = va_arg(args, GradNode*);
+        deallocate_grad_graph(single_removal_flag, node);
+    }
+    va_end(args);
+    return;
+}
+
+Tensor* graph_op(Tensor* c, Tensor a, Tensor b, OperatorFlag operation) {
+    op_tensor(c, a, b, operation);
+    alloc_grad_graph_node(a.data_type, c);
+    CAST_PTR(c -> grad_node, GradNode) -> operation = operation; 
+    add_child(c -> grad_node, a.grad_node);
+    if (operation == EXP || operation == TANH) return c;
+    else if (operation == POW) {
+        CAST_PTR(c -> grad_node, GradNode) -> exp = calloc(1, a.data_type);
+        mem_copy(CAST_PTR(c -> grad_node, GradNode) -> exp, b.data, b.data_type, 1);
+        return c;
+    }
+    add_child(c -> grad_node, b.grad_node);
+    return c;
 }
 
 void derive_node(GradNode* node) {
