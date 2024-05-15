@@ -62,15 +62,17 @@ static Tensor* sigmoid(Tensor* tensor) {
 
 static void feed_forward(NN nn) {
     sigmoid(&(nn.layers[0].activation));
-    Tensor temp = empty_tensor(nn.data_type);
     for (unsigned int i = 1; i < nn.size; ++i) {
         unsigned int middle = (nn.layers[i].weights.rank + nn.layers[i - 1].activation.rank) / 2;
-        SUM_TENSOR(&(nn.layers[i].activation), *contract_tensor(cross_product_tensor(&temp, nn.layers[i - 1].activation, nn.layers[i].weights), middle, middle - 1), nn.layers[i].biases);
+        SUM_TENSOR(&(nn.layers[i].activation), *contract_tensor(cross_product_tensor(&(nn.layers[i].activation), nn.layers[i - 1].activation, nn.layers[i].weights), middle, middle - 1), nn.layers[i].biases);
         sigmoid(&(nn.layers[i].activation));
     }
-    DEALLOCATE_TENSORS(temp);
     return;
 }   
+
+static Tensor* calculate_autograd(NN nn, Tensor input, Tensor output, Tensor* gradient_tensor) {
+    return gradient_tensor;
+}
 
 static Tensor* calculate_gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_tensor) {
     copy_tensor(&INPUT_NN(nn), input);
