@@ -7,6 +7,7 @@
 #include <math.h>
 #include "./types.h"
 
+#define ASSERT(condition, err_msg) assert(condition, #condition, __LINE__, __FILE__, err_msg);
 #define CAST_AND_OP_INDEX(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_AND_OP(CAST_PTR_AT_INDEX(a.data, type, index), CAST_PTR_AT_INDEX(b.data, type, index), type, op) 
 #define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
 #define CAST_AND_OP(a, b, type, op) *CAST_PTR(a, type) op *CAST_PTR(b, type)
@@ -25,7 +26,6 @@
 #define IS_GREATER(a, b, data_type) comparison_op(a, b, data_type, GREATER)
 #define IS_EQUAL(a, b, data_type) comparison_op(a, b, data_type, EQUAL)
 #define IS_LESS(a, b, data_type) comparison_op(a, b, data_type, LESS)
-#define ASSERT(condition, err_msg) assert(condition, __LINE__, __FILE__, err_msg);
 #define VALUE_TO_STR(value, data_type) value_to_str(value, data_type, FALSE)
 #define DEALLOCATE_TEMP_STRS() value_to_str(NULL, FLOAT_32, TRUE)
 #define IS_MAT(mat) ((mat.rows != 1) && (mat.cols != 1))
@@ -41,7 +41,7 @@ void* normal_func(void* res, void* value, void* variance, void* mean, DataType d
 void* scalar_op(void* res, void* a, void* b, DataType data_type, OperatorFlag operation);
 bool comparison_op(void* a, void* b, DataType data_type, ComparisonFlag comparison);
 void* assign_data_type(void* val, long double new_val, DataType data_type);
-void assert(bool condition, unsigned int line, char* file, char* err_msg);
+void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg);
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
 void print_value_as_percentage(void* value, DataType data_type);
 unsigned int* create_shuffled_indices(unsigned int size);
@@ -52,9 +52,9 @@ void init_seed();
 
 /* ------------------------------------------------------------------------- */
 
-void assert(bool condition, unsigned int line, char* file, char* err_msg) {
+void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg) {
     if (condition) {
-        printf("ERROR: Assert failed in file: %s:%u, with error: %s.\n", file, line, err_msg);
+        printf("ERROR: Assert condition: '%s' failed in file: %s:%u, with error: %s.\n", condition_str, file, line, err_msg);
         abort();
     }
     return;
@@ -145,6 +145,7 @@ void* scalar_op(void* res, void* a, void* b, DataType data_type, OperatorFlag op
             break;
         }
 
+        case DOT:
         case MULTIPLICATION: {
             if (data_type == FLOAT_32) *CAST_PTR(res, float) = CAST_AND_OP(a, b, float, *);
             else if (data_type == FLOAT_64) *CAST_PTR(res, double) = CAST_AND_OP(a, b, double, *);
