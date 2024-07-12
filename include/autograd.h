@@ -168,7 +168,12 @@ void derive_op(GradNode* node, GradNode* child) {
         }
 
         case LOG: {
-            ASSERT(FALSE, "TODO: Implement function!");
+            Tensor temp = alloc_tensor(node -> value -> shape, node -> value -> rank, node -> value -> data_type);
+            void* val = (void*) calloc(1, node -> derived_value.data_type);
+            fill_tensor(ASSIGN(val, 1.0L, node -> derived_value.data_type), temp);
+            free(val);
+            DIVIDE_TENSOR(&(node -> derived_value), temp, *(node -> value));
+            MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
             break;
         }
     }
