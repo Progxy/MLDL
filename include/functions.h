@@ -170,7 +170,7 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         SCALAR_MUL_TENSOR(SUBTRACT_TENSOR(&OUTPUT_NN(nn), OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type));
         derive_r_node(OUTPUT_NN(nn).grad_node, TRUE);
 
-        // g{t} ← ∇θf{t}(θ{t−1})
+        // Math: g_t \leftarrow \nabla_\theta f_t(\theta_{t-1})
         Tensor g_t = empty_tensor(nn.data_type);
         flatten_nn(&g_t, nn);
         DEALLOCATE_TENSORS(output_tensor);
