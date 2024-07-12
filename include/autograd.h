@@ -146,10 +146,7 @@ void derive_op(GradNode* node, GradNode* child) {
             POW_TENSOR(&(node -> derived_value), node -> derived_value, ASSIGN(val, 2.0L, node -> derived_value.data_type), node -> derived_value.data_type);
             SCALAR_SUM_TENSOR(tensor_conjugate(&(node -> derived_value), node -> derived_value), ASSIGN(val, 1.0L, node -> derived_value.data_type));
             free(val);
-            DOT_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
-            printf("tanh:\n");
-            PRINT_SHAPE(node -> derived_value);
-            PRINT_SHAPE(child -> derived_value);
+            MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
             break;
         }
 
