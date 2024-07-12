@@ -60,13 +60,12 @@ typedef struct NN {
     unsigned int* arch;
     Layer* layers;
     DataType data_type;
-    GradNode* loss_node;
+    Tensor loss_node;
     Tensor loss_input;
-    Tensor loss_output;
-    void (*loss_function) (struct NN, Tensor*, Tensor*);
+    void (*loss_function) (struct NN);
 } NN;
 
-typedef void (*LossFunction) (NN, Tensor*, Tensor*);
+typedef void (*LossFunction) (NN);
 
 typedef struct File {
     unsigned char* data;

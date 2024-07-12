@@ -51,20 +51,18 @@ static void binary_cross_entropy(NN nn) {
     Tensor x1, x2;
     void* one = (void*) calloc(1, nn.data_type);
     alloc_tensor_grad_graph_filled(x1, nn.loss_input.shape, nn.loss_input.rank, nn.data_type, ASSIGN(one, 1.0L, nn.data_type));
-    alloc_tensor_grad_graph_filled(x1, nn.loss_input.shape, nn.loss_input.rank, nn.data_type, ASSIGN(one, -1.0L, nn.data_type));
+    alloc_tensor_grad_graph_filled(x2, nn.loss_input.shape, nn.loss_input.rank, nn.data_type, ASSIGN(one, -1.0L, nn.data_type));
     DEALLOCATE_PTRS(one);
 
-    forward_pass(INPUT_NN(nn).grad_node);
-    Tensor* output = get_sink(OUTPUT_NN(nn).grad_node) -> value;  
-    nn.loss_output = empty_tensor(nn.data_type);  
+    forward_pass(INPUT_NN(nn).grad_node);  
 
-    Tensor a, b, c, d, e, f, g;
-    EMPTY_TENSORS(nn.data_type, &a, &b, &c, &d, &e, &f, &g);
+    Tensor a, b, c, d, e, f, g, h;
+    EMPTY_TENSORS(nn.data_type, &a, &b, &c, &d, &e, &f, &g, &h);
 
     // Math: -[y_i \log{(p_i)} + (1 - y_i) \log{(1 - p_i)}]
-    TENSOR_GRAPH_MUL(&b, nn.loss_input, *TENSOR_GRAPH_LOG(&a, *output, nn.data_type));
-    TENSOR_GRAPH_MUL(&f, *TENSOR_GRAPH_SUB(&c, x1, nn.loss_input), *TENSOR_GRAPH_LOG(&e, *TENSOR_GRAPH_SUB(&d, x1, *output), nn.data_type));
-    TENSOR_GRAPH_MUL(&(nn.loss_output), *TENSOR_GRAPH_SUM(&g, f, b), x2);
+    TENSOR_GRAPH_MUL(&b, nn.loss_input, *TENSOR_GRAPH_LOG(&a, nn.loss_node, nn.data_type));
+    TENSOR_GRAPH_MUL(&f, *TENSOR_GRAPH_SUB(&c, x1, nn.loss_input), *TENSOR_GRAPH_LOG(&e, *TENSOR_GRAPH_SUB(&d, x1, nn.loss_node), nn.data_type));
+    TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_SUM(&g, f, b), x2);
 
     return;
 }
@@ -133,21 +131,18 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         Tensor temp_tensor = empty_tensor(nn.data_type);
         copy_tensor(&temp_tensor, theta_vec);
         unflatten_nn(nn, &temp_tensor);
-        forward_pass(INPUT_NN(nn).grad_node);
         DEALLOCATE_TENSORS(temp_tensor);
 
-        // Extract input and output
-        Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
+        // Extract input and output and calculate loss
         extract_tensor(&(INPUT_NN(nn)), inputs, t % inputs.shape[0], 0);
-        extract_tensor(&output_tensor, outputs, t % outputs.shape[0], 0);
+        extract_tensor(&(nn.loss_input), outputs, t % outputs.shape[0], 0);
+        forward_pass(INPUT_NN(nn).grad_node);
         
         // Math: g_t \leftarrow \nabla_\theta f_t(\theta_{t-1})
         Tensor g_t = empty_tensor(nn.data_type);
-        GradNode* sink = get_sink(OUTPUT_NN(nn).grad_node);
-        SCALAR_MUL_TENSOR(SUBTRACT_TENSOR(&OUTPUT_NN(nn), OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type));
+        GradNode* sink = get_sink(nn.loss_input.grad_node); 
         derive_r_node(sink, TRUE);
         flatten_nn(&g_t, nn);
-        DEALLOCATE_TENSORS(output_tensor);
 
         // m{t} ← β1 · m{t−1} + (1 − β1) · g{t}
         SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), first_moment, nn.data_type)));

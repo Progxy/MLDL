@@ -6,7 +6,6 @@
 
 #define INPUT_NN(nn) (nn).layers[0].activation
 #define OUTPUT_NN(nn) (nn).layers[(nn).size - 1].activation
-#define COST(nn, inputs, outputs, cost) nn.loss_function(nn, inputs, outputs, cost)
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
 NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, DataType data_type);
@@ -66,6 +65,7 @@ NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activati
     }
 
     nn.loss_input = empty_tensor(data_type);
+    copy_tensor(&(nn.loss_input), nn.layers[size - 1].activation);
     alloc_grad_graph_node(data_type, &(nn.loss_input));
 
     return nn;
@@ -132,14 +132,31 @@ void feed_forward(NN nn) {
         res = nn.layers[i].activation_function(&(nn.layers[i].activation));
     }
 
-    nn.loss_function(nn, &(nn.loss_input), &(nn.loss_output));
+    nn.loss_node = res;
+    nn.loss_function(nn);
 
     return;
 }   
 
 void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
-    forward_pass(INPUT_NN(nn).grad_node);
-    copy_tensor(nn.loss_node -> value, inputs);
+    unsigned int shape[] = { 1 };
+    unsigned int input_size = inputs.shape[0];
+    Tensor cost_tensor = alloc_tensor(shape, 1, nn.data_type);
+    for (unsigned int i = 0; i < input_size; ++i) {
+        extract_tensor(&INPUT_NN(nn), inputs, i, 0);
+        extract_tensor(&(nn.loss_input), outputs, i, 0);
+        forward_pass(INPUT_NN(nn).grad_node);
+        GradNode* sink = get_sink(nn.loss_input.grad_node);
+        SUM_TENSOR(&cost_tensor, cost_tensor, *(sink -> value));
+    }
+
+    void* val = (void*) calloc(1, nn.data_type);
+    SCALAR_DIV_TENSOR(&cost_tensor, ASSIGN(val, (long double) input_size, nn.data_type));  
+    free(val);
+
+    mem_copy(cost, cost_tensor.data, nn.data_type, 1);
+    DEALLOCATE_TENSORS(cost_tensor);
+
     return cost;
 }
 
