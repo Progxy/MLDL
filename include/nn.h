@@ -139,9 +139,9 @@ void feed_forward(NN nn) {
 }   
 
 void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
-    unsigned int shape[] = { 1 };
+    unsigned int shape[] = { 1, 1 };
     unsigned int input_size = inputs.shape[0];
-    Tensor cost_tensor = alloc_tensor(shape, 1, nn.data_type);
+    Tensor cost_tensor = alloc_tensor(shape, ARR_SIZE(shape), nn.data_type);
     for (unsigned int i = 0; i < input_size; ++i) {
         extract_tensor(&INPUT_NN(nn), inputs, i, 0);
         extract_tensor(&(nn.loss_input), outputs, i, 0);
