@@ -13,7 +13,9 @@
 #define PRINT_SHAPE(tensor) (printf("Tensor '%s' with shape: ", #tensor), print_shape((tensor).shape, (tensor).rank))
 #define POW_TENSOR(c, a, exp, data_types) op_tensor(c, a, (Tensor) {.data = exp, .data_type = data_types}, POW)
 #define TANH_TENSOR(c, a, data_types) op_tensor(c, a, (Tensor) {.data_type = data_types}, TANH)
+#define SQRT_TENSOR(c, a, data_types) op_tensor(c, a, (Tensor) {.data_type = data_types}, SQRT)
 #define EXP_TENSOR(c, a, data_types) op_tensor(c, a, (Tensor) {.data_type = data_types}, EXP)
+#define LOG_TENSOR(c, a, data_types) op_tensor(c, a, (Tensor) {.data_type = data_types}, LOG)
 #define MULTIPLY_TENSOR(c, a, b) op_tensor(c, a, b, MULTIPLICATION)
 #define SUBTRACT_TENSOR(c, a, b) op_tensor(c, a, b, SUBTRACTION)
 #define DIVIDE_TENSOR(c, a, b) op_tensor(c, a, b, DIVISION)
@@ -241,7 +243,7 @@ Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
 }
 
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
-    const bool is_special_operand_flag = (op_flag == EXP) || (op_flag == TANH) || (op_flag == POW) ||(op_flag == DOT);
+    const bool is_special_operand_flag = (op_flag == EXP) || (op_flag == TANH) || (op_flag == POW) || (op_flag == LOG) || (op_flag == DOT);
     ASSERT(!is_valid_enum(op_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATOR");
     ASSERT(!is_special_operand_flag && (a.rank != b.rank), "DIM_MISMATCH");
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
@@ -333,6 +335,24 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
             break;
         }
 
+        case LOG: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] = logf(CAST_PTR(a.data, float)[i]);
+                else if (a.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] = log(CAST_PTR(a.data, double)[i]);
+                else if (a.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] = logl(CAST_PTR(a.data, long double)[i]);
+            }
+            break;
+        }
+
+        case SQRT: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] = sqrtf(CAST_PTR(a.data, float)[i]);
+                else if (a.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] = sqrt(CAST_PTR(a.data, double)[i]);
+                else if (a.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] = sqrtl(CAST_PTR(a.data, long double)[i]);
+            }
+            break;
+        }
+
         case DOT: {
             unsigned int ext_size = tensor_size(a.shape, a.rank - similar_indices_count);
             unsigned int int_size = tensor_size(b.shape + similar_indices_count, b.rank - similar_indices_count);
@@ -347,12 +367,6 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
                     }
                 } 
             }
-            break;
-        }
-
-        case LOG:
-        case SQRT: {
-            ASSERT(FALSE, "TODO: Implement function!");
             break;
         }
     }

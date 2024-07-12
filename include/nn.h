@@ -65,6 +65,9 @@ NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activati
         nn.layers[i].activation_function = activation_functions[i];
     }
 
+    nn.loss_input = empty_tensor(data_type);
+    alloc_grad_graph_node(data_type, &(nn.loss_input));
+
     return nn;
 }
 
@@ -120,6 +123,24 @@ void unflatten_nn(NN nn, Tensor* tensor) {
         cut_tensor(&layer.biases, tensor);
     }
     return;
+}
+
+void feed_forward(NN nn) {
+    Tensor res = nn.layers[0].activation_function(&(nn.layers[0].activation));
+    for (unsigned int i = 1; i < nn.size; ++i) {
+        TENSOR_GRAPH_SUM(&(nn.layers[i].activation), *TENSOR_GRAPH_DOT(&(nn.layers[i].activation), res, nn.layers[i].weights), nn.layers[i].biases);
+        res = nn.layers[i].activation_function(&(nn.layers[i].activation));
+    }
+
+    nn.loss_function(nn, &(nn.loss_input), &(nn.loss_output));
+
+    return;
+}   
+
+void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
+    forward_pass(INPUT_NN(nn).grad_node);
+    copy_tensor(nn.loss_node -> value, inputs);
+    return cost;
 }
 
 #endif //_NEURONS_H_

@@ -10,7 +10,9 @@
 #define alloc_tensor_grad_graph(tensor, shape, rank, data_type) alloc_grad_graph_node(data_type, (tensor = alloc_tensor(shape, rank, data_type), &tensor))
 #define TENSOR_GRAPH_POW(c, a, val, data_types) graph_op(c, a, (Tensor) {.data = val, .data_type = data_types}, POW)
 #define TENSOR_GRAPH_TANH(c, a, data_types) graph_op(c, a, (Tensor) {.data_type = data_types}, TANH)
+#define TENSOR_GRAPH_SQRT(c, a, data_types) graph_op(c, a, (Tensor) {.data_type = data_types}, SQRT)
 #define TENSOR_GRAPH_EXP(c, a, data_types) graph_op(c, a, (Tensor) {.data_type = data_types}, EXP)
+#define TENSOR_GRAPH_LOG(c, a, data_types) graph_op(c, a, (Tensor) {.data_type = data_types}, LOG)
 #define TENSOR_GRAPH_MUL(c, a, b) graph_op(c, a, b, MULTIPLICATION)
 #define TENSOR_GRAPH_SUB(c, a, b) graph_op(c, a, b, SUBTRACTION)
 #define TENSOR_GRAPH_DIV(c, a, b) graph_op(c, a, b, DIVISION)
@@ -80,7 +82,7 @@ Tensor* graph_op(Tensor* c, Tensor a, Tensor b, OperatorFlag operation) {
     alloc_grad_graph_node(a.data_type, c);
     CAST_PTR(c -> grad_node, GradNode) -> operation = operation; 
     add_child(c -> grad_node, a.grad_node);
-    if (operation == EXP || operation == TANH) return c;
+    if (operation == EXP || operation == TANH || operation == LOG) return c;
     else if (operation == POW) {
         CAST_PTR(c -> grad_node, GradNode) -> exp = calloc(1, a.data_type);
         mem_copy(CAST_PTR(c -> grad_node, GradNode) -> exp, b.data, b.data_type, 1);
