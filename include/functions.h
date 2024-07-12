@@ -47,21 +47,21 @@ static Tensor sigmoid(Tensor* tensor) {
     return d;
 }
 
-static void binary_cross_entropy(NN nn) {
+static void binary_cross_entropy(NN* nn) {
     Tensor x1, x2;
-    void* one = (void*) calloc(1, nn.data_type);
-    alloc_tensor_grad_graph_filled(x1, nn.loss_input.shape, nn.loss_input.rank, nn.data_type, ASSIGN(one, 1.0L, nn.data_type));
-    alloc_tensor_grad_graph_filled(x2, nn.loss_input.shape, nn.loss_input.rank, nn.data_type, ASSIGN(one, -1.0L, nn.data_type));
+    void* one = (void*) calloc(1, nn -> data_type);
+    alloc_tensor_grad_graph_filled(x1, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, 1.0L, nn -> data_type));
+    alloc_tensor_grad_graph_filled(x2, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, -1.0L, nn -> data_type));
     DEALLOCATE_PTRS(one);
 
-    forward_pass(INPUT_NN(nn).grad_node);  
+    forward_pass(INPUT_NN(*nn).grad_node);  
 
     Tensor a, b, c, d, e, f, g, h;
-    EMPTY_TENSORS(nn.data_type, &a, &b, &c, &d, &e, &f, &g, &h);
+    EMPTY_TENSORS(nn -> data_type, &a, &b, &c, &d, &e, &f, &g, &h);
 
     // Math: -[y_i \log{(p_i)} + (1 - y_i) \log{(1 - p_i)}]
-    TENSOR_GRAPH_MUL(&b, nn.loss_input, *TENSOR_GRAPH_LOG(&a, nn.loss_node, nn.data_type));
-    TENSOR_GRAPH_MUL(&f, *TENSOR_GRAPH_SUB(&c, x1, nn.loss_input), *TENSOR_GRAPH_LOG(&e, *TENSOR_GRAPH_SUB(&d, x1, nn.loss_node), nn.data_type));
+    TENSOR_GRAPH_MUL(&b, nn -> loss_input, *TENSOR_GRAPH_LOG(&a, nn -> loss_node, nn -> data_type));
+    TENSOR_GRAPH_MUL(&f, *TENSOR_GRAPH_SUB(&c, x1, nn -> loss_input), *TENSOR_GRAPH_LOG(&e, *TENSOR_GRAPH_SUB(&d, x1, nn -> loss_node), nn -> data_type));
     TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_SUM(&g, f, b), x2);
 
     return;
@@ -174,7 +174,7 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
 Tensor* predict(NN nn, Tensor input, Tensor* output) {
     copy_tensor(&INPUT_NN(nn), input);
     forward_pass(INPUT_NN(nn).grad_node);
-    copy_tensor(output, *(get_sink(OUTPUT_NN(nn).grad_node) -> value));
+    copy_tensor(output, *(CAST_PTR(nn.loss_node.grad_node, GradNode) -> value));
     return output;
 }
 

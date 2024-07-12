@@ -125,15 +125,15 @@ void unflatten_nn(NN nn, Tensor* tensor) {
     return;
 }
 
-void feed_forward(NN nn) {
-    Tensor res = nn.layers[0].activation_function(&(nn.layers[0].activation));
-    for (unsigned int i = 1; i < nn.size; ++i) {
-        TENSOR_GRAPH_SUM(&(nn.layers[i].activation), *TENSOR_GRAPH_DOT(&(nn.layers[i].activation), res, nn.layers[i].weights), nn.layers[i].biases);
-        res = nn.layers[i].activation_function(&(nn.layers[i].activation));
+void feed_forward(NN* nn) {
+    Tensor res = nn -> layers[0].activation_function(&(nn -> layers[0].activation));
+    for (unsigned int i = 1; i < nn -> size; ++i) {
+        TENSOR_GRAPH_SUM(&(nn -> layers[i].activation), *TENSOR_GRAPH_DOT(&(nn -> layers[i].activation), res, nn -> layers[i].weights), nn -> layers[i].biases);
+        res = nn -> layers[i].activation_function(&(nn -> layers[i].activation));
     }
 
-    nn.loss_node = res;
-    nn.loss_function(nn);
+    nn -> loss_node = res;
+    nn -> loss_function(nn);
 
     return;
 }   

@@ -62,10 +62,10 @@ typedef struct NN {
     DataType data_type;
     Tensor loss_node;
     Tensor loss_input;
-    void (*loss_function) (struct NN);
+    void (*loss_function) (struct NN*);
 } NN;
 
-typedef void (*LossFunction) (NN);
+typedef void (*LossFunction) (NN*);
 
 typedef struct File {
     unsigned char* data;

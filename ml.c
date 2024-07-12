@@ -11,7 +11,7 @@ int main() {
     ASSERT(ARR_SIZE(activation_functions) != ARR_SIZE(arch), "SIZE_MISMATCH");
     NN nn = create_nn(ARR_SIZE(arch), arch, activation_functions, binary_cross_entropy, FLOAT_64);
     rand_nn(nn); // Maybe include both inside the init_nn function
-    feed_forward(nn);
+    feed_forward(&nn);
 
     char* input_valid_values[] = { "b", "x", "o" };
     double input_mapped_values[] = { 0.0, 1.0, 2.0 };
@@ -38,7 +38,7 @@ int main() {
 
     double alpha = 0.001;
     double cost_d = 0.0;
-    unsigned int max_epochs = 10000;
+    unsigned int max_epochs = 1000;
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;
