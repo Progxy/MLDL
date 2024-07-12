@@ -109,31 +109,8 @@ void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int
     return;
 }
 
-void* generic_cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
-    return nn.loss_function(nn, inputs, outputs, cost);
-}
-
 void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
-    ASSERT((nn.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
-    ASSIGN(cost, 0.0L, nn.data_type);
-
-    void* temp = (void*) calloc(1, nn.data_type);
-    for (unsigned int i = 0; i < inputs.shape[0]; ++i) {
-        Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
-        extract_tensor(&INPUT_NN(nn), inputs, i, 0);
-        extract_tensor(&output_tensor, outputs, i, 0);
-        forward_pass(INPUT_NN(nn).grad_node);
-
-        POW_TENSOR(&output_tensor, *SUBTRACT_TENSOR(&output_tensor, OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type), nn.data_type);
-        tensor_norm(output_tensor, ASSIGN(temp, 1.0L, nn.data_type), temp);
-        SCALAR_SUM(cost, cost, temp, nn.data_type);
-        DEALLOCATE_TENSORS(output_tensor);
-    }
-    
-    SCALAR_DIV(cost, cost, ASSIGN(temp, (long double) inputs.shape[0], nn.data_type), nn.data_type);
-    DEALLOCATE_PTRS(temp);
-
-    return cost;
+    return nn.loss_function(nn, inputs, outputs, cost);
 }
 
 void* binary_cross_entropy(NN nn, Tensor inputs, Tensor outputs, void* cost) {
