@@ -214,21 +214,6 @@ void derive_r_node(GradNode* node, bool is_sink) {
     return;
 }
 
-static void print_node_info(GradNode* node) {
-    printf("Node Info:\n");
-    printf("\taddress: %p\n", (void*) node);
-    printf("\toperation: %s\n", operators_flags_str[node -> operation]);
-    printf("\tchildren_count: %u\n", node -> children_count);
-    printf("\tparents_count: %u\n", node -> parents_count);
-    if (node -> exp != NULL) {
-        if (node -> derived_value.data_type == FLOAT_32) printf("\texp: %f\n", *CAST_PTR(node -> exp, float));
-        else if (node -> derived_value.data_type == FLOAT_64) printf("\texp: %lf\n", *CAST_PTR(node -> exp, double));
-        else if (node -> derived_value.data_type == FLOAT_128) printf("\texp: %Lf\n", *CAST_PTR(node -> exp, long double));
-    } else printf("\texp: NULL\n");
-    printf("\n");
-    return;
-}
-
 GradNode* get_sink(GradNode* node) {
     if (node -> children_count) return get_sink(node -> children[0]);
     else return node;
