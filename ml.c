@@ -7,7 +7,9 @@ int main() {
     init_seed();
 
     unsigned int arch[] = {9, 10, 12, 10, 1};
-    NN nn = create_nn(ARR_SIZE(arch), arch, FLOAT_64);
+    ActivationFunction activation_functions[] = {gelu, gelu, gelu, gelu, sigmoid};
+    ASSERT(ARR_SIZE(activation_functions) != ARR_SIZE(arch), "SIZE_MISMATCH");
+    NN nn = create_nn(ARR_SIZE(arch), arch, activation_functions, FLOAT_64);
     rand_nn(nn);
 
     char* input_valid_values[] = { "b", "x", "o" };
@@ -35,7 +37,7 @@ int main() {
 
     double alpha = 0.001;
     double cost_d = 0.0;
-    unsigned int max_epochs = 1000;
+    unsigned int max_epochs = 100000;
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;

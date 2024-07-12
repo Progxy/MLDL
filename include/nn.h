@@ -8,7 +8,7 @@
 #define OUTPUT_NN(nn) (nn).layers[(nn).size - 1].activation
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
-NN create_nn(unsigned int size, unsigned int* arch, DataType data_type);
+NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, DataType data_type);
 Tensor* flatten_nn(Tensor* tensor, NN nn);
 void unflatten_nn(NN nn, Tensor* tensor);
 unsigned int nn_size(NN nn);
@@ -50,16 +50,18 @@ unsigned int nn_size(NN nn) {
     return size;
 }
 
-NN create_nn(unsigned int size, unsigned int* arch, DataType data_type) {
+NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, DataType data_type) {
     NN nn = (NN) {.size = size, .arch = arch, .data_type = data_type};
     nn.layers = (Layer*) calloc(size, sizeof(Layer));
     unsigned int activation_shape[] = { 1, arch[0] };
     nn.layers[0].activation = alloc_tensor(activation_shape, 2, data_type);
+    nn.layers[0].activation_function = activation_functions[0];
     alloc_grad_graph_node(data_type, &(nn.layers[0].activation));
     nn.layers[0].neurons = arch[0];
 
     for (unsigned int i = 1; i < size; ++i) {
         nn.layers[i] = create_layer(arch[i - 1], arch[i], data_type);
+        nn.layers[i].activation_function = activation_functions[i];
     }
 
     return nn;

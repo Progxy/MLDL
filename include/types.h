@@ -16,6 +16,7 @@ const unsigned char comparison_flags[] = { EQUAL, LESS, LESS_OR_EQUAL, GREATER, 
 
 const char* operators_flags_str[] = { "SUM", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "POW", "EXP", "TANH", "SQRT", "DOT" };
 
+
 typedef struct Tensor {
     unsigned int* shape;
     unsigned int rank;
@@ -23,6 +24,8 @@ typedef struct Tensor {
     DataType data_type;
     void* grad_node;
 } Tensor;
+
+typedef Tensor (*ActivationFunction) (Tensor*);
 
 typedef struct GradNode {
     Tensor derived_value;
@@ -49,6 +52,7 @@ typedef struct Layer {
     Tensor activation;
     Tensor biases;
     Tensor weights;
+    ActivationFunction activation_function;
 } Layer;
 
 typedef struct NN {
