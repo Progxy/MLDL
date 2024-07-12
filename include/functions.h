@@ -11,31 +11,26 @@ Tensor* predict(NN nn, Tensor input, Tensor* output);
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
 
-static Tensor* gelu(Tensor* tensor) {
+static Tensor* gelu(Tensor* out, Tensor* tensor) {
     Tensor x1, x2, x3, x4;
     void* temp = (void*) calloc(1, tensor -> data_type);
     void* pi = (void*) calloc(1, tensor -> data_type);
     ASSIGN(temp, 2.0L, tensor -> data_type);
     ASSIGN(pi, M_PI, tensor -> data_type);
-    alloc_grad_graph_node(tensor -> data_type, tensor);
     alloc_tensor_grad_graph_filled(x1, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 0.044715L, tensor -> data_type));
     alloc_tensor_grad_graph_filled(x2, tensor -> shape, tensor -> rank, tensor -> data_type, SCALAR_SQRT(temp, SCALAR_DIV(temp, temp, pi, tensor -> data_type), tensor -> data_type));
     alloc_tensor_grad_graph_filled(x3, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 1.0L, tensor -> data_type));
     alloc_tensor_grad_graph_filled(x4, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 0.5L, tensor -> data_type));
     
-    Tensor a, b, c, d, e, f, g, h;
-    EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d, &e, &f, &g, &h);
+    Tensor a, b, c, d, e, f, g;
+    EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d, &e, &f, &g, out);
 
     // Math: 0.5x(1 + {\tanh}[{\sqrt{2/\pi}}({x} + 0.044715{x}^{3})])
     TENSOR_GRAPH_MUL(&d, x2, *TENSOR_GRAPH_SUM(&c, *tensor, *TENSOR_GRAPH_MUL(&b, x1, *TENSOR_GRAPH_POW(&a, *tensor, ASSIGN(temp, 3.0L, tensor -> data_type), tensor -> data_type))));
-    TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_MUL(&g, *tensor, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d, tensor -> data_type)));
+    TENSOR_GRAPH_MUL(out, *TENSOR_GRAPH_MUL(&g, *tensor, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d, tensor -> data_type)));
     DEALLOCATE_PTRS(temp, pi);
     
-    mem_copy(tensor -> data, h.data, tensor -> data_type, tensor_size(tensor -> shape, tensor -> rank));
-
-    DEALLOCATE_GRAD_SINGLE_GRAPHS(x1.grad_node, x2.grad_node, x3.grad_node, x4.grad_node);
-
-    return tensor;
+    return out;
 }
 
 static Tensor* sigmoid(Tensor* tensor) {
@@ -61,10 +56,11 @@ static Tensor* sigmoid(Tensor* tensor) {
 }
 
 static void feed_forward(NN nn) {
-    sigmoid(&(nn.layers[0].activation));
+    Tensor* temp_tensors = (Tensor*) calloc(nn.size, sizeof(Tensor));
+    gelu(temp_tensors, &(nn.layers[0].activation));
     for (unsigned int i = 1; i < nn.size; ++i) {
-        TENSOR_GRAPH_SUM(&(nn.layers[i].activation), *TENSOR_GRAPH_DOT(&(nn.layers[i].activation), nn.layers[i - 1].activation, nn.layers[i].weights), nn.layers[i].biases);
-        sigmoid(&(nn.layers[i].activation));
+        TENSOR_GRAPH_SUM(&(nn.layers[i].activation), *TENSOR_GRAPH_DOT(&(nn.layers[i].activation), temp_tensors[i - 1], nn.layers[i].weights), nn.layers[i].biases);
+        gelu(temp_tensors + i, &(nn.layers[i].activation));
     }
     return;
 }   
@@ -170,7 +166,7 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         extract_tensor(&(INPUT_NN(nn)), inputs, t % inputs.shape[0], 0);
         extract_tensor(&output_tensor, outputs, t % outputs.shape[0], 0);
         
-        feed_forward(nn);
+        forward_pass(INPUT_NN(nn).grad_node);
         SCALAR_MUL_TENSOR(SUBTRACT_TENSOR(&OUTPUT_NN(nn), OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type));
         derive_r_node(OUTPUT_NN(nn).grad_node, TRUE);
 

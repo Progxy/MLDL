@@ -55,6 +55,7 @@ NN create_nn(unsigned int size, unsigned int* arch, DataType data_type) {
     nn.layers = (Layer*) calloc(size, sizeof(Layer));
     unsigned int activation_shape[] = { 1, arch[0] };
     nn.layers[0].activation = alloc_tensor(activation_shape, 2, data_type);
+    alloc_grad_graph_node(data_type, &(nn.layers[0].activation));
     nn.layers[0].neurons = arch[0];
 
     for (unsigned int i = 1; i < size; ++i) {

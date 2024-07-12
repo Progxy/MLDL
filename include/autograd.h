@@ -8,9 +8,9 @@
 #define DEALLOCATE_GRAD_SINGLE_GRAPHS(...) deallocate_grad_graphs(sizeof((GradNode*[]){__VA_ARGS__}) / sizeof(GradNode*), (int) TRUE, __VA_ARGS__)
 #define alloc_tensor_grad_graph_filled(tensor, shape, rank, data_type, val) alloc_grad_graph_node(data_type, (tensor = alloc_tensor(shape, rank, data_type), fill_tensor(val, tensor), &tensor))
 #define alloc_tensor_grad_graph(tensor, shape, rank, data_type) alloc_grad_graph_node(data_type, (tensor = alloc_tensor(shape, rank, data_type), &tensor))
-#define TENSOR_GRAPH_POW(c, a, val, data_type) graph_op(c, a, alloc_scalar_tensor(val, data_type), POW)
-#define TENSOR_GRAPH_TANH(c, a, data_type) graph_op(c, a, empty_tensor(data_type), TANH)
-#define TENSOR_GRAPH_EXP(c, a, data_type) graph_op(c, a, empty_tensor(data_type), EXP)
+#define TENSOR_GRAPH_POW(c, a, val, data_types) graph_op(c, a, (Tensor) {.data = val, .data_type = data_types}, POW)
+#define TENSOR_GRAPH_TANH(c, a, data_types) graph_op(c, a, (Tensor) {.data_type = data_types}, TANH)
+#define TENSOR_GRAPH_EXP(c, a, data_types) graph_op(c, a, (Tensor) {.data_type = data_types}, EXP)
 #define TENSOR_GRAPH_MUL(c, a, b) graph_op(c, a, b, MULTIPLICATION)
 #define TENSOR_GRAPH_SUB(c, a, b) graph_op(c, a, b, SUBTRACTION)
 #define TENSOR_GRAPH_DIV(c, a, b) graph_op(c, a, b, DIVISION)
@@ -214,6 +214,15 @@ void derive_r_node(GradNode* node, bool is_sink) {
         derive_r_node(node -> parents[i], FALSE);
     }
     
+    return;
+}
+
+void forward_pass(GradNode* node) {
+    OperatorFlag op_flag = node -> children[0] -> operation;
+    if (op_flag == TANH || op_flag == EXP) op_tensor(node -> children[0] -> value, *(node -> value), (Tensor) {0}, op_flag);
+    else if (op_flag == POW) op_tensor(node -> children[0] -> value, *(node -> value), (Tensor) {.data = node -> children[0] -> exp}, op_flag);
+    else op_tensor(node -> children[0] -> value, *(node -> children[0] -> parents[0] -> value), *(node -> children[0] -> parents[1] -> value), op_flag);
+    if (node -> children[0] -> children_count) forward_pass(node -> children[0]);
     return;
 }
 
