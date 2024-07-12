@@ -125,6 +125,10 @@ void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, v
     Tensor second_moment_vec = alloc_tensor(shape, 1, nn -> data_type);
 
     for (unsigned int t = 0; t < max_epochs; ++t) {
+        if (t >= 7271) {
+            printf("stop\n");
+            // At 7272 the cost goes to nan
+        }
         printf("\033[1;1H\033[2JEpoch: %u/%u\n", t + 1, max_epochs);
 
         // Copy theta_vec onto the nn
