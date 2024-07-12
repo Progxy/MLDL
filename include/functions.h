@@ -10,7 +10,7 @@ Tensor* predict(NN nn, Tensor input, Tensor* output);
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
 
-static Tensor* gelu(Tensor* out, Tensor* tensor) {
+static Tensor gelu(Tensor* tensor) {
     Tensor x1, x2, x3, x4;
     void* temp = (void*) calloc(1, tensor -> data_type);
     void* pi = (void*) calloc(1, tensor -> data_type);
@@ -21,15 +21,15 @@ static Tensor* gelu(Tensor* out, Tensor* tensor) {
     alloc_tensor_grad_graph_filled(x3, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 1.0L, tensor -> data_type));
     alloc_tensor_grad_graph_filled(x4, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 0.5L, tensor -> data_type));
     
-    Tensor a, b, c, d, e, f, g;
-    EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d, &e, &f, &g, out);
+    Tensor a, b, c, d, e, f, g, h;
+    EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d, &e, &f, &g, &h);
 
     // Math: 0.5x(1 + {\tanh}[{\sqrt{2/\pi}}({x} + 0.044715{x}^{3})])
     TENSOR_GRAPH_MUL(&d, x2, *TENSOR_GRAPH_SUM(&c, *tensor, *TENSOR_GRAPH_MUL(&b, x1, *TENSOR_GRAPH_POW(&a, *tensor, ASSIGN(temp, 3.0L, tensor -> data_type), tensor -> data_type))));
-    TENSOR_GRAPH_MUL(out, *TENSOR_GRAPH_MUL(&g, *tensor, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d, tensor -> data_type)));
+    TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_MUL(&g, *tensor, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d, tensor -> data_type)));
     DEALLOCATE_PTRS(temp, pi);
     
-    return out;
+    return h;
 }
 
 static Tensor* sigmoid(Tensor* tensor) {
@@ -55,11 +55,10 @@ static Tensor* sigmoid(Tensor* tensor) {
 }
 
 static void feed_forward(NN nn) {
-    Tensor* temp_tensors = (Tensor*) calloc(nn.size, sizeof(Tensor));
-    gelu(temp_tensors, &(nn.layers[0].activation));
+    Tensor res = gelu(&(nn.layers[0].activation)); 
     for (unsigned int i = 1; i < nn.size; ++i) {
-        TENSOR_GRAPH_SUM(&(nn.layers[i].activation), *TENSOR_GRAPH_DOT(&(nn.layers[i].activation), temp_tensors[i - 1], nn.layers[i].weights), nn.layers[i].biases);
-        gelu(temp_tensors + i, &(nn.layers[i].activation));
+        TENSOR_GRAPH_SUM(&(nn.layers[i].activation), *TENSOR_GRAPH_DOT(&(nn.layers[i].activation), res, nn.layers[i].weights), nn.layers[i].biases);
+        res = gelu(&(nn.layers[i].activation));
     }
     return;
 }   
@@ -127,8 +126,9 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
         extract_tensor(&input_tensor, inputs, i, 0);
         extract_tensor(&output_tensor, outputs, i, 0);
         copy_tensor(&INPUT_NN(nn), input_tensor);
-        feed_forward(nn);
-        
+        if (i) forward_pass(INPUT_NN(nn).grad_node);
+        else feed_forward(nn);
+
         POW_TENSOR(&output_tensor, *SUBTRACT_TENSOR(&output_tensor, OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type), nn.data_type);
         tensor_norm(output_tensor, ASSIGN(temp, 1.0L, nn.data_type), temp);
         SCALAR_SUM(cost, cost, temp, nn.data_type);
@@ -167,7 +167,8 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
         
         forward_pass(INPUT_NN(nn).grad_node);
         SCALAR_MUL_TENSOR(SUBTRACT_TENSOR(&OUTPUT_NN(nn), OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type));
-        derive_r_node(OUTPUT_NN(nn).grad_node, TRUE);
+        GradNode* sink = get_sink(OUTPUT_NN(nn).grad_node);
+        derive_r_node(sink, TRUE);
 
         // Math: g_t \leftarrow \nabla_\theta f_t(\theta_{t-1})
         Tensor g_t = empty_tensor(nn.data_type);

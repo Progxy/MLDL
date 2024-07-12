@@ -141,17 +141,15 @@ void derive_op(GradNode* node, GradNode* child) {
         }
 
         case TANH: {
-            Tensor temp = alloc_tensor(node -> value -> shape, node -> value -> rank, node -> value -> data_type);
             void* val = calloc(1, node -> derived_value.data_type);
-            ASSIGN(val, 2.0L, node -> derived_value.data_type);
             TANH_TENSOR(&(node -> derived_value), *(node -> value), node -> derived_value.data_type);
-            POW_TENSOR(&(node -> derived_value), node -> derived_value, val, node -> derived_value.data_type);
-            ASSIGN(val, 1.0L, node -> derived_value.data_type);
-            fill_tensor(val, temp);
-            SUBTRACT_TENSOR(&(node -> derived_value), temp, node -> derived_value);
-            DEALLOCATE_TENSORS(temp);
+            POW_TENSOR(&(node -> derived_value), node -> derived_value, ASSIGN(val, 2.0L, node -> derived_value.data_type), node -> derived_value.data_type);
+            SCALAR_SUM_TENSOR(tensor_conjugate(&(node -> derived_value), node -> derived_value), ASSIGN(val, 1.0L, node -> derived_value.data_type));
             free(val);
             DOT_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
+            printf("tanh:\n");
+            PRINT_SHAPE(node -> derived_value);
+            PRINT_SHAPE(child -> derived_value);
             break;
         }
 
@@ -175,7 +173,7 @@ void derive_op(GradNode* node, GradNode* child) {
 
 // Derive using forward-mode
 void derive_node(GradNode* node) {
-    // Seed the leaf with 1.0
+    // Seed the sink with 1.0
     if (node -> children_count == 0) {
         copy_tensor(&(node -> derived_value), *(node -> value));
         void* value = calloc(1, node -> derived_value.data_type);
@@ -211,6 +209,9 @@ void derive_r_node(GradNode* node, bool is_sink) {
         Tensor temp = empty_tensor(node -> derived_value.data_type);
         copy_tensor(&temp, node -> parents[i] -> derived_value);
         derive_op(node -> parents[i], node);
+        printf("node operation: %s\n", operators_flags_str[node -> operation]);
+        PRINT_SHAPE(node -> parents[i] -> derived_value);
+        PRINT_SHAPE(temp);
         SUM_TENSOR(&(node -> parents[i] -> derived_value), node -> parents[i] -> derived_value, temp);
         DEALLOCATE_TENSORS(temp);
         derive_r_node(node -> parents[i], FALSE);
@@ -234,10 +235,14 @@ static void print_node_info(GradNode* node) {
     return;
 }
 
+GradNode* get_sink(GradNode* node) {
+    if (node -> children_count) return get_sink(node -> children[0]);
+    else return node;
+}
+
 void forward_pass(GradNode* node) {
     GradNode* child = node -> children[0];
-    print_node_info(child);
-
+    
     OperatorFlag op_flag = child -> operation;
     if (op_flag == TANH || op_flag == EXP) op_tensor(child -> value, *(node -> value), (Tensor) {.data_type = node -> derived_value.data_type}, op_flag);
     else if (op_flag == POW) op_tensor(child -> value, *(node -> value), (Tensor) {.data = child -> exp, .data_type = node -> derived_value.data_type}, op_flag);
