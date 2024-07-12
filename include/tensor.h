@@ -240,11 +240,10 @@ Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
 }
 
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
-    const bool is_single_operand_flag = (op_flag == EXP) || (op_flag == TANH) || (op_flag == POW);
-    const bool is_special_operand_flag = is_single_operand_flag ||(op_flag == DOT);
+    const bool is_special_operand_flag = (op_flag == EXP) || (op_flag == TANH) || (op_flag == POW) ||(op_flag == DOT);
     ASSERT(!is_valid_enum(op_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATOR");
     ASSERT(!is_special_operand_flag && (a.rank != b.rank), "DIM_MISMATCH");
-    ASSERT(!is_single_operand_flag && (a.data_type != b.data_type), "DATA_TYPE_MISMATCH");
+    ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
     for (unsigned int i = 0; !is_special_operand_flag && (i < a.rank); ++i) {
         ASSERT(a.shape[i] != b.shape[i], "SHAPE_MISMATCH");
     }

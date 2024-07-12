@@ -14,6 +14,8 @@ const unsigned char data_types[] = { FLOAT_32, FLOAT_64, FLOAT_128 };
 const unsigned char operators_flags[] = { SUM, SUBTRACTION, MULTIPLICATION, DIVISION, POW, EXP, TANH, SQRT, DOT };
 const unsigned char comparison_flags[] = { EQUAL, LESS, LESS_OR_EQUAL, GREATER, GREATER_OR_EQUAL };
 
+const char* operators_flags_str[] = { "SUM", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "POW", "EXP", "TANH", "SQRT", "DOT" };
+
 typedef struct Tensor {
     unsigned int* shape;
     unsigned int rank;

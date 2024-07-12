@@ -2,7 +2,6 @@
 #define _FUNCTIONS_H_
 
 #include "./nn.h"
-#include "./autograd.h"
 
 void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs);
 void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);

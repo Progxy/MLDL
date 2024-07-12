@@ -20,7 +20,8 @@
 void alloc_grad_graph_node(DataType data_type, Tensor* value) {
     GradNode* node = (GradNode*) calloc(1, sizeof(GradNode));
     node -> children = NULL;
-    node -> value = value;
+    node -> value = (Tensor*) calloc(1, sizeof(Tensor));
+    copy_tensor(node -> value, *value);
     node -> exp = NULL;
     node -> children_count = 0;
     node -> derived_value = empty_tensor(data_type);
@@ -37,6 +38,7 @@ void* deallocate_grad_graph(bool single_removal_flag, GradNode* node, void*** de
         if (node -> children[i] != NULL) node -> children[i] = deallocate_grad_graph(single_removal_flag, node -> children[i], deallocated_ptrs, deallocated_ptrs_count);
     }
     DEALLOCATE_TENSORS(node -> derived_value, *(node -> value));
+    free(node -> value);
     free(node -> children);
     node -> children = NULL;
     free(node -> parents);
@@ -217,12 +219,32 @@ void derive_r_node(GradNode* node, bool is_sink) {
     return;
 }
 
+static void print_node_info(GradNode* node) {
+    printf("Node Info:\n");
+    printf("\taddress: %p\n", (void*) node);
+    printf("\toperation: %s\n", operators_flags_str[node -> operation]);
+    printf("\tchildren_count: %u\n", node -> children_count);
+    printf("\tparents_count: %u\n", node -> parents_count);
+    if (node -> exp != NULL) {
+        if (node -> derived_value.data_type == FLOAT_32) printf("\texp: %f\n", *CAST_PTR(node -> exp, float));
+        else if (node -> derived_value.data_type == FLOAT_64) printf("\texp: %lf\n", *CAST_PTR(node -> exp, double));
+        else if (node -> derived_value.data_type == FLOAT_128) printf("\texp: %Lf\n", *CAST_PTR(node -> exp, long double));
+    } else printf("\texp: NULL\n");
+    printf("\n");
+    return;
+}
+
 void forward_pass(GradNode* node) {
-    OperatorFlag op_flag = node -> children[0] -> operation;
-    if (op_flag == TANH || op_flag == EXP) op_tensor(node -> children[0] -> value, *(node -> value), (Tensor) {0}, op_flag);
-    else if (op_flag == POW) op_tensor(node -> children[0] -> value, *(node -> value), (Tensor) {.data = node -> children[0] -> exp}, op_flag);
-    else op_tensor(node -> children[0] -> value, *(node -> children[0] -> parents[0] -> value), *(node -> children[0] -> parents[1] -> value), op_flag);
-    if (node -> children[0] -> children_count) forward_pass(node -> children[0]);
+    GradNode* child = node -> children[0];
+    print_node_info(child);
+
+    OperatorFlag op_flag = child -> operation;
+    if (op_flag == TANH || op_flag == EXP) op_tensor(child -> value, *(node -> value), (Tensor) {.data_type = node -> derived_value.data_type}, op_flag);
+    else if (op_flag == POW) op_tensor(child -> value, *(node -> value), (Tensor) {.data = child -> exp, .data_type = node -> derived_value.data_type}, op_flag);
+    else op_tensor(child -> value, *(child -> parents[0] -> value), *(child -> parents[1] -> value), op_flag);
+    
+    if (child -> children_count) forward_pass(child);
+    
     return;
 }
 
