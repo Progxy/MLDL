@@ -3,7 +3,7 @@
 
 #include "./nn.h"
 
-void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs);
+void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs);
 void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
 Tensor* predict(NN nn, Tensor input, Tensor* output);
 
@@ -113,58 +113,58 @@ void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int
     return;
 }
 
-void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs) {
-    void* temp = calloc(1, nn.data_type);
-    void* tmp = calloc(1, nn.data_type);
+void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs) {
+    void* temp = calloc(1, nn -> data_type);
+    void* tmp = calloc(1, nn -> data_type);
 
-    Tensor theta_vec = empty_tensor(nn.data_type);
-    flatten_nn(&theta_vec, nn);
+    Tensor theta_vec = empty_tensor(nn -> data_type);
+    flatten_nn(&theta_vec, *nn);
     
-    unsigned int shape[] = { nn_size(nn) };
-    Tensor first_moment_vec = alloc_tensor(shape, 1, nn.data_type);
-    Tensor second_moment_vec = alloc_tensor(shape, 1, nn.data_type);
+    unsigned int shape[] = { nn_size(*nn) };
+    Tensor first_moment_vec = alloc_tensor(shape, 1, nn -> data_type);
+    Tensor second_moment_vec = alloc_tensor(shape, 1, nn -> data_type);
 
     for (unsigned int t = 0; t < max_epochs; ++t) {
         printf("\033[1;1H\033[2JEpoch: %u/%u\n", t + 1, max_epochs);
 
         // Copy theta_vec onto the nn
-        Tensor temp_tensor = empty_tensor(nn.data_type);
+        Tensor temp_tensor = empty_tensor(nn -> data_type);
         copy_tensor(&temp_tensor, theta_vec);
-        unflatten_nn(nn, &temp_tensor);
+        unflatten_nn(*nn, &temp_tensor);
         DEALLOCATE_TENSORS(temp_tensor);
 
         // Extract input and output and calculate loss
-        extract_tensor(&(INPUT_NN(nn)), inputs, t % inputs.shape[0], 0);
-        extract_tensor(&(nn.loss_input), outputs, t % outputs.shape[0], 0);
-        forward_pass(INPUT_NN(nn).grad_node);
+        extract_tensor(&(INPUT_NN(*nn)), inputs, t % inputs.shape[0], 0);
+        extract_tensor(&(nn -> loss_input), outputs, t % outputs.shape[0], 0);
+        forward_pass(INPUT_NN(*nn).grad_node);
         
         // Math: g_t \leftarrow \nabla_\theta f_t(\theta_{t-1})
-        Tensor g_t = empty_tensor(nn.data_type);
-        GradNode* sink = get_sink(nn.loss_input.grad_node); 
+        Tensor g_t = empty_tensor(nn -> data_type);
+        GradNode* sink = get_sink(nn -> loss_input.grad_node); 
         derive_r_node(sink, TRUE);
-        flatten_nn(&g_t, nn);
+        flatten_nn(&g_t, *nn);
 
         // m{t} ← β1 · m{t−1} + (1 − β1) · g{t}
-        SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), first_moment, nn.data_type)));
+        SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn -> data_type), first_moment, nn -> data_type)));
         
         // v{t} ← β2 · v{t−1} + (1 − β2) · g{t}^2
-        SUM_TENSOR(&second_moment_vec, *SCALAR_MUL_TENSOR(&second_moment_vec, second_moment), *SCALAR_MUL_TENSOR(MULTIPLY_TENSOR(&g_t, g_t, g_t), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), second_moment, nn.data_type)));
+        SUM_TENSOR(&second_moment_vec, *SCALAR_MUL_TENSOR(&second_moment_vec, second_moment), *SCALAR_MUL_TENSOR(MULTIPLY_TENSOR(&g_t, g_t, g_t), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn -> data_type), second_moment, nn -> data_type)));
         DEALLOCATE_TENSORS(g_t);
 
         // ^m{t}^ ← m{t}/(1 − β1^t)   
-        Tensor first_moment_vec_hat = empty_tensor(nn.data_type);
-        SCALAR_DIV_TENSOR(copy_tensor(&first_moment_vec_hat, first_moment_vec), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), SCALAR_POW(tmp, first_moment, ASSIGN(tmp, t + 1.0L, nn.data_type), nn.data_type), nn.data_type));       
+        Tensor first_moment_vec_hat = empty_tensor(nn -> data_type);
+        SCALAR_DIV_TENSOR(copy_tensor(&first_moment_vec_hat, first_moment_vec), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn -> data_type), SCALAR_POW(tmp, first_moment, ASSIGN(tmp, t + 1.0L, nn -> data_type), nn -> data_type), nn -> data_type));       
 
         // ^v{t}^ ← v{t}/(1 − β2^t)
-        Tensor second_moment_vec_hat = empty_tensor(nn.data_type);
-        SCALAR_DIV_TENSOR(copy_tensor(&second_moment_vec_hat, second_moment_vec), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), SCALAR_POW(tmp, first_moment, ASSIGN(tmp, t + 1.0L, nn.data_type), nn.data_type), nn.data_type));
+        Tensor second_moment_vec_hat = empty_tensor(nn -> data_type);
+        SCALAR_DIV_TENSOR(copy_tensor(&second_moment_vec_hat, second_moment_vec), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn -> data_type), SCALAR_POW(tmp, first_moment, ASSIGN(tmp, t + 1.0L, nn -> data_type), nn -> data_type), nn -> data_type));
         
         // θ{t} ← θ{t−1} − α · ^m{t}^/(√^v{t}^ + eps)
-        SUBTRACT_TENSOR(&theta_vec, theta_vec, *SCALAR_MUL_TENSOR(DIVIDE_TENSOR(&first_moment_vec_hat, first_moment_vec_hat, *SCALAR_SUM_TENSOR(POW_TENSOR(&second_moment_vec_hat, second_moment_vec_hat, ASSIGN(temp, 0.5L, nn.data_type), nn.data_type), eps)), alpha));
+        SUBTRACT_TENSOR(&theta_vec, theta_vec, *SCALAR_MUL_TENSOR(DIVIDE_TENSOR(&first_moment_vec_hat, first_moment_vec_hat, *SCALAR_SUM_TENSOR(POW_TENSOR(&second_moment_vec_hat, second_moment_vec_hat, ASSIGN(temp, 0.5L, nn -> data_type), nn -> data_type), eps)), alpha));
         DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat);
     }
 
-    unflatten_nn(nn, &theta_vec);
+    unflatten_nn(*nn, &theta_vec);
     DEALLOCATE_TENSORS(first_moment_vec, second_moment_vec, theta_vec);
     DEALLOCATE_PTRS(temp, tmp);
 
