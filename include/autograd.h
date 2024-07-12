@@ -130,7 +130,7 @@ void derive_op(GradNode* node, GradNode* child) {
             SCALAR_MUL_TENSOR(&(node -> derived_value), child -> exp);
             free(tmp);
             free(temp);
-            DOT_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
+            MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
             break;
         }
 
@@ -206,9 +206,6 @@ void derive_r_node(GradNode* node, bool is_sink) {
         Tensor temp = empty_tensor(node -> derived_value.data_type);
         copy_tensor(&temp, node -> parents[i] -> derived_value);
         derive_op(node -> parents[i], node);
-        printf("node operation: %s\n", operators_flags_str[node -> operation]);
-        PRINT_SHAPE(node -> parents[i] -> derived_value);
-        PRINT_SHAPE(temp);
         SUM_TENSOR(&(node -> parents[i] -> derived_value), node -> parents[i] -> derived_value, temp);
         DEALLOCATE_TENSORS(temp);
         derive_r_node(node -> parents[i], FALSE);
