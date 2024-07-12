@@ -1,7 +1,7 @@
 #ifndef _NEURONS_H_
 #define _NEURONS_H_
 
-#include "./tensor.h"
+#include "./autograd.h"
 #include "./mat.h"
 
 #define INPUT_NN(nn) (nn).layers[0].activation
@@ -25,6 +25,9 @@ Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType da
     layer.activation = alloc_tensor(bias_shape, 2, data_type);
     layer.biases = alloc_tensor(bias_shape, 2, data_type);
     layer.weights = alloc_tensor(weight_shape, 2, data_type);
+    alloc_grad_graph_node(data_type, &(layer.activation));
+    alloc_grad_graph_node(data_type, &(layer.biases));
+    alloc_grad_graph_node(data_type, &(layer.weights));
     return layer;
 }
 
@@ -109,8 +112,8 @@ void unflatten_nn(NN nn, Tensor* tensor) {
     for (unsigned int i = 1; i < nn.size; ++i) {
         Layer layer = nn.layers[i];
         cut_tensor(&layer.activation, tensor);
-        cut_tensor(&layer.activation, tensor);
-        cut_tensor(&layer.activation, tensor);
+        cut_tensor(&layer.weights, tensor);
+        cut_tensor(&layer.biases, tensor);
     }
     return;
 }

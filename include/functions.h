@@ -61,10 +61,10 @@ static Tensor* sigmoid(Tensor* tensor) {
 }
 
 static void feed_forward(NN nn) {
-    gelu(&(nn.layers[0].activation));
+    sigmoid(&(nn.layers[0].activation));
     for (unsigned int i = 1; i < nn.size; ++i) {
-        SUM_TENSOR(&(nn.layers[i].activation), *DOT_TENSOR(&(nn.layers[i].activation), nn.layers[i - 1].activation, nn.layers[i].weights), nn.layers[i].biases);
-        gelu(&(nn.layers[i].activation));
+        TENSOR_GRAPH_SUM(&(nn.layers[i].activation), *TENSOR_GRAPH_DOT(&(nn.layers[i].activation), nn.layers[i - 1].activation, nn.layers[i].weights), nn.layers[i].biases);
+        sigmoid(&(nn.layers[i].activation));
     }
     return;
 }   
@@ -139,7 +139,7 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
         SCALAR_SUM(cost, cost, temp, nn.data_type);
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
     }
-
+    
     SCALAR_DIV(cost, cost, ASSIGN(temp, (long double) inputs.shape[0], nn.data_type), nn.data_type);
     DEALLOCATE_PTRS(temp);
 
@@ -160,16 +160,24 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
     for (unsigned int t = 0; t < max_epochs; ++t) {
         printf("\033[1;1H\033[2JEpoch: %u/%u\n", t + 1, max_epochs);
 
+        Tensor temp_tensor = empty_tensor(nn.data_type);
+        copy_tensor(&temp_tensor, theta_vec);
+        unflatten_nn(nn, &temp_tensor);
+        DEALLOCATE_TENSORS(temp_tensor);
+
         // Extract input and output
-        Tensor input_tensor = alloc_tensor(inputs.shape, inputs.rank, inputs.data_type);
         Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
-        extract_tensor(&input_tensor, inputs, t % inputs.shape[0], 0);
+        extract_tensor(&(INPUT_NN(nn)), inputs, t % inputs.shape[0], 0);
         extract_tensor(&output_tensor, outputs, t % outputs.shape[0], 0);
+        
+        feed_forward(nn);
+        SCALAR_MUL_TENSOR(SUBTRACT_TENSOR(&OUTPUT_NN(nn), OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type));
+        derive_r_node(OUTPUT_NN(nn).grad_node, TRUE);
 
         // g{t} ← ∇θf{t}(θ{t−1})
         Tensor g_t = empty_tensor(nn.data_type);
-        calculate_autograd(nn, &g_t);
-        DEALLOCATE_TENSORS(input_tensor, output_tensor);
+        flatten_nn(&g_t, nn);
+        DEALLOCATE_TENSORS(output_tensor);
 
         // m{t} ← β1 · m{t−1} + (1 − β1) · g{t}
         SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn.data_type), first_moment, nn.data_type)));
