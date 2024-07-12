@@ -109,28 +109,62 @@ void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int
     return;
 }
 
+void* generic_cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
+    return nn.loss_function(nn, inputs, outputs, cost);
+}
+
 void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
     ASSERT((nn.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
     ASSIGN(cost, 0.0L, nn.data_type);
 
     void* temp = (void*) calloc(1, nn.data_type);
     for (unsigned int i = 0; i < inputs.shape[0]; ++i) {
-        Tensor input_tensor = alloc_tensor(inputs.shape, inputs.rank, inputs.data_type);
         Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
-        extract_tensor(&input_tensor, inputs, i, 0);
+        extract_tensor(&INPUT_NN(nn), inputs, i, 0);
         extract_tensor(&output_tensor, outputs, i, 0);
-        copy_tensor(&INPUT_NN(nn), input_tensor);
-        if (i) forward_pass(INPUT_NN(nn).grad_node);
-        else feed_forward(nn);
+        forward_pass(INPUT_NN(nn).grad_node);
 
         POW_TENSOR(&output_tensor, *SUBTRACT_TENSOR(&output_tensor, OUTPUT_NN(nn), output_tensor), ASSIGN(temp, 2.0L, nn.data_type), nn.data_type);
         tensor_norm(output_tensor, ASSIGN(temp, 1.0L, nn.data_type), temp);
         SCALAR_SUM(cost, cost, temp, nn.data_type);
-        DEALLOCATE_TENSORS(input_tensor, output_tensor);
+        DEALLOCATE_TENSORS(output_tensor);
     }
     
     SCALAR_DIV(cost, cost, ASSIGN(temp, (long double) inputs.shape[0], nn.data_type), nn.data_type);
     DEALLOCATE_PTRS(temp);
+
+    return cost;
+}
+
+void* binary_cross_entropy(NN nn, Tensor inputs, Tensor outputs, void* cost) {
+    ASSERT((nn.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
+    ASSIGN(cost, 0.0L, nn.data_type);
+
+    void* temp_a = (void*) calloc(1, nn.data_type);
+    void* temp_b = (void*) calloc(1, nn.data_type);
+    void* temp_c = (void*) calloc(1, nn.data_type);
+    void* temp = (void*) calloc(1, nn.data_type);
+    void* one = (void*) calloc(1, nn.data_type);
+    ASSIGN(one, 1.0L, nn.data_type);
+
+    for (unsigned int i = 0; i < inputs.shape[0]; ++i) {
+        Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
+        extract_tensor(&INPUT_NN(nn), inputs, i, 0);
+        extract_tensor(&output_tensor, outputs, i, 0);
+        forward_pass(INPUT_NN(nn).grad_node);
+
+        // Math: -1/N \sum_{i=1}^{N} [y_i \log{(p_i)} + (1 - y_i) \log{(1 - p_i)}]
+        void* y = output_tensor.data;
+        void* p = get_sink(OUTPUT_NN(nn).grad_node) -> value -> data;
+        SCALAR_MUL(temp_a, y, SCALAR_LOG(temp_a, p, nn.data_type), nn.data_type);
+        SCALAR_MUL(temp_b, SCALAR_SUB(temp_b, one, y, nn.data_type), SCALAR_LOG(temp_c, SCALAR_SUB(temp_c, one, p, nn.data_type), nn.data_type), nn.data_type);
+        SCALAR_SUM(cost, temp_a, temp_b, nn.data_type);
+        DEALLOCATE_TENSORS(output_tensor);
+    }
+    
+    SCALAR_DIV(cost, cost, ASSIGN(temp, (long double) inputs.shape[0], nn.data_type), nn.data_type);
+    negate_value(cost, cost, nn.data_type);
+    DEALLOCATE_PTRS(temp, temp_a, temp_b, one, temp_c);
 
     return cost;
 }
@@ -199,7 +233,7 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
 Tensor* predict(NN nn, Tensor input, Tensor* output) {
     copy_tensor(&INPUT_NN(nn), input);
     forward_pass(INPUT_NN(nn).grad_node);
-    copy_tensor(output, OUTPUT_NN(nn));
+    copy_tensor(output, *(get_sink(OUTPUT_NN(nn).grad_node) -> value));
     return output;
 }
 

@@ -8,7 +8,7 @@
 #define OUTPUT_NN(nn) (nn).layers[(nn).size - 1].activation
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
-NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, DataType data_type);
+NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, DataType data_type);
 Tensor* flatten_nn(Tensor* tensor, NN nn);
 void unflatten_nn(NN nn, Tensor* tensor);
 unsigned int nn_size(NN nn);
@@ -50,8 +50,8 @@ unsigned int nn_size(NN nn) {
     return size;
 }
 
-NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, DataType data_type) {
-    NN nn = (NN) {.size = size, .arch = arch, .data_type = data_type};
+NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, DataType data_type) {
+    NN nn = (NN) {.size = size, .arch = arch, .data_type = data_type, .loss_function = loss_function};
     nn.layers = (Layer*) calloc(size, sizeof(Layer));
     unsigned int activation_shape[] = { 1, arch[0] };
     nn.layers[0].activation = alloc_tensor(activation_shape, 2, data_type);

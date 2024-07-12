@@ -164,6 +164,11 @@ void derive_op(GradNode* node, GradNode* child) {
             }
             break;
         }
+
+        case LOG: {
+            ASSERT(FALSE, "TODO: Implement function!");
+            break;
+        }
     }
     return;
 }

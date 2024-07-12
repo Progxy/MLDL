@@ -9,8 +9,9 @@ int main() {
     unsigned int arch[] = {9, 10, 12, 10, 1};
     ActivationFunction activation_functions[] = {gelu, gelu, gelu, gelu, sigmoid};
     ASSERT(ARR_SIZE(activation_functions) != ARR_SIZE(arch), "SIZE_MISMATCH");
-    NN nn = create_nn(ARR_SIZE(arch), arch, activation_functions, FLOAT_64);
-    rand_nn(nn);
+    NN nn = create_nn(ARR_SIZE(arch), arch, activation_functions, binary_cross_entropy, FLOAT_64);
+    rand_nn(nn); // Maybe include both inside the init_nn function
+    feed_forward(nn);
 
     char* input_valid_values[] = { "b", "x", "o" };
     double input_mapped_values[] = { 0.0, 1.0, 2.0 };
@@ -37,15 +38,15 @@ int main() {
 
     double alpha = 0.001;
     double cost_d = 0.0;
-    unsigned int max_epochs = 100000;
+    unsigned int max_epochs = 10000;
     double eps = 10e-8;
     double first_moment_decay = 0.9;
     double second_moment_decay = 0.999;
     
-    double og_cost = (1.0 - *CAST_PTR(cost(nn, inputs, outputs, &cost_d), double)) * 100.0;
+    double og_cost = (1.0 - *CAST_PTR(generic_cost(nn, inputs, outputs, &cost_d), double)) * 100.0;
     adam_optim(nn, inputs, outputs, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs);
     // sgd(nn, inputs, outputs, &alpha, max_epochs);
-    double accuracy = (1.0 - *CAST_PTR(cost(nn, inputs, outputs, &cost_d), double)) * 100.0;
+    double accuracy = (1.0 - *CAST_PTR(generic_cost(nn, inputs, outputs, &cost_d), double)) * 100.0;
     printf("NN accuracy: %.2lf%%, original cost: %.2lf%% (delta: %.2f%%)\n", accuracy, og_cost, accuracy - og_cost);
     DEALLOCATE_TENSORS(inputs, outputs);
     

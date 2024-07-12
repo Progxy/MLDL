@@ -350,6 +350,7 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
             break;
         }
 
+        case LOG:
         case SQRT: {
             ASSERT(FALSE, "TODO: Implement function!");
             break;
