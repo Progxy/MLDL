@@ -113,13 +113,22 @@ void derive_op(GradNode* node, GradNode* child) {
         }
 
         case MULTIPLICATION: {
-            DIVIDE_TENSOR(&(node -> derived_value), *(child -> value), *(node -> value));
+            Tensor* other_parent = (node == child -> parents[0]) ? child -> parents[1] -> value : child -> parents[0] -> value;
+            MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, *other_parent);
             break;       
         }
         
         case DIVISION: {
-            DIVIDE_TENSOR(&(node -> derived_value), *(child -> value), *(node -> value));
-            if (IS_DENOMINATOR(node, child)) tensor_conjugate(&(node -> derived_value), node -> derived_value);
+            Tensor* other_parent = (node == child -> parents[0]) ? child -> parents[1] -> value : child -> parents[0] -> value;
+            if (IS_DENOMINATOR(node, child)) {
+                void* val = (void*) calloc(1, node -> derived_value.data_type);
+                ASSIGN(val, 2.0L, node -> derived_value.data_type);
+                MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, *DIVIDE_TENSOR(&(node -> derived_value), *other_parent, *POW_TENSOR(&(node -> derived_value), *(node -> value), val, node -> derived_value.data_type)));
+                tensor_conjugate(&(node -> derived_value), node -> derived_value);
+                free(val);
+            } else {    
+                DIVIDE_TENSOR(&(node -> derived_value), child -> derived_value, *other_parent);
+            }
             break;
         }
 
