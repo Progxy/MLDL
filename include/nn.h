@@ -6,6 +6,7 @@
 
 #define INPUT_NN(nn) (nn).layers[0].activation
 #define OUTPUT_NN(nn) (nn).layers[(nn).size - 1].activation
+#define COST(nn, inputs, outputs, cost) nn.loss_function(nn, inputs, outputs, cost)
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
 NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, DataType data_type);
