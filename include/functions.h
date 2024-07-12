@@ -13,8 +13,8 @@ Tensor* predict(NN nn, Tensor input, Tensor* output);
 
 static Tensor* gelu(Tensor* tensor) {
     Tensor x1, x2, x3, x4;
-    void* temp = calloc(1, tensor -> data_type);
-    void* pi = calloc(1, tensor -> data_type);
+    void* temp = (void*) calloc(1, tensor -> data_type);
+    void* pi = (void*) calloc(1, tensor -> data_type);
     ASSIGN(temp, 2.0L, tensor -> data_type);
     ASSIGN(pi, M_PI, tensor -> data_type);
     alloc_grad_graph_node(tensor -> data_type, tensor);
@@ -43,7 +43,7 @@ static Tensor* sigmoid(Tensor* tensor) {
 
     Tensor x1;
     alloc_grad_graph_node(tensor -> data_type, tensor);
-    alloc_tensor_grad_graph_filled(x1, tensor -> shape, tensor -> rank, FLOAT_32, ASSIGN(temp, 1.0L, tensor -> data_type));
+    alloc_tensor_grad_graph_filled(x1, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 1.0L, tensor -> data_type));
 
     Tensor a, b, c, d;
     EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d);
@@ -61,10 +61,10 @@ static Tensor* sigmoid(Tensor* tensor) {
 }
 
 static void feed_forward(NN nn) {
-    sigmoid(&(nn.layers[0].activation));
+    gelu(&(nn.layers[0].activation));
     for (unsigned int i = 1; i < nn.size; ++i) {
         SUM_TENSOR(&(nn.layers[i].activation), *DOT_TENSOR(&(nn.layers[i].activation), nn.layers[i - 1].activation, nn.layers[i].weights), nn.layers[i].biases);
-        sigmoid(&(nn.layers[i].activation));
+        gelu(&(nn.layers[i].activation));
     }
     return;
 }   
@@ -72,45 +72,6 @@ static void feed_forward(NN nn) {
 static Tensor* calculate_autograd(NN nn, Tensor* gradient_tensor) {
     derive_r_node(OUTPUT_NN(nn).grad_node, TRUE);
     return flatten_nn(gradient_tensor, nn);
-}
-
-static Tensor* calculate_gradient(NN nn, Tensor input, Tensor output, Tensor* gradient_tensor) {
-    copy_tensor(&INPUT_NN(nn), input);
-    feed_forward(nn);
-
-    NN gradient = create_nn(nn.size, nn.arch, nn.data_type);
-    copy_tensor(&OUTPUT_NN(gradient), output);
-
-    void* temp = calloc(1, nn.data_type);
-    SCALAR_MUL_TENSOR(SUBTRACT_TENSOR(&OUTPUT_NN(gradient), OUTPUT_NN(nn), OUTPUT_NN(gradient)), ASSIGN(temp, 2.0L, nn.data_type));
-
-    for (int l = nn.size - 1; l > 0; --l) {
-        Tensor current_z = empty_tensor(gradient.data_type);
-        SUM_TENSOR(&current_z, *DOT_TENSOR(&current_z, nn.layers[l - 1].activation, nn.layers[l].weights), nn.layers[l].biases);
-
-        Tensor diff_activation = empty_tensor(nn.data_type);
-        copy_tensor(&diff_activation, *sigmoid(&current_z));
-        MULTIPLY_TENSOR(&diff_activation, gradient.layers[l].activation, *MULTIPLY_TENSOR(&diff_activation, diff_activation, *SCALAR_SUM_TENSOR(tensor_conjugate(&current_z, current_z), ASSIGN(temp, 1.0L, nn.data_type))));
-        DEALLOCATE_TENSORS(current_z);
-
-        Tensor temp_tensor = empty_tensor(nn.data_type);
-        transpose_tensor(copy_tensor(&temp_tensor, nn.layers[l - 1].activation));
-        DOT_TENSOR(&(gradient.layers[l].weights), temp_tensor, diff_activation);
-
-        copy_tensor(&(gradient.layers[l].biases), diff_activation);
-
-        transpose_tensor(copy_tensor(&temp_tensor, nn.layers[l].weights));
-        DOT_TENSOR(&(gradient.layers[l - 1].activation), diff_activation, temp_tensor);
-
-        DEALLOCATE_TENSORS(diff_activation, temp_tensor);
-    }
-
-    DEALLOCATE_PTRS(temp);
-
-    flatten_nn(gradient_tensor, gradient);
-    deallocate_nn(gradient);
-
-    return gradient_tensor;
 }
 
 void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs) {
@@ -142,7 +103,6 @@ void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int
             extract_tensor(&output_tensor, outputs, shuffled_indices[i], 0);
 
             Tensor gradient_tensor = empty_tensor(nn.data_type);
-            // calculate_gradient(nn, input_tensor, output_tensor, &gradient_tensor);
             calculate_autograd(nn, &gradient_tensor);
             DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
@@ -165,7 +125,7 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
     ASSERT((nn.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
     ASSIGN(cost, 0.0L, nn.data_type);
 
-    void* temp = calloc(1, nn.data_type);
+    void* temp = (void*) calloc(1, nn.data_type);
     for (unsigned int i = 0; i < inputs.shape[0]; ++i) {
         Tensor input_tensor = alloc_tensor(inputs.shape, inputs.rank, inputs.data_type);
         Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
@@ -208,7 +168,6 @@ void adam_optim(NN nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, vo
 
         // g{t} ← ∇θf{t}(θ{t−1})
         Tensor g_t = empty_tensor(nn.data_type);
-        //calculate_gradient(nn, input_tensor, output_tensor, &g_t);
         calculate_autograd(nn, &g_t);
         DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
