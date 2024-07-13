@@ -4,7 +4,7 @@
 #include "./nn.h"
 
 void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs);
-void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
+void sgd(NN* nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
 Tensor* predict(NN nn, Tensor input, Tensor* output);
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
@@ -67,8 +67,8 @@ static void binary_cross_entropy(NN* nn) {
     return;
 }
 
-void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs) {
-    ASSERT((nn.data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
+void sgd(NN* nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs) {
+    ASSERT((nn -> data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
 
     long unsigned int time_a = time(NULL);
     for (unsigned int epoch = 0; epoch < max_epochs; ++epoch) {
@@ -90,18 +90,19 @@ void sgd(NN nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int
         unsigned int* shuffled_indices = create_shuffled_indices(inputs.shape[0]);
 
         for (unsigned int i = 0; i < inputs.shape[0]; ++i) {
-            Tensor input_tensor = alloc_tensor(inputs.shape, inputs.rank, inputs.data_type);
-            Tensor output_tensor = alloc_tensor(outputs.shape, outputs.rank, outputs.data_type);
-            extract_tensor(&input_tensor, inputs, shuffled_indices[i], 0);
-            extract_tensor(&output_tensor, outputs, shuffled_indices[i], 0);
+            extract_tensor(NODE_TENSOR(INPUT_NN(*nn).grad_node), inputs, shuffled_indices[i], 0);
+            extract_tensor(NODE_TENSOR(nn -> loss_input.grad_node), outputs, shuffled_indices[i], 0);
+            forward_pass(INPUT_NN(*nn).grad_node);
+            
+            Tensor gradient_tensor = empty_tensor(nn -> data_type);
+            GradNode* sink = get_sink(nn -> loss_input.grad_node); 
+            derive_r_node(sink, TRUE);
+            flatten_nn(&gradient_tensor, *nn);
 
-            Tensor gradient_tensor = empty_tensor(nn.data_type);
-            DEALLOCATE_TENSORS(input_tensor, output_tensor);
-
-            Tensor ml_tensor = empty_tensor(nn.data_type);
-            flatten_nn(&ml_tensor, nn);
+            Tensor ml_tensor = empty_tensor(nn -> data_type);
+            flatten_nn(&ml_tensor, *nn);
             SUBTRACT_TENSOR(&ml_tensor, ml_tensor, *SCALAR_MUL_TENSOR(&gradient_tensor, learning_rate));
-            unflatten_nn(nn, &ml_tensor);
+            unflatten_nn(*nn, &ml_tensor);
             DEALLOCATE_TENSORS(ml_tensor, gradient_tensor);
         }
 
