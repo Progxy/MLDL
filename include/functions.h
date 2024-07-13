@@ -26,6 +26,8 @@ static Tensor gelu(Tensor* tensor) {
     // Math: 0.5x(1 + {\tanh}[{\sqrt{2/\pi}}({x} + 0.044715{x}^{3})])
     TENSOR_GRAPH_MUL(&d, x2, *TENSOR_GRAPH_SUM(&c, *tensor, *TENSOR_GRAPH_MUL(&b, x1, *TENSOR_GRAPH_POW(&a, *tensor, ASSIGN(temp, 3.0L, tensor -> data_type), tensor -> data_type))));
     TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_MUL(&g, *tensor, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d, tensor -> data_type)));
+    
+    DEALLOCATE_TENSORS(x1, x2, x3, x4, a, b, c, d, e, f, g);
     DEALLOCATE_PTRS(temp, pi);
     
     return h;
@@ -42,6 +44,8 @@ static Tensor sigmoid(Tensor* tensor) {
     // Math: \frac{1}{1 + e^{-x}}
     TENSOR_GRAPH_POW(&b, *TENSOR_GRAPH_EXP(&a, *tensor, tensor -> data_type), ASSIGN(temp, -1.0L, tensor -> data_type), tensor -> data_type);
     TENSOR_GRAPH_POW(&d, *TENSOR_GRAPH_SUM(&c, x1, b), temp, tensor -> data_type);
+    
+    DEALLOCATE_TENSORS(x1, a, b, c);
     DEALLOCATE_PTRS(temp);
 
     return d;
