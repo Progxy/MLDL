@@ -97,6 +97,8 @@ void deallocate_nn(NN nn) {
         DEALLOCATE_TENSORS(nn.layers[i].biases, nn.layers[i].activation, nn.layers[i].weights);
     }
     free(nn.layers);
+    DEALLOCATE_GRAD_GRAPHS(get_sink(nn.loss_input.grad_node));
+    DEALLOCATE_TENSORS(nn.loss_input, nn.loss_node);
     return;
 }
 
@@ -104,11 +106,11 @@ Tensor* flatten_nn(Tensor* tensor, NN nn) {
     Tensor temp = empty_tensor(nn.data_type);
     for (unsigned int i = 1; i < nn.size; ++i) {
         Layer layer = nn.layers[i];
-        flatten_tensor(&temp, layer.activation);
+        flatten_tensor(&temp, *NODE_TENSOR(layer.activation.grad_node));
         concat_tensors(tensor, temp);
-        flatten_tensor(&temp, layer.weights);
+        flatten_tensor(&temp, *NODE_TENSOR(layer.weights.grad_node));
         concat_tensors(tensor, temp);
-        flatten_tensor(&temp, layer.biases);
+        flatten_tensor(&temp, *NODE_TENSOR(layer.biases.grad_node));
         concat_tensors(tensor, temp);
     }
     DEALLOCATE_TENSORS(temp);
@@ -118,9 +120,9 @@ Tensor* flatten_nn(Tensor* tensor, NN nn) {
 void unflatten_nn(NN nn, Tensor* tensor) {
     for (unsigned int i = 1; i < nn.size; ++i) {
         Layer layer = nn.layers[i];
-        cut_tensor(&layer.activation, tensor);
-        cut_tensor(&layer.weights, tensor);
-        cut_tensor(&layer.biases, tensor);
+        cut_tensor(NODE_TENSOR(layer.activation.grad_node), tensor);
+        cut_tensor(NODE_TENSOR(layer.weights.grad_node), tensor);
+        cut_tensor(NODE_TENSOR(layer.biases.grad_node), tensor);
     }
     return;
 }
@@ -143,8 +145,8 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
     unsigned int input_size = inputs.shape[0];
     Tensor cost_tensor = alloc_tensor(shape, ARR_SIZE(shape), nn.data_type);
     for (unsigned int i = 0; i < input_size; ++i) {
-        extract_tensor(&INPUT_NN(nn), inputs, i, 0);
-        extract_tensor(&(nn.loss_input), outputs, i, 0);
+        extract_tensor(NODE_TENSOR(INPUT_NN(nn).grad_node), inputs, i, 0);
+        extract_tensor(NODE_TENSOR(nn.loss_input.grad_node), outputs, i, 0);
         forward_pass(INPUT_NN(nn).grad_node);
         GradNode* sink = get_sink(nn.loss_input.grad_node);
         SUM_TENSOR(&cost_tensor, cost_tensor, *(sink -> value));

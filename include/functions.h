@@ -138,8 +138,10 @@ void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, v
         DEALLOCATE_TENSORS(temp_tensor);
 
         // Extract input and output and calculate loss
-        extract_tensor(&(INPUT_NN(*nn)), inputs, t % inputs.shape[0], 0);
-        extract_tensor(&(nn -> loss_input), outputs, t % outputs.shape[0], 0);
+        extract_tensor(NODE_TENSOR(INPUT_NN(*nn).grad_node), inputs, t % inputs.shape[0], 0);
+        extract_tensor(NODE_TENSOR(nn -> loss_input.grad_node), outputs, t % outputs.shape[0], 0);
+        PRINT_TENSOR(*NODE_TENSOR(INPUT_NN(*nn).grad_node), "\t");
+        PRINT_TENSOR(INPUT_NN(*nn), "\t");
         forward_pass(INPUT_NN(*nn).grad_node);
         
         // Math: g_t \leftarrow \nabla_\theta f_t(\theta_{t-1})
