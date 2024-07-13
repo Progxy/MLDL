@@ -518,9 +518,11 @@ Tensor* concat_tensors(Tensor* dest, Tensor src) {
 }
 
 Tensor* flatten_tensor(Tensor* dest, Tensor src) {
-    copy_tensor(dest, src);
-    unsigned int new_shape[] = { tensor_size(dest -> shape, dest -> rank) };
+    ASSERT(dest -> data_type != src.data_type, "DATA_TYPE_MISMATCH");
+    unsigned int size = tensor_size(src.shape, src.rank);
+    unsigned int new_shape[] = { size };
     reshape_tensor(dest, new_shape, 1, dest -> data_type);
+    mem_copy(dest -> data, src.data, dest -> data_type, size);
     return dest;
 }
 

@@ -4,6 +4,7 @@
 #include "./tensor.h"
 
 #define NODE_TENSOR(node) CAST_PTR(node, GradNode) -> value
+#define NODE_DERIVED_TENSOR(node) CAST_PTR(node, GradNode) -> derived_value
 #define IS_DENOMINATOR(parent, child) parent == child -> parents[1]
 #define DEALLOCATE_GRAD_GRAPHS(...) deallocate_grad_graphs(sizeof((GradNode*[]){__VA_ARGS__}) / sizeof(GradNode*), (int) FALSE, __VA_ARGS__)
 #define DEALLOCATE_GRAD_SINGLE_GRAPHS(...) deallocate_grad_graphs(sizeof((GradNode*[]){__VA_ARGS__}) / sizeof(GradNode*), (int) TRUE, __VA_ARGS__)

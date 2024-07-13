@@ -58,8 +58,6 @@ static void binary_cross_entropy(NN* nn) {
     alloc_tensor_grad_graph_filled(x2, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, -1.0L, nn -> data_type));
     DEALLOCATE_PTRS(one);
 
-    forward_pass(INPUT_NN(*nn).grad_node);  
-
     Tensor a, b, c, d, e, f, g, h;
     EMPTY_TENSORS(nn -> data_type, &a, &b, &c, &d, &e, &f, &g, &h);
 
@@ -76,6 +74,7 @@ void sgd(NN* nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned in
 
     long unsigned int time_a = time(NULL);
     for (unsigned int epoch = 0; epoch < max_epochs; ++epoch) {
+        /* ------------------------------------------------------------ */
         float percentage = ((float) (epoch + 1) / max_epochs * 100.0f);
         printf("\033[1;1H\033[2J");
         printf("%.2f%% ", percentage);
@@ -90,6 +89,7 @@ void sgd(NN* nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned in
         printf(" elapsed time:");
         print_time_format(time(NULL) - time_a);
         printf("%c", (epoch + 1) == max_epochs ? '\0' : '\n');
+        /* ------------------------------------------------------------ */
 
         unsigned int* shuffled_indices = create_shuffled_indices(inputs.shape[0]);
 
@@ -97,14 +97,14 @@ void sgd(NN* nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned in
             extract_tensor(NODE_TENSOR(INPUT_NN(*nn).grad_node), inputs, shuffled_indices[i], 0);
             extract_tensor(NODE_TENSOR(nn -> loss_input.grad_node), outputs, shuffled_indices[i], 0);
             forward_pass(INPUT_NN(*nn).grad_node);
-            
+
             Tensor gradient_tensor = empty_tensor(nn -> data_type);
             GradNode* sink = get_sink(nn -> loss_input.grad_node); 
             derive_r_node(sink, TRUE);
-            flatten_nn(&gradient_tensor, *nn);
+            flatten_gradient_nn(&gradient_tensor, *nn);
 
             Tensor ml_tensor = empty_tensor(nn -> data_type);
-            flatten_nn(&ml_tensor, *nn);
+            flatten_nn(&ml_tensor, *nn);          
             SUBTRACT_TENSOR(&ml_tensor, ml_tensor, *SCALAR_MUL_TENSOR(&gradient_tensor, learning_rate));
             unflatten_nn(*nn, &ml_tensor);
             DEALLOCATE_TENSORS(ml_tensor, gradient_tensor);
@@ -151,7 +151,7 @@ void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, v
         Tensor g_t = empty_tensor(nn -> data_type);
         GradNode* sink = get_sink(nn -> loss_input.grad_node); 
         derive_r_node(sink, TRUE);
-        flatten_nn(&g_t, *nn);
+        flatten_gradient_nn(&g_t, *nn);
 
         // m{t} ← β1 · m{t−1} + (1 − β1) · g{t}
         SUM_TENSOR(&first_moment_vec, *SCALAR_MUL_TENSOR(&first_moment_vec, first_moment), *SCALAR_MUL_TENSOR(&g_t, SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn -> data_type), first_moment, nn -> data_type)));

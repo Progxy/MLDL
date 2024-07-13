@@ -9,12 +9,13 @@
 
 Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
 NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, DataType data_type);
+void init_nn(NN* nn, bool randomize_flag);
 Tensor* flatten_nn(Tensor* tensor, NN nn);
 void unflatten_nn(NN nn, Tensor* tensor);
 unsigned int nn_size(NN nn);
 void deallocate_nn(NN nn);
-void print_nn(NN nn);
-void rand_nn(NN nn);
+void print_nn(NN nn, bool print_layer_flag);
+void rand_nn(NN* nn);
 
 /* ----------------------------------------------------------------------------------------- */
 
@@ -25,16 +26,17 @@ Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType da
     layer.activation = alloc_tensor(bias_shape, 2, data_type);
     layer.biases = alloc_tensor(bias_shape, 2, data_type);
     layer.weights = alloc_tensor(weight_shape, 2, data_type);
-    alloc_grad_graph_node(data_type, &(layer.activation));
     alloc_grad_graph_node(data_type, &(layer.biases));
     alloc_grad_graph_node(data_type, &(layer.weights));
     return layer;
 }
 
-void rand_nn(NN nn) {
-    for (unsigned int l = 1; l < nn.size; ++l) {
-        randomize_tensor(nn.layers[l].weights);
-        normal(&(nn.layers[l].weights));
+void rand_nn(NN* nn) {
+    for (unsigned int l = 1; l < nn -> size; ++l) {
+        randomize_tensor(nn -> layers[l].weights);
+        normal(&(nn -> layers[l].weights));
+        copy_tensor(NODE_TENSOR(nn -> layers[l].weights.grad_node), nn -> layers[l].weights);
+        copy_tensor(NODE_TENSOR(nn -> layers[l].biases.grad_node), nn -> layers[l].biases);
     }
     return;
 } 
@@ -71,22 +73,24 @@ NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activati
     return nn;
 }
 
-static void print_layer(Layer layer) {
+static void print_layer(Layer layer, bool is_input_layer, bool print_layer_flag) {
     printf("\tactivation: \n");
-    PRINT_TENSOR(layer.activation, "\t");
-    printf("\tweigths: \n");
-    PRINT_TENSOR(layer.weights, "\t");
-    printf("\tbias: \n");
-    PRINT_TENSOR(layer.biases, "\t");
+    PRINT_TENSOR(print_layer_flag ? layer.activation : *NODE_TENSOR(layer.activation.grad_node), "\t");
+    if (!is_input_layer || print_layer_flag) {
+        printf("\tweigths: \n");
+        PRINT_TENSOR(print_layer_flag ? layer.weights : *NODE_TENSOR(layer.weights.grad_node), "\t");
+        printf("\tbias: \n");
+        PRINT_TENSOR(print_layer_flag ? layer.biases : *NODE_TENSOR(layer.biases.grad_node), "\t");
+    }
     printf("\n");
     return;
 }
 
-void print_nn(NN nn) {
+void print_nn(NN nn, bool print_layer_flag) {
     printf("NN structure: \n");
     for (unsigned int i = 0; i < nn.size; ++i) {
         printf("Layer %u: \n", i);
-        print_layer(nn.layers[i]);
+        print_layer(nn.layers[i], i == 0, print_layer_flag);
     }
     return;
 }
@@ -117,6 +121,21 @@ Tensor* flatten_nn(Tensor* tensor, NN nn) {
     return tensor;
 }
 
+Tensor* flatten_gradient_nn(Tensor* tensor, NN nn) {
+    Tensor temp = empty_tensor(nn.data_type);
+    for (unsigned int i = 1; i < nn.size; ++i) {
+        Layer layer = nn.layers[i];
+        flatten_tensor(&temp, NODE_DERIVED_TENSOR(layer.activation.grad_node));
+        concat_tensors(tensor, temp);
+        flatten_tensor(&temp, NODE_DERIVED_TENSOR(layer.weights.grad_node));
+        concat_tensors(tensor, temp);
+        flatten_tensor(&temp, NODE_DERIVED_TENSOR(layer.biases.grad_node));
+        concat_tensors(tensor, temp);
+    }
+    DEALLOCATE_TENSORS(temp);
+    return tensor;
+}
+
 void unflatten_nn(NN nn, Tensor* tensor) {
     for (unsigned int i = 1; i < nn.size; ++i) {
         Layer layer = nn.layers[i];
@@ -127,7 +146,8 @@ void unflatten_nn(NN nn, Tensor* tensor) {
     return;
 }
 
-void feed_forward(NN* nn) {
+void init_nn(NN* nn, bool randomize_flag) {
+    if (randomize_flag) rand_nn(nn);
     Tensor res = nn -> layers[0].activation_function(&(nn -> layers[0].activation));
     for (unsigned int i = 1; i < nn -> size; ++i) {
         TENSOR_GRAPH_SUM(&(nn -> layers[i].activation), *TENSOR_GRAPH_DOT(&(nn -> layers[i].activation), res, nn -> layers[i].weights), nn -> layers[i].biases);
