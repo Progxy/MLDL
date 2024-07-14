@@ -313,10 +313,12 @@ void** generate_args(int len, ...) {
 }
 
 void deallocate_args(void** args) {
-    for (; *args != NULL; *args++) {
+    void** temp = args;
+    for (; *args != NULL; ++args) {
         free(*args);
     }
-    free(args);
+    free(*args);
+    free(temp);
     return;
 }
 

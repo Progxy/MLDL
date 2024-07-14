@@ -45,10 +45,11 @@ int main() {
     double accuracy = 0.0; get_accuracy(&accuracy, nn, inputs, outputs);
     printf("NN accuracy: %.2lf%%, original accuracy: %.2lf%% (delta: %.2f%%)\n", accuracy, og_accuracy, accuracy - og_accuracy);
     DEALLOCATE_TENSORS(inputs, outputs);
+    deallocate_args(args);
     
     const double predict_input[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     unsigned int predict_shape[] = {1, nn.arch[0]};
-    Tensor input_tensor = alloc_tensor(predict_shape, 2, nn.data_type);
+    Tensor input_tensor = alloc_tensor(predict_shape, ARR_SIZE(predict_shape), nn.data_type);
     set_tensor((void*) predict_input, input_tensor);
     Tensor output_tensor = empty_tensor(nn.data_type);
     predict(nn, input_tensor, &output_tensor);
