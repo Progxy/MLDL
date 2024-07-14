@@ -7,13 +7,13 @@
 #include <math.h>
 #include "./types.h"
 
-#define ASSERT(condition, err_msg) assert(condition, #condition, __LINE__, __FILE__, err_msg);
 #define CAST_AND_OP_INDEX(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_AND_OP(CAST_PTR_AT_INDEX(a.data, type, index), CAST_PTR_AT_INDEX(b.data, type, index), type, op) 
 #define GENERATE_ARGS(data_type, ...) generate_args((sizeof((long double[]){__VA_ARGS__}) / sizeof(long double)), data_type, __VA_ARGS__)
 #define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
+#define ASSIGN(val, new_val, data_type) assign_data_type(val, (long double) new_val, data_type)
+#define ASSERT(condition, err_msg) assert(condition, #condition, __LINE__, __FILE__, err_msg)
 #define CAST_AND_OP(a, b, type, op) *CAST_PTR(a, type) op *CAST_PTR(b, type)
 #define CAST_PTR_AT_INDEX(a, type, index) &(CAST_PTR(a, type)[index])
-#define ASSIGN(val, new_val, data_type) assign_data_type(val, (long double) new_val, data_type)
 #define SCALAR_CONJUGATE(res, a, data_type) scalar_op(res, a, NULL, data_type, CONJUGATE)
 #define SCALAR_MUL(res, a, b, data_type) scalar_op(res, a, b, data_type, MULTIPLICATION)
 #define SCALAR_SUB(res, a, b, data_type) scalar_op(res, a, b, data_type, SUBTRACTION)
