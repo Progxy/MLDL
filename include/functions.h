@@ -24,8 +24,8 @@ static Tensor gelu(Tensor* tensor) {
     EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d, &e, &f, &g, &h);
 
     // Math: 0.5x(1 + {\tanh}[{\sqrt{2/\pi}}({x} + 0.044715{x}^{3})])
-    TENSOR_GRAPH_MUL(&d, x2, *TENSOR_GRAPH_SUM(&c, *tensor, *TENSOR_GRAPH_MUL(&b, x1, *TENSOR_GRAPH_POW(&a, *tensor, ASSIGN(temp, 3.0L, tensor -> data_type), tensor -> data_type))));
-    TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_MUL(&g, *tensor, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d, tensor -> data_type)));
+    TENSOR_GRAPH_MUL(&d, x2, *TENSOR_GRAPH_SUM(&c, *tensor, *TENSOR_GRAPH_MUL(&b, x1, *TENSOR_GRAPH_POW(&a, *tensor, ASSIGN(temp, 3.0L, tensor -> data_type)))));
+    TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_MUL(&g, *tensor, x4), *TENSOR_GRAPH_SUM(&f, x3, *TENSOR_GRAPH_TANH(&e, d)));
     
     DEALLOCATE_TENSORS(x1, x2, x3, x4, a, b, c, d, e, f, g);
     DEALLOCATE_PTRS(temp, pi);
@@ -42,8 +42,8 @@ static Tensor sigmoid(Tensor* tensor) {
     EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d);
 
     // Math: \frac{1}{1 + e^{-x}}
-    TENSOR_GRAPH_POW(&b, *TENSOR_GRAPH_EXP(&a, *tensor, tensor -> data_type), ASSIGN(temp, -1.0L, tensor -> data_type), tensor -> data_type);
-    TENSOR_GRAPH_POW(&d, *TENSOR_GRAPH_SUM(&c, x1, b), temp, tensor -> data_type);
+    TENSOR_GRAPH_POW(&b, *TENSOR_GRAPH_EXP(&a, *tensor), ASSIGN(temp, -1.0L, tensor -> data_type));
+    TENSOR_GRAPH_POW(&d, *TENSOR_GRAPH_SUM(&c, x1, b), temp);
     
     DEALLOCATE_TENSORS(x1, a, b, c);
     DEALLOCATE_PTRS(temp);
@@ -62,8 +62,8 @@ static void binary_cross_entropy(NN* nn) {
     EMPTY_TENSORS(nn -> data_type, &a, &b, &c, &d, &e, &f, &g, &h);
 
     // Math: -[y_i \log{(p_i)} + (1 - y_i) \log{(1 - p_i)}]
-    TENSOR_GRAPH_MUL(&b, nn -> loss_input, *TENSOR_GRAPH_LOG(&a, nn -> loss_node, nn -> data_type));
-    TENSOR_GRAPH_MUL(&f, *TENSOR_GRAPH_SUB(&c, x1, nn -> loss_input), *TENSOR_GRAPH_LOG(&e, *TENSOR_GRAPH_SUB(&d, x1, nn -> loss_node), nn -> data_type));
+    TENSOR_GRAPH_MUL(&b, nn -> loss_input, *TENSOR_GRAPH_LOG(&a, nn -> loss_node));
+    TENSOR_GRAPH_MUL(&f, *TENSOR_GRAPH_SUB(&c, x1, nn -> loss_input), *TENSOR_GRAPH_LOG(&e, *TENSOR_GRAPH_SUB(&d, x1, nn -> loss_node)));
     TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_SUM(&g, f, b), x2);
 
     return;
@@ -169,7 +169,7 @@ void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, v
         SCALAR_DIV_TENSOR(copy_tensor(&second_moment_vec_hat, second_moment_vec), SCALAR_SUB(temp, ASSIGN(temp, 1.0L, nn -> data_type), SCALAR_POW(tmp, first_moment, ASSIGN(tmp, t + 1.0L, nn -> data_type), nn -> data_type), nn -> data_type));
         
         // θ{t} ← θ{t−1} − α · ^m{t}^/(√^v{t}^ + eps)
-        SUBTRACT_TENSOR(&theta_vec, theta_vec, *SCALAR_MUL_TENSOR(DIVIDE_TENSOR(&first_moment_vec_hat, first_moment_vec_hat, *SCALAR_SUM_TENSOR(POW_TENSOR(&second_moment_vec_hat, second_moment_vec_hat, ASSIGN(temp, 0.5L, nn -> data_type), nn -> data_type), eps)), alpha));
+        SUBTRACT_TENSOR(&theta_vec, theta_vec, *SCALAR_MUL_TENSOR(DIVIDE_TENSOR(&first_moment_vec_hat, first_moment_vec_hat, *SCALAR_SUM_TENSOR(POW_TENSOR(&second_moment_vec_hat, second_moment_vec_hat, ASSIGN(temp, 0.5L, nn -> data_type)), eps)), alpha));
         DEALLOCATE_TENSORS(first_moment_vec_hat, second_moment_vec_hat);
     }
 

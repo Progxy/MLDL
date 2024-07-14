@@ -1,7 +1,6 @@
 #ifndef _TENSOR_H_
 #define _TENSOR_H_
 
-#include <stdarg.h>
 #include "./utils.h"
 
 #define EMPTY_TENSORS(data_type, ...) empty_tensors((sizeof((Tensor*[]){__VA_ARGS__}) / sizeof(Tensor*)), data_type, __VA_ARGS__)
@@ -11,11 +10,12 @@
 #define ALLOC_TEMP_TENSOR(shape, rank, data_type) alloc_temp_tensor(shape, rank, data_type, FALSE)
 #define PRINT_TENSOR(tensor, prefix_str) print_tensor(tensor, prefix_str, #tensor)
 #define PRINT_SHAPE(tensor) (printf("Tensor '%s' with shape: ", #tensor), print_shape((tensor).shape, (tensor).rank))
-#define POW_TENSOR(c, a, exp, data_types) op_tensor(c, a, (Tensor) {.data = exp, .data_type = data_types}, POW)
-#define TANH_TENSOR(c, a, data_types) op_tensor(c, a, (Tensor) {.data_type = data_types}, TANH)
-#define SQRT_TENSOR(c, a, data_types) op_tensor(c, a, (Tensor) {.data_type = data_types}, SQRT)
-#define EXP_TENSOR(c, a, data_types) op_tensor(c, a, (Tensor) {.data_type = data_types}, EXP)
-#define LOG_TENSOR(c, a, data_types) op_tensor(c, a, (Tensor) {.data_type = data_types}, LOG)
+#define POW_TENSOR(c, a, exp) op_tensor(c, a, (Tensor) {.data = exp, .data_type = (a).data_type}, POW)
+#define CONJUGATE_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, CONJUGATE)
+#define TANH_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, TANH)
+#define SQRT_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, SQRT)
+#define EXP_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, EXP)
+#define LOG_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, LOG)
 #define MULTIPLY_TENSOR(c, a, b) op_tensor(c, a, b, MULTIPLICATION)
 #define SUBTRACT_TENSOR(c, a, b) op_tensor(c, a, b, SUBTRACTION)
 #define DIVIDE_TENSOR(c, a, b) op_tensor(c, a, b, DIVISION)
@@ -39,7 +39,6 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
 Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
 Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
 Tensor alloc_scalar_tensor(void* val, DataType data_type);
-Tensor* negate_tensor(Tensor* dest, Tensor tensor);
 Tensor* transpose_tensor(Tensor* tensor);
 Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim);
 Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
@@ -48,7 +47,6 @@ Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor);
 Tensor* concat_tensors(Tensor* dest, Tensor src);
 Tensor* flatten_tensor(Tensor* dest, Tensor src);
 Tensor* cut_tensor(Tensor* dest, Tensor* src);
-Tensor* tensor_conjugate(Tensor* dest, Tensor src);
 Tensor* normal(Tensor* tensor);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
@@ -243,7 +241,7 @@ Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
 }
 
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
-    const bool is_special_operand_flag = (op_flag == EXP) || (op_flag == TANH) || (op_flag == POW) || (op_flag == LOG) || (op_flag == DOT);
+    const bool is_special_operand_flag = (op_flag == EXP) || (op_flag == TANH) || (op_flag == POW) || (op_flag == LOG) || (op_flag == CONJUGATE) || (op_flag == DOT);
     ASSERT(!is_valid_enum(op_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATOR");
     ASSERT(!is_special_operand_flag && (a.rank != b.rank), "DIM_MISMATCH");
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
@@ -349,6 +347,15 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
                 if (a.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] = sqrtf(CAST_PTR(a.data, float)[i]);
                 else if (a.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] = sqrt(CAST_PTR(a.data, double)[i]);
                 else if (a.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] = sqrtl(CAST_PTR(a.data, long double)[i]);
+            }
+            break;
+        }
+
+        case CONJUGATE: {
+            for (unsigned int i = 0; i < size; ++i) {
+                if (a.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] = -(CAST_PTR(a.data, float)[i]);
+                else if (a.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] = -(CAST_PTR(a.data, double)[i]);
+                else if (a.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] = -(CAST_PTR(a.data, long double)[i]);
             }
             break;
         }
@@ -545,23 +552,6 @@ Tensor* cut_tensor(Tensor* dest, Tensor* src) {
     free(src -> data);
     src -> data = new_ptr;
     src -> shape[0] -= cut_size / (src_size / src -> shape[0]);
-
-    return dest;
-}
-
-Tensor* tensor_conjugate(Tensor* dest, Tensor src) {
-    Tensor temp = empty_tensor(src.data_type);
-    copy_tensor(&temp, src);
-
-    unsigned int size = tensor_size(temp.shape, temp.rank);
-    for (unsigned int i = 0; i < size; ++i) {
-        if (temp.data_type == FLOAT_32) CAST_PTR(temp.data, float)[i] *= -1.0f;
-        else if (temp.data_type == FLOAT_64) CAST_PTR(temp.data, double)[i] *= -1.0;
-        else if (temp.data_type == FLOAT_128) CAST_PTR(temp.data, long double)[i] *= -1.0L;
-    }
-
-    copy_tensor(dest, temp);
-    DEALLOCATE_TENSORS(temp);
 
     return dest;
 }
