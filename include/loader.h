@@ -1,7 +1,7 @@
 #ifndef _LOADER_H_
 #define _LOADER_H_
 
-#include "./utils.h"
+#include "./tensor.h"
 
 void parse_dataset(File* dataset, Tensor* inputs, unsigned int input_size, Tensor* outputs, unsigned int output_size, ValueCheck input_values, ValueCheck output_values);
 

@@ -29,7 +29,7 @@
 Tensor alloc_temp_tensor(unsigned int* shape, unsigned int rank, DataType data_type, bool clean_cache_flag);
 Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
 Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim);
-void reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type);
+Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type);
 Tensor identity_tensor(unsigned int shape_base, unsigned int rank, DataType data_type);
 Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type);
 Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
@@ -212,7 +212,7 @@ void randomize_tensor(Tensor tensor) {
     return;
 }
 
-void reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type) {
+Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type) {
     dest -> shape = (unsigned int*) realloc(dest -> shape, sizeof(unsigned int) * rank);
     ASSERT(dest -> shape == NULL, "BAD_MEMORY");
     mem_copy(dest -> shape, shape, sizeof(unsigned int), rank);
@@ -221,7 +221,7 @@ void reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataTy
     free(dest -> data);
     dest -> data = calloc(tensor_size(dest -> shape, dest -> rank), dest -> data_type);
     ASSERT(dest -> data == NULL, "BAD_MEMORY");
-    return;
+    return dest;
 }
 
 Tensor* copy_tensor(Tensor* dest, Tensor src) {
