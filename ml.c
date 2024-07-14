@@ -35,13 +35,11 @@ int main() {
     File dataset = (File) { .file_name = "././datasets/tic_tac_toe_ds.arff", .data = NULL, .size = 0 };
     parse_dataset(&dataset, &inputs, nn.arch[0], &outputs, nn.arch[nn.size - 1], input_values, output_values);
 
-
     /* Args order: alpha, eps, first_moment_decay, second_moment_decay */
     void** args = GENERATE_ARGS(nn.data_type, 0.001, 10e-8, 0.9, 0.999);
-    unsigned int max_epochs = 100000;
     
     double og_accuracy = 0.0; get_accuracy(&og_accuracy, nn, inputs, outputs);
-    TRAIN_NN(nn, inputs, outputs, args, max_epochs);
+    TRAIN_NN(nn, inputs, outputs, args, 100000);
     double accuracy = 0.0; get_accuracy(&accuracy, nn, inputs, outputs);
     printf("NN accuracy: %.2lf%%, original accuracy: %.2lf%% (delta: %.2f%%)\n", accuracy, og_accuracy, accuracy - og_accuracy);
     DEALLOCATE_TENSORS(inputs, outputs);
