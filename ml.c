@@ -39,7 +39,7 @@ int main() {
     void** args = GENERATE_ARGS(nn.data_type, 0.001, 10e-8, 0.9, 0.999);
     
     double og_accuracy = 0.0; get_accuracy(&og_accuracy, nn, inputs, outputs);
-    TRAIN_NN(nn, inputs, outputs, args, 100000);
+    TRAIN_NN(nn, inputs, outputs, args, 1000);
     double accuracy = 0.0; get_accuracy(&accuracy, nn, inputs, outputs);
     printf("NN accuracy: %.2lf%%, original accuracy: %.2lf%% (delta: %.2f%%)\n", accuracy, og_accuracy, accuracy - og_accuracy);
     DEALLOCATE_TENSORS(inputs, outputs);

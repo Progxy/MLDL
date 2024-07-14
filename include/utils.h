@@ -40,17 +40,20 @@
 #define NOT_USED(var) (void) var
 
 bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigned int enum_values_count);
+void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg);
 void* normal_func(void* res, void* value, void* variance, void* mean, DataType data_type);
 void* scalar_op(void* res, void* a, void* b, DataType data_type, OperatorFlag operation);
 bool comparison_op(void* a, void* b, DataType data_type, ComparisonFlag comparison);
+char* value_to_str(void* value, DataType data_type, bool clean_cache_flag);
 void* assign_data_type(void* val, long double new_val, DataType data_type);
-void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg);
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
 void print_value_as_percentage(void* value, DataType data_type);
 unsigned int* create_shuffled_indices(unsigned int size);
 void print_value(void* value, DataType data_type);
 void print_time_format(long unsigned int time);
 void deallocate_ptrs(int len, ...);
+void** generate_args(int len, ...);
+void deallocate_args(void** args);
 void init_seed();
 
 /* ------------------------------------------------------------------------- */
