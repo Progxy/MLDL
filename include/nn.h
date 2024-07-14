@@ -187,7 +187,7 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
 
 void* get_accuracy(void* res, NN nn, Tensor inputs, Tensor outputs) {
     void* temp = (void*) calloc(1, nn.data_type);
-    SCALAR_MUL(res, SCALAR_SUB(res, ASSIGN(res, 1.0L, nn.data_type), cost(nn, inputs, outputs, &temp), nn.data_type), ASSIGN(&temp, 100.0L, nn.data_type), nn.data_type);
+    SCALAR_MUL(res, SCALAR_SUB(res, ASSIGN(res, 1.0L, nn.data_type), cost(nn, inputs, outputs, temp), nn.data_type), ASSIGN(temp, 100.0L, nn.data_type), nn.data_type);
     free(temp);
     return res;
 }
