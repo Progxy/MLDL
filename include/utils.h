@@ -9,6 +9,7 @@
 
 #define ASSERT(condition, err_msg) assert(condition, #condition, __LINE__, __FILE__, err_msg);
 #define CAST_AND_OP_INDEX(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_AND_OP(CAST_PTR_AT_INDEX(a.data, type, index), CAST_PTR_AT_INDEX(b.data, type, index), type, op) 
+#define GENERATE_ARGS(data_type, ...) generate_args((sizeof((long double[]){__VA_ARGS__}) / sizeof(long double)), data_type, __VA_ARGS__)
 #define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
 #define CAST_AND_OP(a, b, type, op) *CAST_PTR(a, type) op *CAST_PTR(b, type)
 #define CAST_PTR_AT_INDEX(a, type, index) &(CAST_PTR(a, type)[index])
@@ -294,6 +295,29 @@ void* normal_func(void* res, void* value, void* variance, void* mean, DataType d
     else if (data_type == FLOAT_64) *CAST_PTR(res, double) = pow(2.0 * (double) M_PI * (*CAST_PTR(variance, double)), -0.5) * exp(-(pow(*CAST_PTR(value, double) - *CAST_PTR(mean, double), 2.0) * (2.0 * (*CAST_PTR(variance, double)))));
     else if (data_type == FLOAT_128) *CAST_PTR(res, long double) = powl(2.0L * (long double) M_PI * (*CAST_PTR(variance, long double)), -0.5L) * expl(-(powl(*CAST_PTR(value, long double) - *CAST_PTR(mean, long double), 2.0L) * (2.0L * (*CAST_PTR(variance, long double)))));
     return res;
+}
+
+void** generate_args(int len, ...) {
+    va_list args;
+    va_start(args, len);
+    unsigned int data_type = va_arg(args, unsigned int);
+    void** args_list = (void**) calloc(len + 1, data_type);
+    for (int i = 0; i < len; ++i) {
+        void* ptr = (void*) calloc(1, data_type);
+        ASSIGN(ptr, va_arg(args, long double), data_type);
+        args_list[i] = ptr;
+    }
+    args_list[len] = NULL;
+    va_end(args);
+    return args_list;
+}
+
+void deallocate_args(void** args) {
+    for (; *args != NULL; *args++) {
+        free(*args);
+    }
+    free(args);
+    return;
 }
 
 #endif //_UTILS_H_

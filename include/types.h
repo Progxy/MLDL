@@ -63,9 +63,11 @@ typedef struct NN {
     Tensor loss_node;
     Tensor loss_input;
     void (*loss_function) (struct NN*);
+    void (*optimizer_function) (struct NN*, Tensor, Tensor, void**, unsigned int);
 } NN;
 
 typedef void (*LossFunction) (NN*);
+typedef void (*OptimizerFunction) (struct NN*, Tensor, Tensor, void**, unsigned int);
 
 typedef struct File {
     unsigned char* data;

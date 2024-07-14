@@ -3,8 +3,6 @@
 
 #include "./nn.h"
 
-void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs);
-void sgd(NN* nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs);
 Tensor* predict(NN nn, Tensor input, Tensor* output);
 
 /* ------------------------------------------------------------------------------------------------------------------------------- */
@@ -69,8 +67,10 @@ static void binary_cross_entropy(NN* nn) {
     return;
 }
 
-void sgd(NN* nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned int max_epochs) {
+static void sgd(NN* nn, Tensor inputs, Tensor outputs, void** args, unsigned int max_epochs) {
     ASSERT((nn -> data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
+
+    void* learning_rate = args[0];
 
     long unsigned int time_a = time(NULL);
     for (unsigned int epoch = 0; epoch < max_epochs; ++epoch) {
@@ -118,7 +118,12 @@ void sgd(NN* nn, Tensor inputs, Tensor outputs, void* learning_rate, unsigned in
     return;
 }
 
-void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void* alpha, void* eps, void* first_moment, void* second_moment, unsigned int max_epochs) {
+static void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void** args , unsigned int max_epochs) {
+    void* alpha = args[0]; 
+    void* eps = args[1]; 
+    void* first_moment = args[2]; 
+    void* second_moment = args[3];
+    
     void* temp = calloc(1, nn -> data_type);
     void* tmp = calloc(1, nn -> data_type);
 

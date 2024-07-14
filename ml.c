@@ -9,7 +9,7 @@ int main() {
     unsigned int arch[] = {9, 10, 12, 10, 1};
     ActivationFunction activation_functions[] = {gelu, gelu, gelu, gelu, sigmoid};
     ASSERT(ARR_SIZE(activation_functions) != ARR_SIZE(arch), "SIZE_MISMATCH");
-    NN nn = create_nn(ARR_SIZE(arch), arch, activation_functions, binary_cross_entropy, FLOAT_64);
+    NN nn = create_nn(ARR_SIZE(arch), arch, activation_functions, binary_cross_entropy, adam_optim, FLOAT_64);
     init_nn(&nn, TRUE);
 
     char* input_valid_values[] = { "b", "x", "o" };
@@ -35,19 +35,15 @@ int main() {
     File dataset = (File) { .file_name = "././datasets/tic_tac_toe_ds.arff", .data = NULL, .size = 0 };
     parse_dataset(&dataset, &inputs, nn.arch[0], &outputs, nn.arch[nn.size - 1], input_values, output_values);
 
-    double cost_d = 0.0;
 
-    double eps = 10e-8;
-    double alpha = 0.001;
+    /* Args order: alpha, eps, first_moment_decay, second_moment_decay */
+    void** args = GENERATE_ARGS(nn.data_type, 0.001, 10e-8, 0.9, 0.999);
     unsigned int max_epochs = 100000;
-    double first_moment_decay = 0.9;
-    double second_moment_decay = 0.999;
     
-    double og_cost = (1.0 - *CAST_PTR(cost(nn, inputs, outputs, &cost_d), double)) * 100.0;
-    adam_optim(&nn, inputs, outputs, &alpha, &eps, &first_moment_decay, &second_moment_decay, max_epochs);
-    //sgd(&nn, inputs, outputs, &eps, max_epochs);
-    double accuracy = (1.0 - *CAST_PTR(cost(nn, inputs, outputs, &cost_d), double)) * 100.0;
-    printf("NN accuracy: %.2lf%%, original cost: %.2lf%% (delta: %.2f%%)\n", accuracy, og_cost, accuracy - og_cost);
+    double og_accuracy = 0.0; get_accuracy(&og_accuracy, nn, inputs, outputs);
+    TRAIN_NN(nn, inputs, outputs, args, max_epochs);
+    double accuracy = 0.0; get_accuracy(&accuracy, nn, inputs, outputs);
+    printf("NN accuracy: %.2lf%%, original accuracy: %.2lf%% (delta: %.2f%%)\n", accuracy, og_accuracy, accuracy - og_accuracy);
     DEALLOCATE_TENSORS(inputs, outputs);
     
     const double predict_input[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };

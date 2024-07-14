@@ -6,20 +6,22 @@
 
 #define INPUT_NN(nn) (nn).layers[0].activation
 #define OUTPUT_NN(nn) (nn).layers[(nn).size - 1].activation
+#define TRAIN_NN(nn, inputs, outputs, args, max_epochs) nn.optimizer_function(&nn, inputs, outputs, args, max_epochs)
 
-Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type);
-NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, DataType data_type);
+NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, OptimizerFunction optimizer_function, DataType data_type);
+void* get_accuracy(void* res, NN nn, Tensor inputs, Tensor outputs);
+void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost);
+Tensor* flatten_gradient_nn(Tensor* tensor, NN nn);
+void print_nn(NN nn, bool print_layer_flag);
 void init_nn(NN* nn, bool randomize_flag);
 Tensor* flatten_nn(Tensor* tensor, NN nn);
 void unflatten_nn(NN nn, Tensor* tensor);
 unsigned int nn_size(NN nn);
 void deallocate_nn(NN nn);
-void print_nn(NN nn, bool print_layer_flag);
-void rand_nn(NN* nn);
 
 /* ----------------------------------------------------------------------------------------- */
 
-Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type) {
+static Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType data_type) {
     Layer layer = (Layer) {.neurons = neurons};
     unsigned int bias_shape[] = {1, neurons};
     unsigned int weight_shape[] = {input_neurons, neurons};
@@ -31,7 +33,7 @@ Layer create_layer(unsigned int input_neurons, unsigned int neurons, DataType da
     return layer;
 }
 
-void rand_nn(NN* nn) {
+static void rand_nn(NN* nn) {
     for (unsigned int l = 1; l < nn -> size; ++l) {
         randomize_tensor(nn -> layers[l].weights);
         normal(&(nn -> layers[l].weights));
@@ -40,6 +42,19 @@ void rand_nn(NN* nn) {
     }
     return;
 } 
+
+static void print_layer(Layer layer, bool is_input_layer, bool print_layer_flag) {
+    printf("\tactivation: \n");
+    PRINT_TENSOR(print_layer_flag ? layer.activation : *NODE_TENSOR(layer.activation.grad_node), "\t");
+    if (!is_input_layer || print_layer_flag) {
+        printf("\tweigths: \n");
+        PRINT_TENSOR(print_layer_flag ? layer.weights : *NODE_TENSOR(layer.weights.grad_node), "\t");
+        printf("\tbias: \n");
+        PRINT_TENSOR(print_layer_flag ? layer.biases : *NODE_TENSOR(layer.biases.grad_node), "\t");
+    }
+    printf("\n");
+    return;
+}
 
 unsigned int nn_size(NN nn) {
     unsigned int size = 0;
@@ -52,8 +67,8 @@ unsigned int nn_size(NN nn) {
     return size;
 }
 
-NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, DataType data_type) {
-    NN nn = (NN) {.size = size, .arch = arch, .data_type = data_type, .loss_function = loss_function};
+NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, OptimizerFunction optimizer_function, DataType data_type) {
+    NN nn = (NN) {.size = size, .arch = arch, .data_type = data_type, .loss_function = loss_function, .optimizer_function = optimizer_function};
     nn.layers = (Layer*) calloc(size, sizeof(Layer));
     unsigned int activation_shape[] = { 1, arch[0] };
     nn.layers[0].activation = alloc_tensor(activation_shape, 2, data_type);
@@ -71,19 +86,6 @@ NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activati
     alloc_grad_graph_node(data_type, &(nn.loss_input));
 
     return nn;
-}
-
-static void print_layer(Layer layer, bool is_input_layer, bool print_layer_flag) {
-    printf("\tactivation: \n");
-    PRINT_TENSOR(print_layer_flag ? layer.activation : *NODE_TENSOR(layer.activation.grad_node), "\t");
-    if (!is_input_layer || print_layer_flag) {
-        printf("\tweigths: \n");
-        PRINT_TENSOR(print_layer_flag ? layer.weights : *NODE_TENSOR(layer.weights.grad_node), "\t");
-        printf("\tbias: \n");
-        PRINT_TENSOR(print_layer_flag ? layer.biases : *NODE_TENSOR(layer.biases.grad_node), "\t");
-    }
-    printf("\n");
-    return;
 }
 
 void print_nn(NN nn, bool print_layer_flag) {
@@ -181,6 +183,13 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
     DEALLOCATE_TENSORS(cost_tensor);
 
     return cost;
+}
+
+void* get_accuracy(void* res, NN nn, Tensor inputs, Tensor outputs) {
+    void* temp = (void*) calloc(1, nn.data_type);
+    SCALAR_MUL(res, SCALAR_SUB(res, ASSIGN(res, 1.0L, nn.data_type), cost(nn, inputs, outputs, &temp), nn.data_type), ASSIGN(&temp, 100.0L, nn.data_type), nn.data_type);
+    free(temp);
+    return res;
 }
 
 #endif //_NEURONS_H_
