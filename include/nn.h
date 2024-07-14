@@ -2,7 +2,6 @@
 #define _NEURONS_H_
 
 #include "./autograd.h"
-#include "./mat.h"
 
 #define INPUT_NN(nn) (nn).layers[0].activation
 #define OUTPUT_NN(nn) (nn).layers[(nn).size - 1].activation

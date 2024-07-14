@@ -7,9 +7,9 @@
 #define DEALLOCATE_TENSORS(...) deallocate_tensors(sizeof((Tensor[]){__VA_ARGS__}) / sizeof(Tensor), __VA_ARGS__)
 #define RESHAPE_TENSOR(dest, tensor) reshape_tensor(dest, (tensor).shape, (tensor).rank, (tensor).data_type)
 #define DEALLOCATE_TEMP_TENSORS() alloc_temp_tensor(NULL, 0, FLOAT_32, TRUE)
-#define ALLOC_TEMP_TENSOR(shape, rank, data_type) alloc_temp_tensor(shape, rank, data_type, FALSE)
-#define PRINT_TENSOR(tensor, prefix_str) print_tensor(tensor, prefix_str, #tensor)
-#define PRINT_SHAPE(tensor) (printf("Tensor '%s' with shape: ", #tensor), print_shape((tensor).shape, (tensor).rank))
+#define PRINT_TENSOR(tensor, prefix) print_tensor(tensor, prefix, #tensor)
+#define PRINT_SHAPE(tensor) print_shape((tensor).shape, (tensor).rank)
+#define TENSOR_SIZE(tensor) tensor_size((tensor).shape, (tensor).rank)
 #define POW_TENSOR(c, a, exp) op_tensor(c, a, (Tensor) {.data = exp, .data_type = (a).data_type}, POW)
 #define CONJUGATE_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, CONJUGATE)
 #define TANH_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, TANH)
@@ -26,28 +26,29 @@
 #define SCALAR_DIV_TENSOR(a, val) scalar_op_tensor(a, val, DIVISION)
 #define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUM)
 
-void deallocate_tensors(int len, ...);
-void empty_tensors(int len, ...);
-Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type);
 Tensor alloc_temp_tensor(unsigned int* shape, unsigned int rank, DataType data_type, bool clean_cache_flag);
-void print_tensor(Tensor tensor, char* prefix_str, char* tensor_name);
-void fill_tensor(void* val, Tensor tensor);
-void randomize_tensor(Tensor tensor);
-Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type);
-Tensor* copy_tensor(Tensor* dest, Tensor src);
-Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
-Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
 Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
-Tensor alloc_scalar_tensor(void* val, DataType data_type);
-Tensor* transpose_tensor(Tensor* tensor);
 Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim);
-Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim);
+void reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type);
+Tensor identity_tensor(unsigned int shape_base, unsigned int rank, DataType data_type);
+Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type);
+Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
+Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
+void print_tensor(Tensor tensor, char* prefix_str, char* tensor_name);
+unsigned int tensor_size(unsigned int* shape, unsigned int rank);
+Tensor alloc_scalar_tensor(void* val, DataType data_type);
 void* tensor_norm(Tensor tensor, void* norm, void* res);
-Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor);
-Tensor* concat_tensors(Tensor* dest, Tensor src);
 Tensor* flatten_tensor(Tensor* dest, Tensor src);
+Tensor* concat_tensors(Tensor* dest, Tensor src);
+void set_tensor(void* new_data, Tensor tensor);
+Tensor* copy_tensor(Tensor* dest, Tensor src);
 Tensor* cut_tensor(Tensor* dest, Tensor* src);
-Tensor* normal(Tensor* tensor);
+void fill_tensor(void* val, Tensor tensor);
+Tensor* transpose_tensor(Tensor* tensor);
+Tensor empty_tensor(DataType data_type);
+void deallocate_tensors(int len, ...);
+void randomize_tensor(Tensor tensor);
+void empty_tensors(int len, ...);
 
 /* ------------------------------------------------------------------------------------------------------------------------- */
 
@@ -64,18 +65,6 @@ static void insert_spacing(unsigned int index, char* prefix_str, Tensor tensor) 
         temp *= tensor.shape[i];
         if (!((index + 1) % temp)) printf("\n%s", prefix_str);
     }
-    return;
-}
-
-void deallocate_tensors(int len, ...) {
-    va_list args;
-    va_start(args, len);
-    for (int i = 0; i < len; ++i) {
-        Tensor tensor = va_arg(args, Tensor);
-        free(tensor.data);
-        free(tensor.shape);
-    }
-    va_end(args);
     return;
 }
 
@@ -118,6 +107,18 @@ Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type) 
     tensor.data = calloc(tensor_size(shape, rank), tensor.data_type); 
     ASSERT(tensor.data == NULL, "BAD_MEMORY");
     return tensor;
+}
+
+void deallocate_tensors(int len, ...) {
+    va_list args;
+    va_start(args, len);
+    for (int i = 0; i < len; ++i) {
+        Tensor tensor = va_arg(args, Tensor);
+        free(tensor.data);
+        free(tensor.shape);
+    }
+    va_end(args);
+    return;
 }
 
 Tensor empty_tensor(DataType data_type) {
@@ -211,15 +212,16 @@ void randomize_tensor(Tensor tensor) {
     return;
 }
 
-Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type) {
+void reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type) {
     dest -> shape = (unsigned int*) realloc(dest -> shape, sizeof(unsigned int) * rank);
     ASSERT(dest -> shape == NULL, "BAD_MEMORY");
     mem_copy(dest -> shape, shape, sizeof(unsigned int), rank);
     dest -> rank = rank;
     dest -> data_type = data_type;
-    dest -> data = realloc(dest -> data, tensor_size(dest -> shape, dest -> rank) * dest -> data_type);
+    free(dest -> data);
+    dest -> data = calloc(tensor_size(dest -> shape, dest -> rank), dest -> data_type);
     ASSERT(dest -> data == NULL, "BAD_MEMORY");
-    return dest;
+    return;
 }
 
 Tensor* copy_tensor(Tensor* dest, Tensor src) {
@@ -227,17 +229,6 @@ Tensor* copy_tensor(Tensor* dest, Tensor src) {
     unsigned int size = tensor_size(src.shape, src.rank);
     mem_copy(dest -> data, src.data, size, src.data_type);
     return dest;
-}
-
-Tensor cast_mat_to_tensor(Matrix mat, Tensor* tensor) {
-    unsigned int rank = 2;
-    unsigned int* shape = (unsigned int*) calloc(rank, sizeof(unsigned int));
-    shape[0] = mat.rows;
-    shape[1] = mat.cols; 
-    reshape_tensor(tensor, shape, rank, mat.data_type);
-    mem_copy(tensor -> data, mat.data, tensor -> data_type, tensor_size(tensor -> shape, tensor -> rank));
-    free(shape);
-    return *tensor;
 }
 
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
@@ -436,43 +427,6 @@ Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsign
     return tensor;
 }
 
-Tensor* change_tensor_rank(Tensor* tensor, unsigned int new_dim) {
-    if (tensor -> rank == new_dim) return tensor;
-
-    unsigned int* new_shape = (unsigned int*) calloc(new_dim, sizeof(unsigned int));
-    if (tensor -> rank < new_dim) {
-        for (unsigned int i = 0; i < new_dim - tensor -> rank; ++i) new_shape[i] = 1;  
-        for (unsigned int i = new_dim - tensor -> rank, j = 0; i < new_dim; ++i, ++j) new_shape[i] = tensor -> shape[j];
-    } else {
-        for (unsigned int i = 0; i < new_dim; ++i) new_shape[i] = tensor -> shape[i + (tensor -> rank - new_dim)];
-        unsigned int shape_0 = 1;
-        for (unsigned int i = 0; i < tensor -> rank - new_dim; ++i) shape_0 *= tensor -> shape[i];
-        new_shape[0] *= shape_0;
-    }
-
-    tensor -> shape = (unsigned int*) realloc(tensor -> shape, sizeof(unsigned int) * new_dim);
-    ASSERT(tensor -> shape == NULL, "BAD_MEMORY");
-    mem_copy(tensor -> shape, new_shape, sizeof(unsigned int), new_dim);
-    tensor -> rank = new_dim;
-    free(new_shape);
-
-    return tensor;
-}
-
-Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim) {
-    unsigned int new_dim = tensor.rank - index_dim; 
-    unsigned int* new_shape = (unsigned int*) calloc(new_dim, sizeof(unsigned int));
-    new_shape[0] = 1;
-    for (unsigned int i = 1; i < new_dim; ++i) new_shape[i] = tensor.shape[i + index_dim];
-    reshape_tensor(out, new_shape, new_dim, tensor.data_type);
-    free(new_shape);
-    unsigned int offset = calc_shape_offset(tensor.shape, index_dim, tensor.rank) * index;
-    if (tensor.data_type == FLOAT_32) mem_copy(out -> data, CAST_PTR(tensor.data, float) + offset, tensor.data_type, tensor_size(out -> shape, out -> rank));
-    else if (tensor.data_type == FLOAT_64) mem_copy(out -> data, CAST_PTR(tensor.data, double) + offset, tensor.data_type, tensor_size(out -> shape, out -> rank));
-    else if (tensor.data_type == FLOAT_128) mem_copy(out -> data, CAST_PTR(tensor.data, long double) + offset, tensor.data_type, tensor_size(out -> shape, out -> rank));
-    return out;
-}
-
 Tensor* transpose_tensor(Tensor* tensor) {
     unsigned int rows = 0, cols = 0;
     matricize_tensor(*tensor, &rows, &cols);
@@ -500,6 +454,31 @@ Tensor* transpose_tensor(Tensor* tensor) {
     DEALLOCATE_TENSORS(temp);
 
     return tensor;
+}
+
+Tensor identity_tensor(unsigned int shape_base, unsigned int rank, DataType data_type) {
+    unsigned int shape[] = {shape_base, shape_base};
+    Tensor tensor = alloc_tensor(shape, rank, data_type);
+    for (unsigned int i = 0; i < shape_base; ++i) {
+        if (data_type == FLOAT_32) CAST_PTR(tensor.data, float)[i * shape_base + i] = 1.0f;
+        else if (data_type == FLOAT_64) CAST_PTR(tensor.data, double)[i * shape_base + i] = 1.0;
+        else if (data_type == FLOAT_128) CAST_PTR(tensor.data, long double)[i * shape_base + i] = 1.0L;
+    } 
+    return tensor;
+}
+
+Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim) {
+    unsigned int new_dim = tensor.rank - index_dim; 
+    unsigned int* new_shape = (unsigned int*) calloc(new_dim, sizeof(unsigned int));
+    new_shape[0] = 1;
+    for (unsigned int i = 1; i < new_dim; ++i) new_shape[i] = tensor.shape[i + index_dim];
+    reshape_tensor(out, new_shape, new_dim, tensor.data_type);
+    free(new_shape);
+    unsigned int offset = calc_shape_offset(tensor.shape, index_dim, tensor.rank) * index;
+    if (tensor.data_type == FLOAT_32) mem_copy(out -> data, CAST_PTR(tensor.data, float) + offset, tensor.data_type, tensor_size(out -> shape, out -> rank));
+    else if (tensor.data_type == FLOAT_64) mem_copy(out -> data, CAST_PTR(tensor.data, double) + offset, tensor.data_type, tensor_size(out -> shape, out -> rank));
+    else if (tensor.data_type == FLOAT_128) mem_copy(out -> data, CAST_PTR(tensor.data, long double) + offset, tensor.data_type, tensor_size(out -> shape, out -> rank));
+    return out;
 }
 
 Tensor* concat_tensors(Tensor* dest, Tensor src) {
@@ -554,17 +533,6 @@ Tensor* cut_tensor(Tensor* dest, Tensor* src) {
     src -> shape[0] -= cut_size / (src_size / src -> shape[0]);
 
     return dest;
-}
-
-Tensor identity_tensor(unsigned int shape_base, unsigned int rank, DataType data_type) {
-    unsigned int shape[] = {shape_base, shape_base};
-    Tensor tensor = alloc_tensor(shape, rank, data_type);
-    for (unsigned int i = 0; i < shape_base; ++i) {
-        if (data_type == FLOAT_32) CAST_PTR(tensor.data, float)[i * shape_base + i] = 1.0f;
-        else if (data_type == FLOAT_64) CAST_PTR(tensor.data, double)[i * shape_base + i] = 1.0;
-        else if (data_type == FLOAT_128) CAST_PTR(tensor.data, long double)[i * shape_base + i] = 1.0L;
-    } 
-    return tensor;
 }
 
 void* tensor_norm(Tensor tensor, void* norm, void* res) {

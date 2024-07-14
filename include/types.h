@@ -1,8 +1,8 @@
 #ifndef _TYPES_H_
 #define _TYPES_H_
 
-#define FALSE 0
 #define TRUE 1
+#define FALSE 0
 
 typedef unsigned char bool;
 
@@ -15,7 +15,6 @@ const unsigned char operators_flags[] = { SUM, SUBTRACTION, MULTIPLICATION, DIVI
 const unsigned char comparison_flags[] = { EQUAL, LESS, LESS_OR_EQUAL, GREATER, GREATER_OR_EQUAL };
 
 const char* operators_flags_str[] = { "SUM", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "POW", "EXP", "TANH", "SQRT", "DOT", "LOG", "CONJUGATE" };
-
 
 typedef struct Tensor {
     unsigned int* shape;
@@ -37,15 +36,6 @@ typedef struct GradNode {
     unsigned int parents_count;
     void* exp;
 } GradNode;
-
-typedef struct Matrix {
-    unsigned int rows;
-    unsigned int cols;
-    void* data;
-    DataType data_type;
-} Matrix;
-
-typedef Matrix Vec;
 
 typedef struct Layer {
     unsigned int neurons;
