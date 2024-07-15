@@ -11,10 +11,10 @@ static Tensor gelu(Tensor* tensor) {
     void* pi = (void*) calloc(1, tensor -> data_type);
     ASSIGN(temp, 2.0L, tensor -> data_type);
     ASSIGN(pi, M_PI, tensor -> data_type);
-    alloc_tensor_grad_graph_filled(x1, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 0.044715L, tensor -> data_type));
-    alloc_tensor_grad_graph_filled(x2, tensor -> shape, tensor -> rank, tensor -> data_type, SCALAR_SQRT(temp, SCALAR_DIV(temp, temp, pi, tensor -> data_type), tensor -> data_type));
-    alloc_tensor_grad_graph_filled(x3, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 1.0L, tensor -> data_type));
-    alloc_tensor_grad_graph_filled(x4, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 0.5L, tensor -> data_type));
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x1, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 0.044715L, tensor -> data_type));
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x2, tensor -> shape, tensor -> rank, tensor -> data_type, SCALAR_SQRT(temp, SCALAR_DIV(temp, temp, pi, tensor -> data_type), tensor -> data_type));
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x3, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 1.0L, tensor -> data_type));
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x4, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 0.5L, tensor -> data_type));
     
     Tensor a, b, c, d, e, f, g, h;
     EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d, &e, &f, &g, &h);
@@ -32,7 +32,7 @@ static Tensor gelu(Tensor* tensor) {
 static Tensor sigmoid(Tensor* tensor) {
     Tensor x1;
     void* temp = calloc(1, tensor -> data_type);
-    alloc_tensor_grad_graph_filled(x1, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 1.0L, tensor -> data_type));
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x1, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 1.0L, tensor -> data_type));
 
     Tensor a, b, c, d;
     EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d);
@@ -47,15 +47,19 @@ static Tensor sigmoid(Tensor* tensor) {
     return d;
 }
 
-static Tensor tan_h(Tensor* tensor) {
+UNUSED_FUNCTION static Tensor tan_h(Tensor* tensor) {
     Tensor a = empty_tensor(tensor -> data_type);
     TENSOR_GRAPH_TANH(&a, *tensor);
     return a;
 }
 
-static Tensor relu(Tensor* tensor) {
+UNUSED_FUNCTION static Tensor relu(Tensor* tensor) {
+    Tensor x;
+    void* val = (void*) calloc(1, tensor -> data_type);
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x, tensor -> shape, tensor -> rank, tensor -> data_type, val);
     Tensor a = empty_tensor(tensor -> data_type);
-    TENSOR_GRAPH_MAX(&a, *tensor);
+    TENSOR_GRAPH_MAX(&a, x, *tensor);
+    free(val);
     return a;
 }
 
@@ -64,8 +68,8 @@ static Tensor relu(Tensor* tensor) {
 static void binary_cross_entropy(NN* nn) {
     Tensor x1, x2;
     void* one = (void*) calloc(1, nn -> data_type);
-    alloc_tensor_grad_graph_filled(x1, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, 1.0L, nn -> data_type));
-    alloc_tensor_grad_graph_filled(x2, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, -1.0L, nn -> data_type));
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x1, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, 1.0L, nn -> data_type));
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x2, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, -1.0L, nn -> data_type));
     DEALLOCATE_PTRS(one);
 
     Tensor a, b, c, d, e, f, g, h;
@@ -81,7 +85,7 @@ static void binary_cross_entropy(NN* nn) {
 
 /* Optimizers Functions */
 
-static void sgd(NN* nn, Tensor inputs, Tensor outputs, void** args, unsigned int max_epochs) {
+UNUSED_FUNCTION static void sgd(NN* nn, Tensor inputs, Tensor outputs, void** args, unsigned int max_epochs) {
     ASSERT((nn -> data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
 
     void* learning_rate = args[0];

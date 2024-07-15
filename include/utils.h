@@ -3,60 +3,59 @@
 
 #include <time.h>
 #include <stdarg.h>
-#define __USE_MISC
 #include <math.h>
 #include "./types.h"
 
-#define CAST_AND_OP_INDEX(a, b, c, index, type, op) CAST_PTR(c.data, type)[index] = CAST_AND_OP(CAST_PTR_AT_INDEX(a.data, type, index), CAST_PTR_AT_INDEX(b.data, type, index), type, op) 
-#define GENERATE_ARGS(data_type, ...) generate_args((sizeof((long double[]){__VA_ARGS__}) / sizeof(long double)), data_type, __VA_ARGS__)
+#define CAST_AND_OP_INDEX(a, b, c, index, data_type, op) scalar_op(CAST_PTR_AT_INDEX(c, index, data_type), CAST_PTR_AT_INDEX(a, index, data_type), CAST_PTR_AT_INDEX(b, index, data_type), data_type, op)
+#define CAST_AND_SINGLE_OP_INDEX(a, c, index, data_type, op) scalar_op(CAST_PTR_AT_INDEX(c, index, data_type), CAST_PTR_AT_INDEX(a, index, data_type), NULL, data_type, op)
 #define DEALLOCATE_PTRS(...) deallocate_ptrs(sizeof((void*[]){__VA_ARGS__}) / sizeof(void*), __VA_ARGS__)
 #define ASSIGN(val, new_val, data_type) assign_data_type(val, (long double) new_val, data_type)
 #define ASSERT(condition, err_msg) assert(condition, #condition, __LINE__, __FILE__, err_msg)
+#define CAST_PTR_AT_INDEX(a, index, type) (CAST_PTR(a, unsigned char) + (type * index))
 #define CAST_AND_OP(a, b, type, op) *CAST_PTR(a, type) op *CAST_PTR(b, type)
-#define CAST_PTR_AT_INDEX(a, type, index) &(CAST_PTR(a, type)[index])
+#define ARR_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define UNUSED_FUNCTION __attribute__((unused))
+#define CAST_PTR(ptr, type) ((type*) (ptr))
+#define MAX(a, b) (a >= b ? a : b)
+#define MIN(a, b) (a <= b ? a : b)
+#define NOT_USED(var) (void) var
+
+// OPERATIONS ON SCALAR VALUES
 #define SCALAR_CONJUGATE(res, a, data_type) scalar_op(res, a, NULL, data_type, CONJUGATE)
 #define SCALAR_MUL(res, a, b, data_type) scalar_op(res, a, b, data_type, MULTIPLICATION)
 #define SCALAR_SUB(res, a, b, data_type) scalar_op(res, a, b, data_type, SUBTRACTION)
 #define SCALAR_DIV(res, a, b, data_type) scalar_op(res, a, b, data_type, DIVISION)
-#define SCALAR_TANH(res, a, data_type) scalar_op(res, a, data_type, TANH)
+#define SCALAR_SQRT(res, a, data_type) scalar_op(res, a, NULL, data_type, SQRT)
+#define SCALAR_TANH(res, a, data_type) scalar_op(res, a, NULL, data_type, TANH)
 #define SCALAR_SUM(res, a, b, data_type) scalar_op(res, a, b, data_type, SUM)
 #define SCALAR_POW(res, a, b, data_type) scalar_op(res, a, b, data_type, POW)
 #define SCALAR_EXP(res, a, data_type) scalar_op(res, a, NULL, data_type, EXP)
-#define SCALAR_SQRT(res, a, data_type) scalar_op(res, a, NULL, data_type, SQRT)
 #define SCALAR_LOG(res, a, data_type) scalar_op(res, a, NULL, data_type, LOG)
+#define SCALAR_MAX(res, a, b, data_type) scalar_op(res, a, b, data_type, MAX)
+#define SCALAR_MIN(res, a, b, data_type) scalar_op(res, a, b, data_type, MIN)
+
+// COMPARISON OPERATIONS
 #define IS_GREATER_OR_EQUAL(a, b, data_type) comparison_op(a, b, data_type, GREATER_OR_EQUAL)
 #define IS_LESS_OR_EQUAL(a, b, data_type) comparison_op(a, b, data_type, LESS_OR_EQUAL)
 #define IS_GREATER(a, b, data_type) comparison_op(a, b, data_type, GREATER)
 #define IS_EQUAL(a, b, data_type) comparison_op(a, b, data_type, EQUAL)
 #define IS_LESS(a, b, data_type) comparison_op(a, b, data_type, LESS)
-#define VALUE_TO_STR(value, data_type) value_to_str(value, data_type, FALSE)
-#define DEALLOCATE_TEMP_STRS() value_to_str(NULL, FLOAT_32, TRUE)
-#define IS_MAT(mat) ((mat.rows != 1) && (mat.cols != 1))
-#define ARR_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
-#define CAST_PTR(ptr, type) ((type*) (ptr))
-#define IS_ROW_MAJOR(mat) (mat.rows != 1)
-#define MAX(a, b) (a >= b ? a : b)
-#define MIN(a, b) (a <= b ? a : b)
-#define NOT_USED(var) (void) var
+
+// CONSTANT VALUES
+#define M_PI 3.14159265358979323846
 
 bool is_valid_enum(unsigned char enum_value, unsigned char* enum_values, unsigned int enum_values_count);
 void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg);
 void* normal_func(void* res, void* value, void* variance, void* mean, DataType data_type);
 void* scalar_op(void* res, void* a, void* b, DataType data_type, OperatorFlag operation);
 bool comparison_op(void* a, void* b, DataType data_type, ComparisonFlag comparison);
-char* value_to_str(void* value, DataType data_type, bool clean_cache_flag);
 void* assign_data_type(void* val, long double new_val, DataType data_type);
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
-void print_value_as_percentage(void* value, DataType data_type);
-unsigned int* create_shuffled_indices(unsigned int size);
-void print_value(void* value, DataType data_type);
-void print_time_format(long unsigned int time);
+void mem_set(void* dest, void* src, unsigned char size, unsigned int n);
 void deallocate_ptrs(int len, ...);
-void** generate_args(int len, ...);
-void deallocate_args(void** args);
 void init_seed();
 
-/* ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------------------------------ */
 
 void assert(bool condition, char* condition_str, unsigned int line, char* file, char* err_msg) {
     if (condition) {
@@ -68,8 +67,14 @@ void assert(bool condition, char* condition_str, unsigned int line, char* file, 
 
 void mem_copy(void* dest, void* src, unsigned char size, unsigned int n) {
     ASSERT(src == NULL, "NULL_POINTER");
-    for (unsigned int i = 0; i < size * n; ++i) {
-        CAST_PTR(dest, unsigned char)[i] = CAST_PTR(src, unsigned char)[i];
+    for (unsigned int i = 0; i < size * n; ++i) CAST_PTR(dest, unsigned char)[i] = CAST_PTR(src, unsigned char)[i];
+    return;
+}
+
+void mem_set(void* dest, void* src, unsigned char size, unsigned int n) {
+    ASSERT(src == NULL, "NULL POINTER");
+    for (unsigned int j = 0; j < n; ++j) {
+        for (unsigned int i = 0; i < size; ++i) CAST_PTR(dest, unsigned char)[size * j + i] = CAST_PTR(src, unsigned char)[i];
     }
     return;
 }
@@ -201,6 +206,20 @@ void* scalar_op(void* res, void* a, void* b, DataType data_type, OperatorFlag op
             break;
         }
 
+        case MAX: {
+            if (data_type == FLOAT_32) *CAST_PTR(res, float) = MAX(*CAST_PTR(a, float), *CAST_PTR(b, float));
+            else if (data_type == FLOAT_64) *CAST_PTR(res, double) = MAX(*CAST_PTR(a, double), *CAST_PTR(b, double));
+            else if (data_type == FLOAT_128) *CAST_PTR(res, long double) = MAX(*CAST_PTR(a, long double), *CAST_PTR(b, long double));
+            break;
+        }        
+        
+        case MIN: {
+            if (data_type == FLOAT_32) *CAST_PTR(res, float) = MIN(*CAST_PTR(a, float), *CAST_PTR(b, float));
+            else if (data_type == FLOAT_64) *CAST_PTR(res, double) = MIN(*CAST_PTR(a, double), *CAST_PTR(b, double));
+            else if (data_type == FLOAT_128) *CAST_PTR(res, long double) = MIN(*CAST_PTR(a, long double), *CAST_PTR(b, long double));
+            break;
+        }
+
         case CONJUGATE: {
             if (data_type == FLOAT_32) *CAST_PTR(res, float) = -(*CAST_PTR(a, float));
             else if (data_type == FLOAT_64) *CAST_PTR(res, double) = -(*CAST_PTR(a, double));
@@ -211,6 +230,41 @@ void* scalar_op(void* res, void* a, void* b, DataType data_type, OperatorFlag op
 
     return res;
 }
+
+void deallocate_ptrs(int len, ...) {
+    va_list args;
+    va_start(args, len);
+    for (int i = 0; i < len; ++i) {
+        void* ptr = va_arg(args, void*);
+        free(ptr);
+    }
+    va_end(args);
+    return;
+}
+
+void* normal_func(void* res, void* value, void* variance, void* mean, DataType data_type) {
+    // Math: (2\pi\sigma^2)^{-{1/2}}\exp(-\frac{(x-\mu)^2}{2\sigma^2})
+    if (data_type == FLOAT_32) *CAST_PTR(res, float) = powf(2.0f * (float) M_PI * (*CAST_PTR(variance, float)), -0.5f) * expf(-(powf(*CAST_PTR(value, float) - *CAST_PTR(mean, float), 2.0f) * (2.0f * (*CAST_PTR(variance, float)))));
+    else if (data_type == FLOAT_64) *CAST_PTR(res, double) = pow(2.0 * (double) M_PI * (*CAST_PTR(variance, double)), -0.5) * exp(-(pow(*CAST_PTR(value, double) - *CAST_PTR(mean, double), 2.0) * (2.0 * (*CAST_PTR(variance, double)))));
+    else if (data_type == FLOAT_128) *CAST_PTR(res, long double) = powl(2.0L * (long double) M_PI * (*CAST_PTR(variance, long double)), -0.5L) * expl(-(powl(*CAST_PTR(value, long double) - *CAST_PTR(mean, long double), 2.0L) * (2.0L * (*CAST_PTR(variance, long double)))));
+    return res;
+}
+
+/* NN UTILS FUNCTIONS ------------------------------------------------------------------------------------------------------------------------------ */
+
+#define GENERATE_ARGS(data_type, ...) generate_args((sizeof((long double[]){__VA_ARGS__}) / sizeof(long double)), data_type, __VA_ARGS__)
+#define VALUE_TO_STR(value, data_type) value_to_str(value, data_type, FALSE)
+#define DEALLOCATE_TEMP_STRS() value_to_str(NULL, FLOAT_32, TRUE)
+
+char* value_to_str(void* value, DataType data_type, bool clean_cache_flag);
+void print_value_as_percentage(void* value, DataType data_type);
+unsigned int* create_shuffled_indices(unsigned int size);
+void print_value(void* value, DataType data_type);
+void print_time_format(long unsigned int time);
+void** generate_args(int len, ...);
+void deallocate_args(void** args);
+
+/* ----------------------------------------------------------------------------- */
 
 char* value_to_str(void* value, DataType data_type, bool clean_cache_flag) {
     static char** cache_str = NULL;
@@ -253,17 +307,6 @@ void print_value_as_percentage(void* value, DataType data_type) {
     return;
 }
 
-void deallocate_ptrs(int len, ...) {
-    va_list args;
-    va_start(args, len);
-    for (int i = 0; i < len; ++i) {
-        void* ptr = va_arg(args, void*);
-        free(ptr);
-    }
-    va_end(args);
-    return;
-}
-
 void print_time_format(long unsigned int time) {
     unsigned int time_sec = time % 60;
     unsigned int time_min = ((time - time_sec) / 60) % 60;
@@ -290,14 +333,6 @@ unsigned int* create_shuffled_indices(unsigned int size) {
     }
 
     return shuffle_indices;
-}
-
-void* normal_func(void* res, void* value, void* variance, void* mean, DataType data_type) {
-    // Math: (2\pi\sigma^2)^{-{1/2}}\exp(-\frac{(x-\mu)^2}{2\sigma^2})
-    if (data_type == FLOAT_32) *CAST_PTR(res, float) = powf(2.0f * (float) M_PI * (*CAST_PTR(variance, float)), -0.5f) * expf(-(powf(*CAST_PTR(value, float) - *CAST_PTR(mean, float), 2.0f) * (2.0f * (*CAST_PTR(variance, float)))));
-    else if (data_type == FLOAT_64) *CAST_PTR(res, double) = pow(2.0 * (double) M_PI * (*CAST_PTR(variance, double)), -0.5) * exp(-(pow(*CAST_PTR(value, double) - *CAST_PTR(mean, double), 2.0) * (2.0 * (*CAST_PTR(variance, double)))));
-    else if (data_type == FLOAT_128) *CAST_PTR(res, long double) = powl(2.0L * (long double) M_PI * (*CAST_PTR(variance, long double)), -0.5L) * expl(-(powl(*CAST_PTR(value, long double) - *CAST_PTR(mean, long double), 2.0L) * (2.0L * (*CAST_PTR(variance, long double)))));
-    return res;
 }
 
 void** generate_args(int len, ...) {

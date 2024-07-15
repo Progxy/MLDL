@@ -7,14 +7,14 @@
 typedef unsigned char bool;
 
 typedef enum DataType { FLOAT_32 = sizeof(float), FLOAT_64 = sizeof(double), FLOAT_128 = sizeof(long double) } DataType;
-typedef enum OperatorFlag { SUM, SUBTRACTION, MULTIPLICATION, DIVISION, POW, EXP, TANH, SQRT, DOT, LOG, CONJUGATE } OperatorFlag;
+typedef enum OperatorFlag { SUM, SUBTRACTION, MULTIPLICATION, DIVISION, POW, EXP, TANH, SQRT, DOT, LOG, MAX, MIN, CONJUGATE } OperatorFlag;
 typedef enum ComparisonFlag { EQUAL, LESS, LESS_OR_EQUAL, GREATER, GREATER_OR_EQUAL } ComparisonFlag;
 
 const unsigned char data_types[] = { FLOAT_32, FLOAT_64, FLOAT_128 };
-const unsigned char operators_flags[] = { SUM, SUBTRACTION, MULTIPLICATION, DIVISION, POW, EXP, TANH, SQRT, DOT, LOG, CONJUGATE };
+const unsigned char operators_flags[] = { SUM, SUBTRACTION, MULTIPLICATION, DIVISION, POW, EXP, TANH, SQRT, DOT, LOG, MAX, MIN, CONJUGATE };
 const unsigned char comparison_flags[] = { EQUAL, LESS, LESS_OR_EQUAL, GREATER, GREATER_OR_EQUAL };
 
-const char* operators_flags_str[] = { "SUM", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "POW", "EXP", "TANH", "SQRT", "DOT", "LOG", "CONJUGATE" };
+const char* operators_flags_str[] = { "SUM", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "POW", "EXP", "TANH", "SQRT", "DOT", "LOG",  "MAX", "MIN", "CONJUGATE" };
 
 typedef struct Tensor {
     unsigned int* shape;
