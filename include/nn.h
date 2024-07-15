@@ -10,6 +10,7 @@
 NN create_nn(unsigned int size, unsigned int* arch, ActivationFunction* activation_functions, LossFunction loss_function, OptimizerFunction optimizer_function, DataType data_type);
 void* get_accuracy(void* res, NN nn, Tensor inputs, Tensor outputs);
 void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost);
+Tensor* predict(NN nn, Tensor input, Tensor* output);
 Tensor* flatten_gradient_nn(Tensor* tensor, NN nn);
 void print_nn(NN nn, bool print_layer_flag);
 void init_nn(NN* nn, bool randomize_flag);
@@ -190,6 +191,13 @@ void* get_accuracy(void* res, NN nn, Tensor inputs, Tensor outputs) {
     SCALAR_MUL(res, SCALAR_SUB(res, ASSIGN(res, 1.0L, nn.data_type), cost(nn, inputs, outputs, temp), nn.data_type), ASSIGN(tmp, 100.0L, nn.data_type), nn.data_type);
     DEALLOCATE_PTRS(temp, tmp);
     return res;
+}
+
+Tensor* predict(NN nn, Tensor input, Tensor* output) {
+    copy_tensor(&INPUT_NN(nn), input);
+    forward_pass(INPUT_NN(nn).grad_node);
+    copy_tensor(output, *(CAST_PTR(nn.loss_node.grad_node, GradNode) -> value));
+    return output;
 }
 
 #endif //_NEURONS_H_

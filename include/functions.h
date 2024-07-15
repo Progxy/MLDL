@@ -3,9 +3,7 @@
 
 #include "./nn.h"
 
-Tensor* predict(NN nn, Tensor input, Tensor* output);
-
-/* ------------------------------------------------------------------------------------------------------------------------------- */
+/* Activation Functions */
 
 static Tensor gelu(Tensor* tensor) {
     Tensor x1, x2, x3, x4;
@@ -49,6 +47,20 @@ static Tensor sigmoid(Tensor* tensor) {
     return d;
 }
 
+static Tensor tan_h(Tensor* tensor) {
+    Tensor a = empty_tensor(tensor -> data_type);
+    TENSOR_GRAPH_TANH(&a, *tensor);
+    return a;
+}
+
+static Tensor relu(Tensor* tensor) {
+    Tensor a = empty_tensor(tensor -> data_type);
+    TENSOR_GRAPH_MAX(&a, *tensor);
+    return a;
+}
+
+/* Loss Functions */
+
 static void binary_cross_entropy(NN* nn) {
     Tensor x1, x2;
     void* one = (void*) calloc(1, nn -> data_type);
@@ -66,6 +78,8 @@ static void binary_cross_entropy(NN* nn) {
 
     return;
 }
+
+/* Optimizers Functions */
 
 static void sgd(NN* nn, Tensor inputs, Tensor outputs, void** args, unsigned int max_epochs) {
     ASSERT((nn -> data_type != inputs.data_type) && (inputs.data_type != outputs.data_type), "DATA_TYPE_MISMATCH");
@@ -183,13 +197,6 @@ static void adam_optim(NN* nn, Tensor inputs, Tensor outputs, void** args , unsi
     DEALLOCATE_PTRS(temp, tmp);
 
     return;
-}
-
-Tensor* predict(NN nn, Tensor input, Tensor* output) {
-    copy_tensor(&INPUT_NN(nn), input);
-    forward_pass(INPUT_NN(nn).grad_node);
-    copy_tensor(output, *(CAST_PTR(nn.loss_node.grad_node, GradNode) -> value));
-    return output;
 }
 
 #endif //_FUNCTIONS_H_
