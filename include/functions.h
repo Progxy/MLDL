@@ -81,6 +81,24 @@ UNUSED_FUNCTION static Tensor softmax(Tensor* tensor) {
     return a;
 }
 
+UNUSED_FUNCTION static Tensor swish(Tensor* tensor) {
+    Tensor x1;
+    void* temp = calloc(1, tensor -> data_type);
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x1, tensor -> shape, tensor -> rank, tensor -> data_type, ASSIGN(temp, 1.0L, tensor -> data_type));
+
+    Tensor a, b, c, d, e;
+    EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d, &e);
+
+    // Math: \frac{1}{1 + e^{-x}}
+    TENSOR_GRAPH_POW(&b, *TENSOR_GRAPH_EXP(&a, *tensor), ASSIGN(temp, -1.0L, tensor -> data_type));
+    TENSOR_GRAPH_MUL(&e, *tensor, *TENSOR_GRAPH_POW(&d, *TENSOR_GRAPH_SUM(&c, x1, b), temp));
+    
+    DEALLOCATE_TENSORS(x1, a, b, c);
+    DEALLOCATE_PTRS(temp);
+
+    return e;
+}
+
 /* Loss Functions */
 
 static void binary_cross_entropy(NN* nn) {
