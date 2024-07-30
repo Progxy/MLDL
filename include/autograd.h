@@ -10,13 +10,17 @@
 #define NODE_DERIVED_TENSOR(node) CAST_PTR(node, GradNode) -> derived_value
 #define IS_DENOMINATOR(parent, child) parent == child -> parents[1]
 #define NODE_TENSOR(node) CAST_PTR(node, GradNode) -> value
+#define DERIVE_NODE_REVERSE(node) derive_r_node(node, TRUE)
 
 // TENSOR FUNCTIONS OPERATIONS
+#define TENSOR_GRAPH_NORM(c, a, val) graph_op(c, a, (Tensor) {.data = val, .data_type = (a).data_type}, NORM)
 #define TENSOR_GRAPH_POW(c, a, val) graph_op(c, a, (Tensor) {.data = val, .data_type = (a).data_type}, POW)
+#define TENSOR_GRAPH_SOFTMAX(c, a) graph_op(c, a, (Tensor) {.data_type = (a).data_type}, SOFTMAX)
 #define TENSOR_GRAPH_TANH(c, a) graph_op(c, a, (Tensor) {.data_type = (a).data_type}, TANH)
 #define TENSOR_GRAPH_SQRT(c, a) graph_op(c, a, (Tensor) {.data_type = (a).data_type}, SQRT)
 #define TENSOR_GRAPH_EXP(c, a) graph_op(c, a, (Tensor) {.data_type = (a).data_type}, EXP)
 #define TENSOR_GRAPH_LOG(c, a) graph_op(c, a, (Tensor) {.data_type = (a).data_type}, LOG)
+#define TENSOR_GRAPH_ABS(c, a) graph_op(c, a, (Tensor) {.data_type = (a).data_type}, ABS)
 
 // TENSORS OPERATIONS
 #define TENSOR_GRAPH_MUL(c, a, b) graph_op(c, a, b, MULTIPLICATION)
@@ -90,9 +94,9 @@ Tensor* graph_op(Tensor* c, Tensor a, Tensor b, OperatorFlag operation) {
     alloc_grad_graph_node(a.data_type, c);
     CAST_PTR(c -> grad_node, GradNode) -> operation = operation; 
     add_child(c -> grad_node, a.grad_node);
-    if (operation == EXP || operation == TANH || operation == LOG) return c;
-    else if (operation == POW) {
-        CAST_PTR(c -> grad_node, GradNode) -> exp = calloc(1, a.data_type);
+    if (operation == EXP || operation == TANH || operation == LOG || operation == ABS || operation == SOFTMAX) return c;
+    else if (operation == POW || operation == NORM) {
+        CAST_PTR(c -> grad_node, GradNode) -> exp = (void*) calloc(1, a.data_type);
         mem_copy(CAST_PTR(c -> grad_node, GradNode) -> exp, b.data, b.data_type, 1);
         return c;
     } else if (operation == SQRT) {
@@ -201,15 +205,68 @@ void derive_op(GradNode* node, GradNode* child) {
             ASSIGN(val, 1.0L, node -> derived_value.data_type);
             unsigned int size = TENSOR_SIZE(node -> derived_value);
             for (unsigned int i = 0; i < size; ++i) {
-                if (!IS_EQUAL(CAST_PTR(child -> value -> data, unsigned char) + (node -> derived_value.data_type * i), CAST_PTR(node -> value -> data, unsigned char) + (i * node -> derived_value.data_type), node -> derived_value.data_type)) continue;
-                ASSIGN(CAST_PTR(node -> derived_value.data, unsigned char) + (node -> derived_value.data_type * i), 1.0L, node -> derived_value.data_type);
+                if (!IS_EQUAL(CAST_PTR_AT_INDEX(child -> value -> data, i, node -> derived_value.data_type), CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), node -> derived_value.data_type)) continue;
+                ASSIGN(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), 1.0L, node -> derived_value.data_type);
             }
             free(val);
+            MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
+            break;
+        }
+
+        case ABS: {
+            unsigned int size = TENSOR_SIZE(node -> derived_value);
+            for (unsigned int i = 0; i < size; ++i) {
+                if (IS_NEGATIVE(CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), node -> value -> data_type)) ASSIGN(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), -1.0L, node -> derived_value.data_type); 
+                else if (IS_POSITIVE(CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), node -> value -> data_type)) ASSIGN(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), 1.0L, node -> derived_value.data_type); 
+            }
+            MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
             break;
         }
                 
         case CONJUGATE: {
             ASSERT(TRUE, "Impossible to differentiate the CONJUGATE operation!");
+            break;
+        }
+
+        case NORM: {
+            void* temp = (void*) calloc(1, node -> derived_value.data_type);
+            SCALAR_SUB(temp, child -> exp, ASSIGN(temp, 1.0L, node -> derived_value.data_type), node -> derived_value.data_type);
+            void* zero = (void*) calloc(1, node -> derived_value.data_type);
+            unsigned int size = TENSOR_SIZE(node -> derived_value);
+            for (unsigned int i = 0; i < size; ++i) {
+                if (IS_EQUAL(CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), zero, node -> value -> data_type)) continue;
+                if (IS_EQUAL(temp, zero, node -> derived_value.data_type)) ASSIGN(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), 1.0L, node -> derived_value.data_type);
+                else {
+                    SCALAR_MUL(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), SCALAR_POW(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), temp, node -> derived_value.data_type), temp, node -> derived_value.data_type);
+                    CAST_AND_OP_INDEX(node -> derived_value.data, child -> value -> data, node -> derived_value.data, i, node -> derived_value.data_type, DIVISION);
+                }
+                if (IS_NEGATIVE(CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), node -> value -> data_type) && !IS_NEGATIVE(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), node -> derived_value.data_type)) CAST_AND_SINGLE_OP_INDEX(node -> derived_value.data, node -> derived_value.data, i, node -> derived_value.data_type, CONJUGATE);
+            }
+            DEALLOCATE_PTRS(temp, zero);
+            MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
+            break;
+        }
+        
+        case SOFTMAX: {
+            unsigned int size = TENSOR_SIZE(node -> derived_value);
+            unsigned int shape[] = {size, size};
+            Tensor temp_tensor = alloc_tensor(shape, ARR_SIZE(shape), node -> derived_value.data_type);
+            void* temp = (void*) calloc(1, node -> derived_value.data_type);
+            void* one = (void*) calloc(1, node -> derived_value.data_type);
+            ASSIGN(one, 1.0L, node -> derived_value.data_type);
+
+            for (unsigned int i = 0; i < size; ++i) {
+                for (unsigned int j = 0; j < size; ++j) {
+                    if (i == j) SCALAR_MUL(CAST_PTR_AT_INDEX(temp_tensor.data, i * size + j, temp_tensor.data_type), CAST_PTR_AT_INDEX(child -> value -> data, i, child -> value -> data_type), SCALAR_SUB(temp, one, CAST_PTR_AT_INDEX(child -> value -> data, i, child -> value -> data_type), child -> value -> data_type), temp_tensor.data_type); 
+                    else SCALAR_CONJUGATE(CAST_PTR_AT_INDEX(temp_tensor.data, i * size + j, temp_tensor.data_type), SCALAR_MUL(CAST_PTR_AT_INDEX(temp_tensor.data, i * size + j, temp_tensor.data_type), CAST_PTR_AT_INDEX(child -> value -> data, j, child -> value -> data_type), CAST_PTR_AT_INDEX(child -> value -> data, i, child -> value -> data_type), temp_tensor.data_type), temp_tensor.data_type); 
+                }
+            } 
+        
+            DOT_TENSOR(&(node -> derived_value), temp_tensor, *(child -> value));
+
+            DEALLOCATE_TENSORS(temp_tensor);
+            DEALLOCATE_PTRS(temp, one);
+            
             break;
         }
     }

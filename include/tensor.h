@@ -12,12 +12,15 @@
 #define TENSOR_SIZE(tensor) tensor_size((tensor).shape, (tensor).rank)
 
 // TENSOR FUNCTIONS OPERATIONS
+#define NORM_TENSOR(c, a, norm) op_tensor(c, a, (Tensor) {.data = norm, .data_type = (a).data_type}, NORM)
 #define POW_TENSOR(c, a, exp) op_tensor(c, a, (Tensor) {.data = exp, .data_type = (a).data_type}, POW)
 #define CONJUGATE_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, CONJUGATE)
+#define SOFTMAX_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, SOFTMAX)
 #define TANH_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, TANH)
 #define SQRT_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, SQRT)
 #define EXP_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, EXP)
 #define LOG_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, LOG)
+#define ABS_TENSOR(c, a) op_tensor(c, a, (Tensor) {.data_type = (a).data_type}, ABS)
 
 // TENSORS OPERATIONS
 #define MULTIPLY_TENSOR(c, a, b) op_tensor(c, a, b, MULTIPLICATION)
@@ -226,13 +229,11 @@ Tensor* copy_tensor(Tensor* dest, Tensor src) {
 }
 
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
-    const bool is_special_operand_flag = (op_flag == EXP) || (op_flag == TANH) || (op_flag == POW) || (op_flag == LOG) || (op_flag == CONJUGATE) || (op_flag == DOT);
+    const bool is_special_operand_flag = (op_flag == EXP) || (op_flag == TANH) || (op_flag == POW) || (op_flag == LOG) || (op_flag == ABS) || (op_flag == NORM) || (op_flag == SOFTMAX) || (op_flag == CONJUGATE) || (op_flag == DOT);
     ASSERT(!is_valid_enum(op_flag, (unsigned char*) operators_flags, ARR_SIZE(operators_flags)), "INVALID_OPERATOR");
     ASSERT(!is_special_operand_flag && (a.rank != b.rank), "DIM_MISMATCH");
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
-    for (unsigned int i = 0; !is_special_operand_flag && (i < a.rank); ++i) {
-        ASSERT(a.shape[i] != b.shape[i], "SHAPE_MISMATCH");
-    }
+    for (unsigned int i = 0; !is_special_operand_flag && (i < a.rank); ++i) ASSERT(a.shape[i] != b.shape[i], "SHAPE_MISMATCH");
     
     Tensor temp = alloc_tensor(a.shape, a.rank, a.data_type);
     unsigned int size = tensor_size(a.shape, a.rank);
@@ -265,7 +266,24 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
         
         free(tmp);
 
-    } else if (op_flag == POW) for (unsigned int i = 0; i < size; ++i) SCALAR_POW(CAST_PTR_AT_INDEX(temp.data, i, temp.data_type), CAST_PTR_AT_INDEX(a.data, i, temp.data_type), b.data, temp.data_type);  
+    } else if (op_flag == NORM) {
+        void* tmp = calloc(1, a.data_type);
+        void* tpm = calloc(1, a.data_type);
+        unsigned int size = tensor_size(a.shape, a.rank);
+        for (unsigned int i = 0; i < size; ++i) SCALAR_SUM(tmp, SCALAR_POW(tpm, SCALAR_ABS(tpm, CAST_PTR_AT_INDEX(a.data, i, a.data_type), a.data_type), b.data, a.data_type), tmp, a.data_type);
+        SCALAR_POW(tmp, tmp, SCALAR_DIV(tpm, ASSIGN(tpm, 1.0L, a.data_type), b.data, a.data_type), a.data_type);
+        fill_tensor(tmp, temp);
+        DEALLOCATE_PTRS(tmp, tpm);
+    } else if (op_flag == SOFTMAX) {
+        Tensor norm_tensor = empty_tensor(a.data_type);
+        void* val = calloc(1, a.data_type);
+        ASSIGN(val, 1.0L, a.data_type);
+        NORM_TENSOR(&norm_tensor, a, val);
+        DIVIDE_TENSOR(&temp, a, norm_tensor);
+        DEALLOCATE_TENSORS(norm_tensor);
+        free(val);
+    }
+    else if (op_flag == POW) for (unsigned int i = 0; i < size; ++i) SCALAR_POW(CAST_PTR_AT_INDEX(temp.data, i, temp.data_type), CAST_PTR_AT_INDEX(a.data, i, temp.data_type), b.data, temp.data_type);  
     else if (is_special_operand_flag) for (unsigned int i = 0; i < size; ++i) CAST_AND_SINGLE_OP_INDEX(a.data, temp.data, i, temp.data_type, op_flag);
     else for (unsigned int i = 0; i < size; ++i) CAST_AND_OP_INDEX(a.data, b.data, temp.data, i, temp.data_type, op_flag);
     
@@ -420,7 +438,7 @@ void* tensor_norm(Tensor tensor, void* norm, void* res) {
     flatten_tensor(&temp_tensor, tensor);
     void* temp = calloc(1, tensor.data_type);
     unsigned int size = tensor_size(temp_tensor.shape, temp_tensor.rank);
-    for (unsigned int i = 0; i < size; ++i) CAST_AND_OP_INDEX(temp, temp_tensor.data, temp, i, temp_tensor.data_type, SUM);
+    for (unsigned int i = 0; i < size; ++i) SCALAR_SUM(temp, CAST_PTR_AT_INDEX(temp_tensor.data, i, temp_tensor.data_type), temp, temp_tensor.data_type);
     SCALAR_POW(res, temp, norm, tensor.data_type);
     DEALLOCATE_TENSORS(temp_tensor);
     free(temp);

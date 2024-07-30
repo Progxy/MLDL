@@ -63,6 +63,24 @@ UNUSED_FUNCTION static Tensor relu(Tensor* tensor) {
     return a;
 }
 
+UNUSED_FUNCTION static Tensor leaky_relu(Tensor* tensor) {
+    Tensor x = empty_tensor(tensor -> data_type);
+    copy_tensor(&x, *tensor);
+    // TODO: make alpha a parameter that can be learned, also should always be less than 1
+    void* alpha = (void*) calloc(1, tensor -> data_type);
+    ABS_TENSOR(&x, *SCALAR_MUL_TENSOR(&x, ASSIGN(alpha, 0.1L, tensor -> data_type)));
+    Tensor a = empty_tensor(tensor -> data_type);
+    TENSOR_GRAPH_MAX(&a, x, *tensor);
+    free(alpha);
+    return a;
+}
+
+UNUSED_FUNCTION static Tensor softmax(Tensor* tensor) {
+    Tensor a = empty_tensor(tensor -> data_type);
+    TENSOR_GRAPH_SOFTMAX(&a, *tensor);
+    return a;
+}
+
 /* Loss Functions */
 
 static void binary_cross_entropy(NN* nn) {
