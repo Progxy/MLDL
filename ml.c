@@ -3,7 +3,7 @@
 #include "./include/functions.h"
 #include "./include/loader.h"
 
-int main() {
+int main(void) {
     init_seed();
 
     unsigned int arch[] = {9, 10, 12, 10, 1};
@@ -37,14 +37,14 @@ int main() {
 
     /* Args order: alpha, eps, first_moment_decay, second_moment_decay */
     void** args = GENERATE_ARGS(nn.data_type, 0.001, 10e-8, 0.9, 0.999);
-    
+
     double og_accuracy = 0.0; get_accuracy(&og_accuracy, nn, inputs, outputs);
     TRAIN_NN(nn, inputs, outputs, args, 1000);
     double accuracy = 0.0; get_accuracy(&accuracy, nn, inputs, outputs);
     printf("NN accuracy: %.2lf%%, original accuracy: %.2lf%% (delta: %.2f%%)\n", accuracy, og_accuracy, accuracy - og_accuracy);
     DEALLOCATE_TENSORS(inputs, outputs);
     deallocate_args(args);
-    
+
     const double predict_input[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     unsigned int predict_shape[] = {1, nn.arch[0]};
     Tensor input_tensor = alloc_tensor(predict_shape, ARR_SIZE(predict_shape), nn.data_type);

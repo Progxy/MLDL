@@ -89,7 +89,8 @@ UNUSED_FUNCTION static Tensor swish(Tensor* tensor) {
     Tensor a, b, c, d, e;
     EMPTY_TENSORS(tensor -> data_type, &a, &b, &c, &d, &e);
 
-    // Math: \frac{1}{1 + e^{-x}}
+    // Math: \sigma(x)=\frac{1}{1 + e^{-x}}
+    // Math: swish(x) = x \cdot \sigma(x)
     TENSOR_GRAPH_POW(&b, *TENSOR_GRAPH_EXP(&a, *tensor), ASSIGN(temp, -1.0L, tensor -> data_type));
     TENSOR_GRAPH_MUL(&e, *tensor, *TENSOR_GRAPH_POW(&d, *TENSOR_GRAPH_SUM(&c, x1, b), temp));
     
@@ -102,19 +103,58 @@ UNUSED_FUNCTION static Tensor swish(Tensor* tensor) {
 /* Loss Functions */
 
 static void binary_cross_entropy(NN* nn) {
-    Tensor x1, x2;
+    Tensor x1, x2, x3;
     void* one = (void*) calloc(1, nn -> data_type);
     ALLOC_TENSOR_GRAD_GRAPH_FILLED(x1, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, 1.0L, nn -> data_type));
     ALLOC_TENSOR_GRAD_GRAPH_FILLED(x2, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, -1.0L, nn -> data_type));
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x3, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(one, TENSOR_SIZE(nn -> loss_input), nn -> data_type));
     DEALLOCATE_PTRS(one);
 
-    Tensor a, b, c, d, e, f, g, h;
-    EMPTY_TENSORS(nn -> data_type, &a, &b, &c, &d, &e, &f, &g, &h);
+    Tensor a, b, c, d, e, f, g, h, i;
+    EMPTY_TENSORS(nn -> data_type, &a, &b, &c, &d, &e, &f, &g, &h, &i);
 
     // Math: -[y_i \log{(p_i)} + (1 - y_i) \log{(1 - p_i)}]
     TENSOR_GRAPH_MUL(&b, nn -> loss_input, *TENSOR_GRAPH_LOG(&a, nn -> loss_node));
     TENSOR_GRAPH_MUL(&f, *TENSOR_GRAPH_SUB(&c, x1, nn -> loss_input), *TENSOR_GRAPH_LOG(&e, *TENSOR_GRAPH_SUB(&d, x1, nn -> loss_node)));
     TENSOR_GRAPH_MUL(&h, *TENSOR_GRAPH_SUM(&g, f, b), x2);
+    TENSOR_GRAPH_DIV(&i, h, x3);
+
+    return;
+}
+
+UNUSED_FUNCTION static void mean_squared_error(NN* nn) {
+    Tensor x1;
+    void* val = (void*) calloc(1, nn -> data_type);
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x1, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(val, TENSOR_SIZE(nn -> loss_input), nn -> data_type));
+    ASSIGN(val, 2.0L, nn -> data_type);
+
+    Tensor a, b, c;
+    EMPTY_TENSORS(nn -> data_type, &a, &b, &c);
+    
+    // Math: (y_i - \hat y_i)^2
+    TENSOR_GRAPH_SUB(&a, nn -> loss_input, nn -> loss_node);
+    TENSOR_GRAPH_POW(&b, a, val);
+    TENSOR_GRAPH_DIV(&c, b, x1);
+
+    DEALLOCATE_PTRS(val);
+
+    return;
+}
+
+UNUSED_FUNCTION static void mean_abs_error(NN* nn) {
+    Tensor x1;
+    void* val = (void*) calloc(1, nn -> data_type);
+    ALLOC_TENSOR_GRAD_GRAPH_FILLED(x1, nn -> loss_input.shape, nn -> loss_input.rank, nn -> data_type, ASSIGN(val, TENSOR_SIZE(nn -> loss_input), nn -> data_type));
+    
+    Tensor a, b, c;
+    EMPTY_TENSORS(nn -> data_type, &a, &b, &c);
+    
+    // Math: |y_i - \hat y_i|
+    TENSOR_GRAPH_SUB(&a, nn -> loss_input, nn -> loss_node);
+    TENSOR_GRAPH_ABS(&b, a);
+    TENSOR_GRAPH_DIV(&c, b, x1);
+
+    DEALLOCATE_PTRS(val);
 
     return;
 }

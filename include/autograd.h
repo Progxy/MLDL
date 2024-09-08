@@ -1,6 +1,7 @@
 #ifndef _AUTOGRAD_H_
 #define _AUTOGRAD_H_
 
+#include <stdlib.h>
 #include "./tensor.h"
 
 #define ALLOC_TENSOR_GRAD_GRAPH_FILLED(tensor, shape, rank, data_type, val) alloc_grad_graph_node(data_type, (tensor = alloc_tensor(shape, rank, data_type), fill_tensor(val, tensor), &tensor))
@@ -41,7 +42,7 @@ void alloc_grad_graph_node(DataType data_type, Tensor* value) {
     node -> derived_value = empty_tensor(data_type);
     reshape_tensor(&(node -> derived_value), node -> value -> shape, node -> value -> rank, node -> value -> data_type);
     value -> grad_node = node;
-    return;  
+    return;
 }
 
 void* deallocate_grad_graph(bool single_removal_flag, GradNode* node, void*** deallocated_ptrs, unsigned int* deallocated_ptrs_count) {
@@ -85,14 +86,14 @@ void add_child(GradNode* child, GradNode* parent) {
     parent -> children = (GradNode**) realloc(parent -> children, sizeof(GradNode*) * (parent -> children_count + 1));
     parent -> children[(parent -> children_count)++] = child;
     child -> parents = (GradNode**) realloc(child -> parents, sizeof(GradNode*) * (child -> parents_count + 1));
-    child -> parents[(child -> parents_count)++] = parent; 
+    child -> parents[(child -> parents_count)++] = parent;
     return;
 }
 
 Tensor* graph_op(Tensor* c, Tensor a, Tensor b, OperatorFlag operation) {
     op_tensor(c, a, b, operation);
     alloc_grad_graph_node(a.data_type, c);
-    CAST_PTR(c -> grad_node, GradNode) -> operation = operation; 
+    CAST_PTR(c -> grad_node, GradNode) -> operation = operation;
     add_child(c -> grad_node, a.grad_node);
     if (operation == EXP || operation == TANH || operation == LOG || operation == ABS || operation == SOFTMAX) return c;
     else if (operation == POW || operation == NORM) {
@@ -115,21 +116,21 @@ void derive_op(GradNode* node, GradNode* child) {
     switch (child -> operation) {
         case SUM: {
             copy_tensor(&(node -> derived_value), child -> derived_value);
-            break;       
+            break;
         }
 
         case SUBTRACTION: {
             if (node == child -> parents[0]) copy_tensor(&(node -> derived_value), child -> derived_value);
             else CONJUGATE_TENSOR(&(node -> derived_value), child -> derived_value);
-            break;        
+            break;
         }
 
         case MULTIPLICATION: {
             Tensor* other_parent = (node == child -> parents[0]) ? child -> parents[1] -> value : child -> parents[0] -> value;
             MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, *other_parent);
-            break;       
+            break;
         }
-        
+
         case DIVISION: {
             Tensor* other_parent = (node == child -> parents[0]) ? child -> parents[1] -> value : child -> parents[0] -> value;
             if (IS_DENOMINATOR(node, child)) {
@@ -138,7 +139,7 @@ void derive_op(GradNode* node, GradNode* child) {
                 MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, *DIVIDE_TENSOR(&(node -> derived_value), *other_parent, *POW_TENSOR(&(node -> derived_value), *(node -> value), val)));
                 CONJUGATE_TENSOR(&(node -> derived_value), node -> derived_value);
                 free(val);
-            } else {    
+            } else {
                 DIVIDE_TENSOR(&(node -> derived_value), child -> derived_value, *other_parent);
             }
             break;
@@ -216,13 +217,13 @@ void derive_op(GradNode* node, GradNode* child) {
         case ABS: {
             unsigned int size = TENSOR_SIZE(node -> derived_value);
             for (unsigned int i = 0; i < size; ++i) {
-                if (IS_NEGATIVE(CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), node -> value -> data_type)) ASSIGN(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), -1.0L, node -> derived_value.data_type); 
-                else if (IS_POSITIVE(CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), node -> value -> data_type)) ASSIGN(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), 1.0L, node -> derived_value.data_type); 
+                if (IS_NEGATIVE(CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), node -> value -> data_type)) ASSIGN(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), -1.0L, node -> derived_value.data_type);
+                else if (IS_POSITIVE(CAST_PTR_AT_INDEX(node -> value -> data, i, node -> value -> data_type), node -> value -> data_type)) ASSIGN(CAST_PTR_AT_INDEX(node -> derived_value.data, i, node -> derived_value.data_type), 1.0L, node -> derived_value.data_type);
             }
             MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
             break;
         }
-                
+
         case CONJUGATE: {
             ASSERT(TRUE, "Impossible to differentiate the CONJUGATE operation!");
             break;
@@ -246,7 +247,7 @@ void derive_op(GradNode* node, GradNode* child) {
             MULTIPLY_TENSOR(&(node -> derived_value), child -> derived_value, node -> derived_value);
             break;
         }
-        
+
         case SOFTMAX: {
             unsigned int size = TENSOR_SIZE(node -> derived_value);
             unsigned int shape[] = {size, size};
@@ -257,16 +258,16 @@ void derive_op(GradNode* node, GradNode* child) {
 
             for (unsigned int i = 0; i < size; ++i) {
                 for (unsigned int j = 0; j < size; ++j) {
-                    if (i == j) SCALAR_MUL(CAST_PTR_AT_INDEX(temp_tensor.data, i * size + j, temp_tensor.data_type), CAST_PTR_AT_INDEX(child -> value -> data, i, child -> value -> data_type), SCALAR_SUB(temp, one, CAST_PTR_AT_INDEX(child -> value -> data, i, child -> value -> data_type), child -> value -> data_type), temp_tensor.data_type); 
-                    else SCALAR_CONJUGATE(CAST_PTR_AT_INDEX(temp_tensor.data, i * size + j, temp_tensor.data_type), SCALAR_MUL(CAST_PTR_AT_INDEX(temp_tensor.data, i * size + j, temp_tensor.data_type), CAST_PTR_AT_INDEX(child -> value -> data, j, child -> value -> data_type), CAST_PTR_AT_INDEX(child -> value -> data, i, child -> value -> data_type), temp_tensor.data_type), temp_tensor.data_type); 
+                    if (i == j) SCALAR_MUL(CAST_PTR_AT_INDEX(temp_tensor.data, i * size + j, temp_tensor.data_type), CAST_PTR_AT_INDEX(child -> value -> data, i, child -> value -> data_type), SCALAR_SUB(temp, one, CAST_PTR_AT_INDEX(child -> value -> data, i, child -> value -> data_type), child -> value -> data_type), temp_tensor.data_type);
+                    else SCALAR_CONJUGATE(CAST_PTR_AT_INDEX(temp_tensor.data, i * size + j, temp_tensor.data_type), SCALAR_MUL(CAST_PTR_AT_INDEX(temp_tensor.data, i * size + j, temp_tensor.data_type), CAST_PTR_AT_INDEX(child -> value -> data, j, child -> value -> data_type), CAST_PTR_AT_INDEX(child -> value -> data, i, child -> value -> data_type), temp_tensor.data_type), temp_tensor.data_type);
                 }
-            } 
-        
+            }
+
             DOT_TENSOR(&(node -> derived_value), temp_tensor, *(child -> value));
 
             DEALLOCATE_TENSORS(temp_tensor);
             DEALLOCATE_PTRS(temp, one);
-            
+
             break;
         }
     }
@@ -286,14 +287,14 @@ void derive_node(GradNode* node) {
 
     Tensor diff = alloc_tensor(node -> value -> shape, node -> value -> rank, node -> value -> data_type);
     for (unsigned int i = 0; i < node -> children_count; ++i) {
-        derive_node(node -> children[i]); 
+        derive_node(node -> children[i]);
         derive_op(node, node -> children[i]);
         SUM_TENSOR(&diff, diff, node -> derived_value);
     }
 
     copy_tensor(&(node -> derived_value), diff);
     DEALLOCATE_TENSORS(diff);
-    
+
     return;
 }
 
@@ -315,7 +316,7 @@ void derive_r_node(GradNode* node, bool is_sink) {
         DEALLOCATE_TENSORS(temp);
         derive_r_node(node -> parents[i], FALSE);
     }
-    
+
     return;
 }
 
@@ -326,14 +327,14 @@ GradNode* get_sink(GradNode* node) {
 
 void forward_pass(GradNode* node) {
     GradNode* child = node -> children[0];
-    
+
     OperatorFlag op_flag = child -> operation;
     if (op_flag == TANH || op_flag == EXP || op_flag == LOG) op_tensor(child -> value, *(node -> value), (Tensor) {.data_type = node -> derived_value.data_type}, op_flag);
     else if (op_flag == POW || op_flag == SQRT) op_tensor(child -> value, *(node -> value), (Tensor) {.data = child -> exp, .data_type = node -> derived_value.data_type}, op_flag);
     else op_tensor(child -> value, *(child -> parents[0] -> value), *(child -> parents[1] -> value), op_flag);
-    
+
     if (child -> children_count) forward_pass(child);
-    
+
     return;
 }
 

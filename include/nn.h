@@ -41,7 +41,7 @@ static void rand_nn(NN* nn) {
         copy_tensor(NODE_TENSOR(nn -> layers[l].biases.grad_node), nn -> layers[l].biases);
     }
     return;
-} 
+}
 
 static void print_layer(Layer layer, bool is_input_layer, bool print_layer_flag) {
     printf("\tactivation: \n");
@@ -161,7 +161,7 @@ void init_nn(NN* nn, bool randomize_flag) {
     nn -> loss_function(nn);
 
     return;
-}   
+}
 
 void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
     unsigned int shape[] = { 1, 1 };
@@ -174,10 +174,6 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
         GradNode* sink = get_sink(nn.loss_input.grad_node);
         SUM_TENSOR(&cost_tensor, cost_tensor, *(sink -> value));
     }
-
-    void* val = (void*) calloc(1, nn.data_type);
-    SCALAR_DIV_TENSOR(&cost_tensor, ASSIGN(val, (long double) input_size, nn.data_type));  
-    free(val);
 
     mem_copy(cost, cost_tensor.data, nn.data_type, 1);
     DEALLOCATE_TENSORS(cost_tensor);

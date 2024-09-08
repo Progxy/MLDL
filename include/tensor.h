@@ -95,7 +95,7 @@ static bool is_valid_shape(unsigned int* shape, unsigned int rank) {
 
 static void matricize_tensor(Tensor tensor, unsigned int* rows, unsigned int* cols) {
     *rows = 1, *cols = 1;
-    for (unsigned int i = 0; i < tensor.rank - 1; ++i) *rows *= tensor.shape[i]; 
+    for (unsigned int i = 0; i < tensor.rank - 1; ++i) *rows *= tensor.shape[i];
     *cols = tensor.shape[tensor.rank - 1];
     return;
 }
@@ -114,7 +114,7 @@ Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type) 
     tensor.shape = tensor.rank ? (unsigned int*) calloc(tensor.rank, sizeof(unsigned int)) : NULL;
     ASSERT(tensor.shape == NULL && tensor.rank, "BAD_MEMORY");
     mem_copy(tensor.shape, shape, sizeof(unsigned int), tensor.rank);
-    tensor.data = calloc(tensor_size(shape, rank), tensor.data_type); 
+    tensor.data = calloc(tensor_size(shape, rank), tensor.data_type);
     ASSERT(tensor.data == NULL, "BAD_MEMORY");
     return tensor;
 }
@@ -234,7 +234,7 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
     ASSERT(!is_special_operand_flag && (a.rank != b.rank), "DIM_MISMATCH");
     ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
     for (unsigned int i = 0; !is_special_operand_flag && (i < a.rank); ++i) ASSERT(a.shape[i] != b.shape[i], "SHAPE_MISMATCH");
-    
+
     Tensor temp = alloc_tensor(a.shape, a.rank, a.data_type);
     unsigned int size = tensor_size(a.shape, a.rank);
     unsigned int similar_indices_count = 0;
@@ -261,9 +261,9 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
                     SCALAR_MUL(tmp, CAST_PTR_AT_INDEX(a.data, i * common_size + k, a.data_type), CAST_PTR_AT_INDEX(b.data, k * int_size + j, b.data_type), a.data_type);
                     SCALAR_SUM(CAST_PTR_AT_INDEX(temp.data, i * int_size + j, temp.data_type), CAST_PTR_AT_INDEX(temp.data, i * int_size + j, temp.data_type), tmp, temp.data_type);
                 }
-            } 
+            }
         }
-        
+
         free(tmp);
 
     } else if (op_flag == NORM) {
@@ -283,10 +283,10 @@ Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag) {
         DEALLOCATE_TENSORS(norm_tensor);
         free(val);
     }
-    else if (op_flag == POW) for (unsigned int i = 0; i < size; ++i) SCALAR_POW(CAST_PTR_AT_INDEX(temp.data, i, temp.data_type), CAST_PTR_AT_INDEX(a.data, i, temp.data_type), b.data, temp.data_type);  
+    else if (op_flag == POW) for (unsigned int i = 0; i < size; ++i) SCALAR_POW(CAST_PTR_AT_INDEX(temp.data, i, temp.data_type), CAST_PTR_AT_INDEX(a.data, i, temp.data_type), b.data, temp.data_type);
     else if (is_special_operand_flag) for (unsigned int i = 0; i < size; ++i) CAST_AND_SINGLE_OP_INDEX(a.data, temp.data, i, temp.data_type, op_flag);
     else for (unsigned int i = 0; i < size; ++i) CAST_AND_OP_INDEX(a.data, b.data, temp.data, i, temp.data_type, op_flag);
-    
+
     copy_tensor(c, temp);
     DEALLOCATE_TENSORS(temp);
 
@@ -317,14 +317,14 @@ Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsign
     for (unsigned int ind = 0; ind < new_size; ++ind) {
         unsigned int tensor_index = 0;
         unsigned int temp_index = 0;
-        for (unsigned int d = tensor -> rank - 1; (int) d >= 0; --d) { 
+        for (unsigned int d = tensor -> rank - 1; (int) d >= 0; --d) {
             if ((d == contraction_index_a) || (d == contraction_index_b)) continue;
             unsigned int counter_index = (d > MAX(contraction_index_a, contraction_index_b)) ? d - 2 : d;
             tensor_index += calc_shape_offset(tensor -> shape, d, tensor -> rank) * counter[counter_index];
-            temp_index += calc_shape_offset(temp.shape, counter_index, temp.rank) * counter[counter_index]; 
+            temp_index += calc_shape_offset(temp.shape, counter_index, temp.rank) * counter[counter_index];
         }
-        
-        const unsigned int offset_a = calc_shape_offset(tensor -> shape, contraction_index_a, tensor -> rank); 
+
+        const unsigned int offset_a = calc_shape_offset(tensor -> shape, contraction_index_a, tensor -> rank);
         const unsigned int offset_b = calc_shape_offset(tensor -> shape, contraction_index_b, tensor -> rank);
         for (unsigned int s = 0; s < tensor -> shape[contraction_index_a]; ++s) {
             SCALAR_SUM(CAST_PTR_AT_INDEX(temp.data, temp_index, temp.data_type), CAST_PTR_AT_INDEX(temp.data, temp_index, temp.data_type), CAST_PTR_AT_INDEX(tensor -> data, tensor_index + s * offset_a + s * offset_b, tensor -> data_type), temp.data_type);
@@ -378,7 +378,7 @@ Tensor identity_tensor(unsigned int shape_base, unsigned int rank, DataType data
 }
 
 Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned int index_dim) {
-    unsigned int new_dim = tensor.rank - index_dim; 
+    unsigned int new_dim = tensor.rank - index_dim;
     unsigned int* new_shape = (unsigned int*) calloc(new_dim, sizeof(unsigned int));
     new_shape[0] = 1;
     for (unsigned int i = 1; i < new_dim; ++i) new_shape[i] = tensor.shape[i + index_dim];
@@ -401,7 +401,7 @@ Tensor* concat_tensors(Tensor* dest, Tensor src) {
     ASSERT(size % (offset / dest -> shape[0]), "INVALID_SHAPE");
     dest -> shape[0] += size / (offset / dest -> shape[0]);
     dest -> data = realloc(dest -> data, dest -> data_type * (size + offset));
-    
+
     mem_copy(CAST_PTR_AT_INDEX(dest -> data, offset, dest -> data_type), src.data, dest -> data_type, size);
     return dest;
 }
@@ -450,7 +450,7 @@ Tensor* normal(Tensor* tensor) {
     void* mean = calloc(1, tensor -> data_type);
     ASSIGN(variance, 2.0L / (tensor -> shape[0] + tensor -> shape[1]), tensor -> data_type);
     unsigned int size = tensor_size(tensor -> shape, tensor -> rank);
-    for (unsigned int i = 0; i < size; ++i) normal_func(CAST_PTR_AT_INDEX(tensor -> data, i, tensor -> data_type), CAST_PTR_AT_INDEX(tensor -> data, i, tensor -> data_type), variance, mean, tensor -> data_type); 
+    for (unsigned int i = 0; i < size; ++i) normal_func(CAST_PTR_AT_INDEX(tensor -> data, i, tensor -> data_type), CAST_PTR_AT_INDEX(tensor -> data, i, tensor -> data_type), variance, mean, tensor -> data_type);
     DEALLOCATE_PTRS(variance, mean);
     return tensor;
 }

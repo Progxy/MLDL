@@ -56,7 +56,7 @@ static bool str_cmp(char* a, char* b) {
 }
 
 static void get_input_value(void* res, unsigned int offset, char* value, ValueCheck value_check, DataType data_type) {
-    for (unsigned int i = 0; i < value_check.size; ++i) { 
+    for (unsigned int i = 0; i < value_check.size; ++i) {
         if (str_cmp(value, value_check.values[i])) {
             if (data_type == FLOAT_32) CAST_PTR(res, float)[offset] = CAST_PTR(value_check.mapped_values, float)[i];
             else if (data_type == FLOAT_64) CAST_PTR(res, double)[offset] = CAST_PTR(value_check.mapped_values, double)[i];
