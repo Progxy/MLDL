@@ -57,8 +57,8 @@ void* normal_func(void* res, void* value, void* variance, void* mean, DataType d
 void* scalar_op(void* res, void* a, void* b, DataType data_type, OperatorFlag operation);
 bool comparison_op(void* a, void* b, DataType data_type, ComparisonFlag comparison);
 void* assign_data_type(void* val, long double new_val, DataType data_type);
-void mem_copy(void* dest, void* src, unsigned char size, unsigned int n);
-void mem_set(void* dest, void* src, unsigned char size, unsigned int n);
+void mem_copy(void* dest, void* src, unsigned int size, unsigned int n);
+void mem_set(void* dest, void* src, unsigned int size, unsigned int n);
 void* sigmoid_func(void* value, void* result, DataType data_type);
 void deallocate_ptrs(int len, ...);
 void init_seed(void);
@@ -73,13 +73,13 @@ void assert(bool condition, char* condition_str, unsigned int line, char* file, 
     return;
 }
 
-void mem_copy(void* dest, void* src, unsigned char size, unsigned int n) {
+void mem_copy(void* dest, void* src, unsigned int size, unsigned int n) {
     ASSERT(src == NULL, "NULL_POINTER");
     for (unsigned int i = 0; i < size * n; ++i) CAST_PTR(dest, unsigned char)[i] = CAST_PTR(src, unsigned char)[i];
     return;
 }
 
-void mem_set(void* dest, void* src, unsigned char size, unsigned int n) {
+void mem_set(void* dest, void* src, unsigned int size, unsigned int n) {
     ASSERT(src == NULL, "NULL POINTER");
     for (unsigned int j = 0; j < n; ++j) {
         for (unsigned int i = 0; i < size; ++i) CAST_PTR(dest, unsigned char)[size * j + i] = CAST_PTR(src, unsigned char)[i];

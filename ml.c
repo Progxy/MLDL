@@ -38,9 +38,11 @@ int main(void) {
     /* Args order: alpha, eps, first_moment_decay, second_moment_decay */
     void** args = GENERATE_ARGS(nn.data_type, 0.001, 10e-8, 0.9, 0.999);
 
-    double og_accuracy = 0.0; get_accuracy(&og_accuracy, nn, inputs, outputs);
+    double og_accuracy = 0.0;
+    get_accuracy(&og_accuracy, nn, inputs, outputs);
     TRAIN_NN(nn, inputs, outputs, args, 1000);
-    double accuracy = 0.0; get_accuracy(&accuracy, nn, inputs, outputs);
+    double accuracy = 0.0;
+    get_accuracy(&accuracy, nn, inputs, outputs);
     printf("NN accuracy: %.2lf%%, original accuracy: %.2lf%% (delta: %.2f%%)\n", accuracy, og_accuracy, accuracy - og_accuracy);
     DEALLOCATE_TENSORS(inputs, outputs);
     deallocate_args(args);
