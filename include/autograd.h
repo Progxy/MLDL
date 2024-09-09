@@ -338,4 +338,16 @@ void forward_pass(GradNode* node) {
     return;
 }
 
+void print_grad_node(GradNode* node) {
+    if (!node -> children_count) {
+        printf("'%p'\n\n", (void*) node);
+        return;
+    }
+    printf("'%p' -> ", (void*) node);
+    for (unsigned int i = 0; i < node -> children_count; ++i) {
+        print_grad_node(node -> children[i]);
+    }
+    return;
+}
+
 #endif //_AUTOGRAD_H_
