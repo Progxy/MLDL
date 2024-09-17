@@ -37,6 +37,8 @@ static void rand_nn(NN* nn) {
     for (unsigned int l = 1; l < nn -> size; ++l) {
         randomize_tensor(nn -> layers[l].weights);
         normal(&(nn -> layers[l].weights));
+        randomize_tensor(nn -> layers[l].biases);
+        normal(&(nn -> layers[l].biases));
         copy_tensor(NODE_TENSOR(nn -> layers[l].weights.grad_node), nn -> layers[l].weights);
         copy_tensor(NODE_TENSOR(nn -> layers[l].biases.grad_node), nn -> layers[l].biases);
     }
@@ -45,12 +47,17 @@ static void rand_nn(NN* nn) {
 
 static void print_layer(Layer layer, bool is_input_layer, bool print_layer_flag) {
     printf("\tactivation: \n");
-    PRINT_TENSOR(print_layer_flag ? layer.activation : *NODE_TENSOR(layer.activation.grad_node), "\t");
+    if (print_layer_flag) PRINT_TENSOR(layer.activation, "\t");
+    else PRINT_TENSOR(*NODE_TENSOR(layer.activation.grad_node), "\t");
+
     if (!is_input_layer || print_layer_flag) {
         printf("\tweigths: \n");
-        PRINT_TENSOR(print_layer_flag ? layer.weights : *NODE_TENSOR(layer.weights.grad_node), "\t");
+        if (print_layer_flag) PRINT_TENSOR(layer.weights, "\t");
+        else PRINT_TENSOR(*NODE_TENSOR(layer.weights.grad_node), "\t");
+
         printf("\tbias: \n");
-        PRINT_TENSOR(print_layer_flag ? layer.biases : *NODE_TENSOR(layer.biases.grad_node), "\t");
+        if (print_layer_flag) PRINT_TENSOR(layer.biases, "\t");
+        else PRINT_TENSOR(*NODE_TENSOR(layer.biases.grad_node), "\t");
     }
     printf("\n");
     return;
