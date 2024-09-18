@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "./include/functions.h"
 #include "./include/loader.h"
+#include "include/utils.h"
 
 int main(void) {
     init_seed();
@@ -37,6 +38,7 @@ int main(void) {
 
     /* Args order: alpha, eps, first_moment_decay, second_moment_decay */
     void** args = GENERATE_ARGS(nn.data_type, 0.001L, 10e-8L, 0.9L, 0.999L);
+    ASSERT(args == NULL, "INVALID_ARGS: args must be 'long double'");
 
     long double og_accuracy = 0.0L;
     get_accuracy(&og_accuracy, nn, inputs, outputs);
