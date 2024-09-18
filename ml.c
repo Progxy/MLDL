@@ -38,13 +38,6 @@ int main(void) {
     /* Args order: alpha, eps, first_moment_decay, second_moment_decay */
     void** args = GENERATE_ARGS(nn.data_type, 0.001L, 10e-8L, 0.9L, 0.999L);
 
-    void* alpha = args[0];
-    void* eps = args[1];
-    void* first_moment = args[2];
-    void* second_moment = args[3];
-
-    printf("alpha: %Lf, eps: %Lf, first_moment: %Lf, second_moment: %Lf\n", *CAST_PTR(alpha, long double), *CAST_PTR(eps, long double), *CAST_PTR(first_moment, long double), *CAST_PTR(second_moment, long double));
-
     long double og_accuracy = 0.0L;
     get_accuracy(&og_accuracy, nn, inputs, outputs);
     TRAIN_NN(nn, inputs, outputs, args, 1000);
