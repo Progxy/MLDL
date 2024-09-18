@@ -379,7 +379,8 @@ void** generate_args(int len, ...) {
     va_list args;
     va_start(args, len);
     unsigned int data_type = va_arg(args, unsigned int);
-    void** args_list = (void**) calloc(len + 1, data_type);
+    printf("data_type: %u\n", data_type);
+    void** args_list = (void**) calloc(len + 1, sizeof(void*));
     for (int i = 0; i < len; ++i) {
         void* ptr = (void*) calloc(1, data_type);
         ASSIGN(ptr, va_arg(args, long double), data_type);
