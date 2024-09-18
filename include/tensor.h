@@ -2,6 +2,7 @@
 #define _TENSOR_H_
 
 #include "./utils.h"
+#include "types.h"
 
 #define EMPTY_TENSORS(data_type, ...) empty_tensors((sizeof((Tensor*[]){__VA_ARGS__}) / sizeof(Tensor*)), data_type, __VA_ARGS__)
 #define DEALLOCATE_TENSORS(...) deallocate_tensors(sizeof((Tensor[]){__VA_ARGS__}) / sizeof(Tensor), __VA_ARGS__)
@@ -35,6 +36,15 @@
 #define SCALAR_DIV_TENSOR(a, val) scalar_op_tensor(a, val, DIVISION)
 #define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUM)
 
+// TENSOR COMPARISON OPERATIONS_TENSOR
+#define IS_GREATER_OR_EQUAL_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, GREATER_OR_EQUAL)
+#define IS_LESS_OR_EQUAL_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, LESS_OR_EQUAL)
+#define IS_POSITIVE_TENSOR(a, data_type) comparison_op_tensor(a, NULL, data_type, POSITIVE)
+#define IS_NEGATIVE_TENSOR(a, data_type) comparison_op_tensor(a, NULL, data_type, NEGATIVE)
+#define IS_GREATER_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, GREATER)
+#define IS_EQUAL_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, EQUAL)
+#define IS_LESS_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, LESS)
+
 Tensor alloc_temp_tensor(unsigned int* shape, unsigned int rank, DataType data_type, bool clean_cache_flag);
 Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
 Tensor* reshape_tensor(Tensor* dest, unsigned int* shape, unsigned int rank, DataType data_type);
@@ -43,6 +53,7 @@ Tensor identity_tensor(unsigned int shape_base, unsigned int rank, DataType data
 Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type);
 Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
+bool comparison_op_tensor(Tensor a, Tensor b, ComparisonFlag cmp_flag);
 void print_tensor(Tensor tensor, char* prefix_str, char* tensor_name);
 unsigned int tensor_size(unsigned int* shape, unsigned int rank);
 Tensor alloc_scalar_tensor(void* val, DataType data_type);
@@ -453,6 +464,15 @@ Tensor* normal(Tensor* tensor) {
     for (unsigned int i = 0; i < size; ++i) normal_func(CAST_PTR_AT_INDEX(tensor -> data, i, tensor -> data_type), CAST_PTR_AT_INDEX(tensor -> data, i, tensor -> data_type), variance, mean, tensor -> data_type);
     DEALLOCATE_PTRS(variance, mean);
     return tensor;
+}
+
+bool comparison_op_tensor(Tensor a, Tensor b, ComparisonFlag cmp_flag) {
+    ASSERT(a.data_type != b.data_type, "DATA_TYPE_MISMATCH");
+    ASSERT(TENSOR_SIZE(a) != TENSOR_SIZE(b), "SIZE_MISMATCH");
+    for (unsigned int i = 0; i < TENSOR_SIZE(a); ++i) {
+        if (comparison_op(CAST_PTR_AT_INDEX(a.data, i, a.data_type), CAST_PTR_AT_INDEX(b.data, i, b.data_type), a.data_type, cmp_flag) == FALSE) return FALSE;
+    }
+    return TRUE;
 }
 
 #endif //_TENSOR_H_

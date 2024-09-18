@@ -2,6 +2,7 @@
 #define _NEURONS_H_
 
 #include "./autograd.h"
+#include "utils.h"
 
 #define INPUT_NN(nn) (nn).layers[0].activation
 #define OUTPUT_NN(nn) (nn).layers[(nn).size - 1].activation
@@ -157,15 +158,14 @@ void unflatten_nn(NN nn, Tensor* tensor) {
 
 void init_nn(NN* nn, bool randomize_flag) {
     if (randomize_flag) rand_nn(nn);
-    Tensor res = nn -> layers[0].activation_function(&(nn -> layers[0].activation));
+    nn -> layers[0].activation = nn -> layers[0].activation_function(&(nn -> layers[0].activation));
     for (unsigned int i = 1; i < nn -> size; ++i) {
-        TENSOR_GRAPH_DOT(&(nn -> layers[i].activation), res, nn -> layers[i].weights);
+        TENSOR_GRAPH_DOT(&(nn -> layers[i].activation), nn -> layers[i - 1].activation, nn -> layers[i].weights);
         TENSOR_GRAPH_SUM(&(nn -> layers[i].activation), nn -> layers[i].activation, nn -> layers[i].biases);
-        DEALLOCATE_TENSORS(res);
-        res = nn -> layers[i].activation_function(&(nn -> layers[i].activation));
+        nn -> layers[i].activation = nn -> layers[i].activation_function(&(nn -> layers[i].activation));
     }
 
-    nn -> loss_node = res;
+    nn -> loss_node = nn -> layers[nn -> size - 1].activation;
     nn -> loss_function(nn);
 
     return;
@@ -183,16 +183,32 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
         SUM_TENSOR(&cost_tensor, cost_tensor, *(sink -> value));
     }
 
+    void* temp = (void*) calloc(1, nn.data_type);
+    ASSIGN(temp, (long double) input_size, nn.data_type);
     mem_copy(cost, cost_tensor.data, nn.data_type, 1);
+    SCALAR_DIV(cost, cost, temp, nn.data_type);
     DEALLOCATE_TENSORS(cost_tensor);
+    DEALLOCATE_PTRS(temp);
 
     return cost;
 }
 
 void* get_accuracy(void* res, NN nn, Tensor inputs, Tensor outputs) {
+    unsigned int input_size = inputs.shape[0];
+    // Check how many expected value are as expected
+    void* one = (void*) calloc(1, nn.data_type);
+    ASSIGN(one, 1.0L, nn.data_type);
+
+    for (unsigned int i = 0; i < input_size; ++i) {
+        extract_tensor(NODE_TENSOR(INPUT_NN(nn).grad_node), inputs, i, 0);
+        extract_tensor(NODE_TENSOR(nn.loss_input.grad_node), outputs, i, 0);
+        forward_pass(INPUT_NN(nn).grad_node);
+    }
+
     void* temp = (void*) calloc(1, nn.data_type);
     void* tmp = (void*) calloc(1, nn.data_type);
-    SCALAR_MUL(res, SCALAR_SUB(res, ASSIGN(res, 1.0L, nn.data_type), cost(nn, inputs, outputs, temp), nn.data_type), ASSIGN(tmp, 100.0L, nn.data_type), nn.data_type);
+    SCALAR_SUB(res, ASSIGN(res, 1.0L, nn.data_type), cost(nn, inputs, outputs, temp), nn.data_type);
+    SCALAR_MUL(res, res, ASSIGN(tmp, 100.0L, nn.data_type), nn.data_type);
     DEALLOCATE_PTRS(temp, tmp);
     return res;
 }

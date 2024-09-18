@@ -7,7 +7,7 @@ int main(void) {
     init_seed();
 
     unsigned int arch[] = {9, 10, 12, 10, 1};
-    ActivationFunction activation_functions[] = {gelu, gelu, gelu, gelu, sigmoid};
+    ActivationFunction activation_functions[] = {gelu, gelu, gelu, tan_h, sigmoid};
     ASSERT(ARR_SIZE(activation_functions) != ARR_SIZE(arch), "SIZE_MISMATCH");
     NN nn = create_nn(ARR_SIZE(arch), arch, activation_functions, binary_cross_entropy, adam_optim, FLOAT_128);
     init_nn(&nn, TRUE);
