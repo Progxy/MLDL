@@ -37,13 +37,13 @@
 #define SCALAR_SUM_TENSOR(a, val) scalar_op_tensor(a, val, SUM)
 
 // TENSOR COMPARISON OPERATIONS_TENSOR
-#define IS_GREATER_OR_EQUAL_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, GREATER_OR_EQUAL)
-#define IS_LESS_OR_EQUAL_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, LESS_OR_EQUAL)
-#define IS_POSITIVE_TENSOR(a, data_type) comparison_op_tensor(a, NULL, data_type, POSITIVE)
-#define IS_NEGATIVE_TENSOR(a, data_type) comparison_op_tensor(a, NULL, data_type, NEGATIVE)
-#define IS_GREATER_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, GREATER)
-#define IS_EQUAL_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, EQUAL)
-#define IS_LESS_TENSOR(a, b, data_type) comparison_op_tensor(a, b, data_type, LESS)
+#define IS_GREATER_OR_EQUAL_TENSOR(a, b) comparison_op_tensor(a, b, GREATER_OR_EQUAL)
+#define IS_LESS_OR_EQUAL_TENSOR(a, b) comparison_op_tensor(a, b, LESS_OR_EQUAL)
+#define IS_POSITIVE_TENSOR(a) comparison_op_tensor(a, NULL, POSITIVE)
+#define IS_NEGATIVE_TENSOR(a) comparison_op_tensor(a, NULL, NEGATIVE)
+#define IS_GREATER_TENSOR(a, b) comparison_op_tensor(a, b, GREATER)
+#define IS_EQUAL_TENSOR(a, b) comparison_op_tensor(a, b, EQUAL)
+#define IS_LESS_TENSOR(a, b) comparison_op_tensor(a, b, LESS)
 
 Tensor alloc_temp_tensor(unsigned int* shape, unsigned int rank, DataType data_type, bool clean_cache_flag);
 Tensor* contract_tensor(Tensor* tensor, unsigned int contraction_index_a, unsigned int contraction_index_b);
@@ -52,6 +52,7 @@ Tensor* extract_tensor(Tensor* out, Tensor tensor, unsigned int index, unsigned 
 Tensor identity_tensor(unsigned int shape_base, unsigned int rank, DataType data_type);
 Tensor alloc_tensor(unsigned int* shape, unsigned int rank, DataType data_type);
 Tensor* scalar_op_tensor(Tensor* tensor, void* scalar, OperatorFlag op_flag);
+void threshold_tensor(Tensor a, void* threshold, void* upper, void* lower);
 Tensor* op_tensor(Tensor* c, Tensor a, Tensor b, OperatorFlag op_flag);
 bool comparison_op_tensor(Tensor a, Tensor b, ComparisonFlag cmp_flag);
 void print_tensor(Tensor tensor, char* prefix_str, char* tensor_name);
@@ -473,6 +474,14 @@ bool comparison_op_tensor(Tensor a, Tensor b, ComparisonFlag cmp_flag) {
         if (comparison_op(CAST_PTR_AT_INDEX(a.data, i, a.data_type), CAST_PTR_AT_INDEX(b.data, i, b.data_type), a.data_type, cmp_flag) == FALSE) return FALSE;
     }
     return TRUE;
+}
+
+void threshold_tensor(Tensor a, void* threshold, void* upper, void* lower) {
+    for (unsigned int i = 0; i < TENSOR_SIZE(a); ++i) {
+        if (IS_GREATER_OR_EQUAL(CAST_PTR_AT_INDEX(a.data, i, a.data_type), threshold, a.data_type)) mem_copy(CAST_PTR_AT_INDEX(a.data, i, a.data_type), upper, a.data_type, 1);
+        else mem_copy(CAST_PTR_AT_INDEX(a.data, i, a.data_type), lower, a.data_type, 1);
+    }
+    return;
 }
 
 #endif //_TENSOR_H_

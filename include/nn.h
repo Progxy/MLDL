@@ -2,6 +2,8 @@
 #define _NEURONS_H_
 
 #include "./autograd.h"
+#include "tensor.h"
+#include "types.h"
 #include "utils.h"
 
 #define INPUT_NN(nn) (nn).layers[0].activation
@@ -195,28 +197,36 @@ void* cost(NN nn, Tensor inputs, Tensor outputs, void* cost) {
 
 void* get_accuracy(void* res, NN nn, Tensor inputs, Tensor outputs) {
     unsigned int input_size = inputs.shape[0];
-    // Check how many expected value are as expected
     void* one = (void*) calloc(1, nn.data_type);
+    void* zero = (void*) calloc(1, nn.data_type);
+    void* threshold = (void*) calloc(1, nn.data_type);
     ASSIGN(one, 1.0L, nn.data_type);
+    ASSIGN(threshold, 0.5L, nn.data_type);
+    Tensor temp_tensor = empty_tensor(nn.data_type);
 
     for (unsigned int i = 0; i < input_size; ++i) {
         extract_tensor(NODE_TENSOR(INPUT_NN(nn).grad_node), inputs, i, 0);
-        extract_tensor(NODE_TENSOR(nn.loss_input.grad_node), outputs, i, 0);
         forward_pass(INPUT_NN(nn).grad_node);
+        extract_tensor(&temp_tensor, outputs, i, 0);
+        threshold_tensor(OUTPUT_NN(nn), threshold, one, zero);
+        if (IS_EQUAL_TENSOR(temp_tensor, OUTPUT_NN(nn))) SCALAR_SUM(res, res, one, nn.data_type);
     }
 
+    DEALLOCATE_TENSORS(temp_tensor);
+
     void* temp = (void*) calloc(1, nn.data_type);
-    void* tmp = (void*) calloc(1, nn.data_type);
-    SCALAR_SUB(res, ASSIGN(res, 1.0L, nn.data_type), cost(nn, inputs, outputs, temp), nn.data_type);
-    SCALAR_MUL(res, res, ASSIGN(tmp, 100.0L, nn.data_type), nn.data_type);
-    DEALLOCATE_PTRS(temp, tmp);
+    ASSIGN(temp, (long double) input_size, nn.data_type);
+    SCALAR_DIV(res, res, temp, nn.data_type);
+    SCALAR_MUL(res, res, ASSIGN(temp, 100.0L, nn.data_type), nn.data_type);
+    DEALLOCATE_PTRS(temp, one, zero, threshold);
+
     return res;
 }
 
 Tensor* predict(NN nn, Tensor input, Tensor* output) {
     copy_tensor(&INPUT_NN(nn), input);
     forward_pass(INPUT_NN(nn).grad_node);
-    copy_tensor(output, *(CAST_PTR(nn.loss_node.grad_node, GradNode) -> value));
+    copy_tensor(output, *NODE_TENSOR(OUTPUT_NN(nn).grad_node));
     return output;
 }
 
