@@ -9,11 +9,11 @@ int main(void) {
     unsigned int arch[] = {9, 10, 12, 10, 1};
     ActivationFunction activation_functions[] = {gelu, gelu, gelu, gelu, sigmoid};
     ASSERT(ARR_SIZE(activation_functions) != ARR_SIZE(arch), "SIZE_MISMATCH");
-    NN nn = create_nn(ARR_SIZE(arch), arch, activation_functions, binary_cross_entropy, adam_optim, FLOAT_64);
+    NN nn = create_nn(ARR_SIZE(arch), arch, activation_functions, binary_cross_entropy, adam_optim, FLOAT_128);
     init_nn(&nn, TRUE);
 
     char* input_valid_values[] = { "b", "x", "o" };
-    double input_mapped_values[] = { 0.0, 1.0, 2.0 };
+    long double input_mapped_values[] = { 0.0, 1.0, 2.0 };
 
     ValueCheck input_values = (ValueCheck) {
         .size = 3,
@@ -22,7 +22,7 @@ int main(void) {
     };
 
     char* output_valid_values[] = {"negative", "positive"};
-    double output_mapped_values[] = {0, 1};
+    long double output_mapped_values[] = {0, 1};
 
     ValueCheck output_values = (ValueCheck) {
         .size = 2,
@@ -38,12 +38,12 @@ int main(void) {
     /* Args order: alpha, eps, first_moment_decay, second_moment_decay */
     void** args = GENERATE_ARGS(nn.data_type, 0.001, 10e-8, 0.9, 0.999);
 
-    double og_accuracy = 0.0;
+    long double og_accuracy = 0.0;
     get_accuracy(&og_accuracy, nn, inputs, outputs);
     TRAIN_NN(nn, inputs, outputs, args, 1000);
-    double accuracy = 0.0;
+    long double accuracy = 0.0;
     get_accuracy(&accuracy, nn, inputs, outputs);
-    printf("NN accuracy: %.2lf%%, original accuracy: %.2lf%% (delta: %.2f%%)\n", accuracy, og_accuracy, accuracy - og_accuracy);
+    printf("NN accuracy: %.2Lf%%, original accuracy: %.2Lf%% (delta: %.2Lf%%)\n", accuracy, og_accuracy, accuracy - og_accuracy);
     DEALLOCATE_TENSORS(inputs, outputs);
     deallocate_args(args);
 
@@ -55,7 +55,7 @@ int main(void) {
     predict(nn, input_tensor, &output_tensor);
     printf("input: ");
     for (unsigned char i = 0; i < 9; ++i) printf("'%c'%c", predict_input[i] == 0.0 ? 'b' : predict_input[i] == 1.0 ? 'x' : 'o', i == 8 ? '\n' : ',');
-    printf("result: %.2lf%% 'positive'\n", CAST_PTR(output_tensor.data, double)[0] * 100.0);
+    printf("result: %.2Lf%% 'positive'\n", CAST_PTR(output_tensor.data, long double)[0] * 100.0);
     DEALLOCATE_TENSORS(input_tensor, output_tensor);
 
     deallocate_nn(nn);

@@ -159,7 +159,8 @@ void init_nn(NN* nn, bool randomize_flag) {
     if (randomize_flag) rand_nn(nn);
     Tensor res = nn -> layers[0].activation_function(&(nn -> layers[0].activation));
     for (unsigned int i = 1; i < nn -> size; ++i) {
-        TENSOR_GRAPH_SUM(&(nn -> layers[i].activation), *TENSOR_GRAPH_DOT(&(nn -> layers[i].activation), res, nn -> layers[i].weights), nn -> layers[i].biases);
+        TENSOR_GRAPH_DOT(&(nn -> layers[i].activation), res, nn -> layers[i].weights);
+        TENSOR_GRAPH_SUM(&(nn -> layers[i].activation), nn -> layers[i].activation, nn -> layers[i].biases);
         DEALLOCATE_TENSORS(res);
         res = nn -> layers[i].activation_function(&(nn -> layers[i].activation));
     }

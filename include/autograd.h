@@ -1,4 +1,4 @@
- #ifndef _AUTOGRAD_H_
+#ifndef _AUTOGRAD_H_
 #define _AUTOGRAD_H_
 
 #include <stdlib.h>
@@ -340,15 +340,12 @@ void forward_pass(GradNode* node) {
     return;
 }
 
-void print_grad_node(GradNode* node) {
-    if (!node -> children_count) {
-        printf("'%p'\n\n", (void*) node);
-        return;
-    }
-    printf("'%p' -> ", (void*) node);
-    for (unsigned int i = 0; i < node -> children_count; ++i) {
-        print_grad_node(node -> children[i]);
-    }
+void print_grad_node(GradNode* node, unsigned int depth) {
+    printf("_[%u]", depth);
+    printf("'%p'", (void*) node);
+    if (node -> children_count) printf(":\n");
+    else printf(".\n\n");
+    for (unsigned int i = 0; i < node -> children_count; ++i) print_grad_node(node -> children[i], depth + 1);
     return;
 }
 
